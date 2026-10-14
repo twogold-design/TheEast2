@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.npm-cache/
+*.log
+.godot/
+.godot-user/
+saves/
+build/
+.blender-user/
+.godot/
+.godot-user/
+saves/

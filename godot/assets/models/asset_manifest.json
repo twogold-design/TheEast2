@@ -1,0 +1,183 @@
+{
+  "generator": "tools/generate_lowpoly_assets.py",
+  "art_version": 1,
+  "tile_meters": 2.0,
+  "coordinate_contract": "ground center origin; Godot +Z building entrance",
+  "palette": {
+    "ink": "#2f3433",
+    "plaster": "#d7c29e",
+    "warm_plaster": "#c98963",
+    "wood": "#8a5c3b",
+    "dark_wood": "#51392d",
+    "thatch": "#b79a61",
+    "tile": "#536c73",
+    "tile_light": "#698187",
+    "brick": "#9b6048",
+    "stone": "#747872",
+    "stone_light": "#96998f",
+    "soil": "#805e3d",
+    "crop": "#769154",
+    "grain": "#d6a74a",
+    "leaf": "#506f51",
+    "leaf_light": "#66825e",
+    "lantern": "#b94a42",
+    "lantern_light": "#f2b45b",
+    "skin": "#e2b889",
+    "cloth_blue": "#5d8792",
+    "cloth_rust": "#b8684b",
+    "cloth_green": "#708c62",
+    "cloth_gold": "#c8973e"
+  },
+  "assets": [
+    {
+      "file": "building_house.glb",
+      "root": "Building_House",
+      "asset_type": "building",
+      "building_type": "house",
+      "mesh_parts": 24,
+      "triangles_unmodified": 384,
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z"
+    },
+    {
+      "file": "building_lumber.glb",
+      "root": "Building_Lumber",
+      "asset_type": "building",
+      "building_type": "lumber",
+      "mesh_parts": 18,
+      "triangles_unmodified": 368,
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z"
+    },
+    {
+      "file": "building_farm.glb",
+      "root": "Building_Farm",
+      "asset_type": "building",
+      "building_type": "farm",
+      "mesh_parts": 32,
+      "triangles_unmodified": 552,
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z"
+    },
+    {
+      "file": "building_warehouse.glb",
+      "root": "Building_Warehouse",
+      "asset_type": "building",
+      "building_type": "warehouse",
+      "mesh_parts": 15,
+      "triangles_unmodified": 196,
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z"
+    },
+    {
+      "file": "building_workshop.glb",
+      "root": "Building_Workshop",
+      "asset_type": "building",
+      "building_type": "workshop",
+      "mesh_parts": 16,
+      "triangles_unmodified": 252,
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z"
+    },
+    {
+      "file": "prop_bridge.glb",
+      "root": "Bridge_Wood_01",
+      "asset_type": "bridge",
+      "building_type": "",
+      "mesh_parts": 22,
+      "triangles_unmodified": 344,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_tree_01.glb",
+      "root": "Tree_00",
+      "asset_type": "tree",
+      "building_type": "",
+      "mesh_parts": 3,
+      "triangles_unmodified": 68,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_tree_02.glb",
+      "root": "Tree_01",
+      "asset_type": "tree",
+      "building_type": "",
+      "mesh_parts": 3,
+      "triangles_unmodified": 68,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_tree_03.glb",
+      "root": "Tree_02",
+      "asset_type": "tree",
+      "building_type": "",
+      "mesh_parts": 4,
+      "triangles_unmodified": 88,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_rock_01.glb",
+      "root": "Rock_00",
+      "asset_type": "rock",
+      "building_type": "",
+      "mesh_parts": 2,
+      "triangles_unmodified": 40,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_rock_02.glb",
+      "root": "Rock_01",
+      "asset_type": "rock",
+      "building_type": "",
+      "mesh_parts": 2,
+      "triangles_unmodified": 40,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_rock_03.glb",
+      "root": "Rock_02",
+      "asset_type": "rock",
+      "building_type": "",
+      "mesh_parts": 2,
+      "triangles_unmodified": 40,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_lantern.glb",
+      "root": "LanternPost",
+      "asset_type": "lantern",
+      "building_type": "",
+      "mesh_parts": 7,
+      "triangles_unmodified": 156,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "prop_crops.glb",
+      "root": "CropPatch",
+      "asset_type": "crops",
+      "building_type": "",
+      "mesh_parts": 27,
+      "triangles_unmodified": 468,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    },
+    {
+      "file": "character_citizen.glb",
+      "root": "Citizen_01",
+      "asset_type": "citizen",
+      "building_type": "",
+      "mesh_parts": 7,
+      "triangles_unmodified": 160,
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a"
+    }
+  ]
+}

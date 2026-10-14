@@ -1,0 +1,278 @@
+{
+  "generator": "tools/generate_realistic_assets.py",
+  "tier": "realistic_full_v1",
+  "art_version": 2,
+  "tile_meters": 2.0,
+  "coordinate_contract": "meters; ground center origin; Godot +Z building entrance",
+  "pbr_channels": [
+    "basecolor",
+    "roughness",
+    "normal"
+  ],
+  "texture_resolution": 256,
+  "coverage": "15/15",
+  "preview": "godot/assets/realistic/previews/realistic_full_asset_sheet.png",
+  "source": "godot/assets/realistic/source/east_valley_realistic_full.blend",
+  "assets": [
+    {
+      "file": "building_house.glb",
+      "root": "Realistic_House",
+      "asset_type": "building",
+      "fallback_key": "house",
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z",
+      "mesh_parts": 177,
+      "triangles_before_modifiers": 9204,
+      "materials": [
+        "MR_brass",
+        "MR_paint_red",
+        "MR_plaster",
+        "MR_roof_tile",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "building_lumber.glb",
+      "root": "Realistic_Lumber",
+      "asset_type": "building",
+      "fallback_key": "lumber",
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z",
+      "mesh_parts": 168,
+      "triangles_before_modifiers": 10176,
+      "materials": [
+        "MR_bark",
+        "MR_brass",
+        "MR_iron",
+        "MR_roof_tile",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "building_farm.glb",
+      "root": "Realistic_Farm",
+      "asset_type": "building",
+      "fallback_key": "farm",
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z",
+      "mesh_parts": 112,
+      "triangles_before_modifiers": 3628,
+      "materials": [
+        "MR_cloth",
+        "MR_crop",
+        "MR_grain",
+        "MR_rope",
+        "MR_soil",
+        "MR_stone",
+        "MR_water",
+        "MR_wet_soil",
+        "MR_wood_dark"
+      ]
+    },
+    {
+      "file": "building_warehouse.glb",
+      "root": "Realistic_Warehouse",
+      "asset_type": "building",
+      "fallback_key": "warehouse",
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z",
+      "mesh_parts": 196,
+      "triangles_before_modifiers": 12368,
+      "materials": [
+        "MR_brass",
+        "MR_iron",
+        "MR_plaster",
+        "MR_roof_tile",
+        "MR_rope",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "building_workshop.glb",
+      "root": "Realistic_Workshop",
+      "asset_type": "building",
+      "fallback_key": "workshop",
+      "origin": "ground_center",
+      "godot_entrance_axis": "+Z",
+      "mesh_parts": 186,
+      "triangles_before_modifiers": 11396,
+      "materials": [
+        "MR_brass",
+        "MR_brick",
+        "MR_iron",
+        "MR_lantern_paper",
+        "MR_roof_tile",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "prop_tree_01.glb",
+      "root": "Realistic_Tree_01",
+      "asset_type": "tree",
+      "fallback_key": "tree",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 20,
+      "triangles_before_modifiers": 1156,
+      "materials": [
+        "MR_bark",
+        "MR_leaf",
+        "MR_leaf_light"
+      ]
+    },
+    {
+      "file": "prop_tree_02.glb",
+      "root": "Realistic_Tree_02",
+      "asset_type": "tree",
+      "fallback_key": "tree",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 62,
+      "triangles_before_modifiers": 5724,
+      "materials": [
+        "MR_bark",
+        "MR_leaf",
+        "MR_leaf_light"
+      ]
+    },
+    {
+      "file": "prop_tree_03.glb",
+      "root": "Realistic_Tree_03",
+      "asset_type": "tree",
+      "fallback_key": "tree",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 136,
+      "triangles_before_modifiers": 8792,
+      "materials": [
+        "MR_bark",
+        "MR_leaf",
+        "MR_leaf_light"
+      ]
+    },
+    {
+      "file": "prop_rock_01.glb",
+      "root": "Realistic_Rock_01",
+      "asset_type": "rock",
+      "fallback_key": "rock",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 7,
+      "triangles_before_modifiers": 500,
+      "materials": [
+        "MR_rock",
+        "MR_stone"
+      ]
+    },
+    {
+      "file": "prop_rock_02.glb",
+      "root": "Realistic_Rock_02",
+      "asset_type": "rock",
+      "fallback_key": "rock",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 13,
+      "triangles_before_modifiers": 1040,
+      "materials": [
+        "MR_rock",
+        "MR_stone"
+      ]
+    },
+    {
+      "file": "prop_rock_03.glb",
+      "root": "Realistic_Rock_03",
+      "asset_type": "rock",
+      "fallback_key": "rock",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 13,
+      "triangles_before_modifiers": 1760,
+      "materials": [
+        "MR_rock",
+        "MR_stone"
+      ]
+    },
+    {
+      "file": "prop_lantern.glb",
+      "root": "Realistic_Lantern",
+      "asset_type": "lantern",
+      "fallback_key": "lantern",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 23,
+      "triangles_before_modifiers": 2720,
+      "materials": [
+        "MR_brass",
+        "MR_lantern_paper",
+        "MR_paint_red",
+        "MR_rope",
+        "MR_stone",
+        "MR_wood_dark"
+      ]
+    },
+    {
+      "file": "prop_bridge.glb",
+      "root": "Realistic_Bridge",
+      "asset_type": "bridge",
+      "fallback_key": "bridge",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 58,
+      "triangles_before_modifiers": 6248,
+      "materials": [
+        "MR_brass",
+        "MR_rope",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "prop_crops.glb",
+      "root": "Realistic_Crops",
+      "asset_type": "crops",
+      "fallback_key": "crops",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 268,
+      "triangles_before_modifiers": 8648,
+      "materials": [
+        "MR_brass",
+        "MR_leaf",
+        "MR_leaf_light",
+        "MR_rock",
+        "MR_roof_tile",
+        "MR_rope",
+        "MR_stone",
+        "MR_wood_dark",
+        "MR_wood_warm"
+      ]
+    },
+    {
+      "file": "character_citizen.glb",
+      "root": "Realistic_Citizen",
+      "asset_type": "citizen",
+      "fallback_key": "citizen",
+      "origin": "ground_center",
+      "godot_entrance_axis": "n/a",
+      "mesh_parts": 20,
+      "triangles_before_modifiers": 2556,
+      "materials": [
+        "MR_brass",
+        "MR_cloth",
+        "MR_cloth_blue",
+        "MR_hair",
+        "MR_rope",
+        "MR_skin"
+      ]
+    }
+  ]
+}
