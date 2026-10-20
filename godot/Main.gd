@@ -20,7 +20,7 @@ const CAMERA_EDGE_SAFETY_MARGIN := 3.0
 const CAMERA_MIN_PITCH_DEGREES := 30.0
 const CAMERA_MAX_PITCH_DEGREES := 70.0
 const EDITOR_SAVE_PATH := "res://saves/savegame.json"
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 const VICTORY_POPULATION := 45
 const VICTORY_WOOD := 200
 const VICTORY_FOOD := 200
@@ -31,6 +31,13 @@ const AUTO_DAY_SECONDS := 8.0
 const TIME_SPEEDS := [1.0, 2.0, 4.0]
 const BASIC_TRADE_COINS_PER_SITE := 2
 const BASIC_TRADE_COIN_CAP := 4
+const ROAD_WOOD_COST := 1
+const ROAD_TRANSPORT_BONUS := 1
+const ROAD_TRANSPORT_COIN_CAP := 6
+const ROAD_ELIGIBLE_BUILDING_TYPES := ["farm", "lumber", "workshop", "market", "academy"]
+const VILLAGE_ROAD_X := 10
+const VILLAGE_ROAD_MIN_Z := 4
+const VILLAGE_ROAD_MAX_Z := 15
 const NPC_SCHEDULE_SECONDS := 72.0
 const NPC_MOVE_SPEED := 1.10
 const NPC_PHYSICS_STEP := 1.0 / 60.0
@@ -187,9 +194,11 @@ var ended := ""
 var next_id := 1
 var buildings: Array[Dictionary] = []
 var occupied := {}
+var roads := {}
 
 var world: Node3D
 var building_root: Node3D
+var road_root: Node3D
 var citizen_root: Node3D
 var region_visual_root: Node3D
 var camera: Camera3D
@@ -203,7 +212,9 @@ var inspector: PanelContainer
 var inspector_title: Label
 var inspector_body: Label
 var inspector_toggle_button: Button
+var inspector_demolish_button: Button
 var build_buttons := {}
+var road_button: Button
 var region_panel: PanelContainer
 var region_title: Label
 var region_body: Label
@@ -223,6 +234,8 @@ var settings_action_buttons := {}
 var confirmation_dialog: ConfirmationDialog
 var pending_confirm_action := ""
 var selected_building_id := -1
+var selected_road_cell := Vector2i(-1, -1)
+var road_tool_selected := false
 var end_layer: CanvasLayer
 var drag_button := -1
 var drag_origin := Vector2.ZERO
@@ -252,6 +265,9 @@ func create_world() -> void:
 	building_root = Node3D.new()
 	building_root.name = "Buildings"
 	world.add_child(building_root)
+	road_root = Node3D.new()
+	road_root.name = "PlayerRoads"
+	world.add_child(road_root)
 	citizen_root = Node3D.new()
 	citizen_root.name = "Citizens"
 	world.add_child(citizen_root)
@@ -1282,6 +1298,10 @@ func create_ui() -> void:
 		category_button.tooltip_text = "查看%s建筑" % category_name
 		category_row.add_child(category_button)
 		build_category_buttons[category] = category_button
+	road_button = make_compact_button("铺路 · 木%d/格" % ROAD_WOOD_COST, select_road_tool, Vector2(132, 31), Color("d8c39d"))
+	road_button.toggle_mode = true
+	road_button.tooltip_text = "逐格铺设道路。相邻道路连回村庄主路后，正常运行的生产建筑铜钱 +%d/日，全城上限 +%d。" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
+	category_row.add_child(road_button)
 	bottom_actions = HBoxContainer.new()
 	bottom_actions.add_theme_constant_override("separation", 8)
 	bottom_actions.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1335,7 +1355,8 @@ func create_ui() -> void:
 	inspector_toggle_button = make_action_button("暂停生产", toggle_selected_building, Color("e7dfc5"))
 	inspector_toggle_button.custom_minimum_size.y = 38
 	inspect_box.add_child(inspector_toggle_button)
-	inspect_box.add_child(make_action_button("删除建筑（返还一半木材与铜钱）", demolish_selected, Color("f0d1b8")))
+	inspector_demolish_button = make_action_button("删除建筑（返还一半木材与铜钱）", demolish_selected, Color("f0d1b8"))
+	inspect_box.add_child(inspector_demolish_button)
 
 	region_panel = PanelContainer.new()
 	region_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -1547,7 +1568,7 @@ func apply_region_panel_layout() -> void:
 		region_panel_toggle.tooltip_text = "展开目标栏"
 	else:
 		region_panel.offset_left = -398
-		region_panel.offset_bottom = 468
+		region_panel.offset_bottom = 430
 		region_title.add_theme_font_size_override("font_size", 20)
 		region_body.visible = true
 		region_unlock_button.visible = true
@@ -1591,6 +1612,8 @@ func select_build_category(category: String) -> void:
 	if category not in ["basic", "industry", "civic"]:
 		return
 	build_category = category
+	road_tool_selected = false
+	clear_ghost()
 	if selected_type != "" and not building_in_build_category(selected_type, category):
 		selected_type = ""
 		clear_ghost()
@@ -1709,6 +1732,10 @@ func building_effect_lines(type: String) -> Array[String]:
 		lines.append("运行效果：日结幸福度目标 +%d（%s合计上限 +%d）" % [
 			happiness_gain, definition.name, int(definition.get("effect_cap", happiness_gain))
 		])
+	if type in ROAD_ELIGIBLE_BUILDING_TYPES:
+		lines.append("道路运输：相邻道路接通村庄主路且本日正常运行时，铜钱 +%d（全城上限 +%d）" % [
+			ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP
+		])
 	return lines
 
 func building_effect_text(type: String) -> String:
@@ -1728,9 +1755,28 @@ func update_build_menu() -> void:
 		var unlocked := building_is_unlocked(str(type))
 		button.visible = in_category
 		button.disabled = ended != "" or not unlocked
-		button.button_pressed = selected_type == type
+		button.button_pressed = not road_tool_selected and selected_type == type
 		button.text = "%s\n木 %d · 钱 %d" % [definition.name, definition.cost, definition.coin_cost] if unlocked else "%s\n%s" % [definition.name, building_unlock_text(str(type))]
 		button.tooltip_text = building_tooltip_text(str(type)) if unlocked else "%s\n%s" % [building_unlock_text(str(type)), building_tooltip_text(str(type))]
+	if road_button:
+		road_button.disabled = ended != ""
+		road_button.button_pressed = road_tool_selected
+
+func select_road_tool() -> void:
+	if ended != "":
+		return
+	if road_tool_selected:
+		cancel_building()
+		show_message("已取消铺路，进入查看模式")
+		return
+	road_tool_selected = true
+	selected_type = ""
+	selected_building_id = -1
+	selected_road_cell = Vector2i(-1, -1)
+	inspector.visible = false
+	clear_ghost()
+	show_message("铺路：木材 %d/格；道路接通村庄主路后，相邻生产建筑正常运行时铜钱 +%d/日（全城上限 +%d）" % [ROAD_WOOD_COST, ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP])
+	update_ui()
 
 func select_building(type: String) -> void:
 	if ended != "":
@@ -1743,13 +1789,16 @@ func select_building(type: String) -> void:
 		show_message("已取消摆放，进入查看模式")
 		return
 	selected_type = type
+	road_tool_selected = false
 	selected_building_id = -1
+	selected_road_cell = Vector2i(-1, -1)
 	inspector.visible = false
 	show_message("请选择格子放置%s" % BUILDINGS[type].name)
 	update_ui()
 
 func cancel_building() -> void:
 	selected_type = ""
+	road_tool_selected = false
 	clear_ghost()
 	update_ui()
 
@@ -1786,6 +1835,181 @@ func region_lock_message(level: int) -> String:
 		6: return "天际新都尚未开放。完成北关兴业主线后可开拓。"
 	return "这片区域尚未开放。"
 
+func cardinal_cells(cell: Vector2i) -> Array[Vector2i]:
+	return [
+		cell + Vector2i.LEFT, cell + Vector2i.RIGHT,
+		cell + Vector2i.UP, cell + Vector2i.DOWN,
+	]
+
+func is_village_main_road_cell(cell: Vector2i) -> bool:
+	return cell.x == VILLAGE_ROAD_X and cell.y >= VILLAGE_ROAD_MIN_Z and cell.y <= VILLAGE_ROAD_MAX_Z
+
+func is_fixed_road_infrastructure(cell: Vector2i) -> bool:
+	return is_village_main_road_cell(cell) or is_npc_bridge_cell(cell)
+
+func can_place_road(cell: Vector2i) -> String:
+	if cell.x < 0 or cell.x >= GRID_SIZE or cell.y < 0 or cell.y >= GRID_SIZE:
+		return "超出地图边界"
+	var region_level := region_level_for_cell(cell)
+	if region_level > map_region_level:
+		return region_lock_message(region_level)
+	if is_water_cell(cell):
+		return "水面不能铺设道路，请从现有桥梁通行"
+	if occupied.has(cell):
+		return "建筑占用的格子不能铺路"
+	if roads.has(cell):
+		return "这里已有道路"
+	if is_fixed_road_infrastructure(cell):
+		return "这里已有村庄主路或桥梁"
+	if is_reserved_forest(cell):
+		return "保留林地不能铺路"
+	if wood < ROAD_WOOD_COST:
+		return "木材不足（铺路需要 %d）" % ROAD_WOOD_COST
+	return ""
+
+func road_segment_connects(cell: Vector2i) -> bool:
+	return roads.has(cell) or is_village_main_road_cell(cell)
+
+func road_visual_connects(cell: Vector2i) -> bool:
+	return road_segment_connects(cell) or is_npc_bridge_cell(cell)
+
+func road_network_neighbors(cell: Vector2i) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for neighbor in cardinal_cells(cell):
+		if road_segment_connects(neighbor):
+			result.append(neighbor)
+	# A bridge is existing fixed infrastructure.  It creates one explicit edge
+	# between its two bank-access cells without turning water tiles into roads.
+	for bridge in NPC_BRIDGES:
+		var left_access := Vector2i(int(bridge.water_min_x) - 1, int(bridge.row))
+		var right_access := Vector2i(int(bridge.water_max_x) + 1, int(bridge.row))
+		if cell == left_access and road_segment_connects(right_access):
+			result.append(right_access)
+		elif cell == right_access and road_segment_connects(left_access):
+			result.append(left_access)
+	return result
+
+func create_road_model(cell: Vector2i, preview := false, preview_valid := true) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Road_%d_%d" % [cell.x, cell.y]
+	root.set_meta("road_cell", cell)
+	var color := Color(0.55, 0.43, 0.31, 0.96)
+	if preview:
+		color = Color(0.34, 0.72, 0.45, 0.68) if preview_valid else Color(0.78, 0.28, 0.24, 0.68)
+		var preview_tile := mesh_box(Vector3(TILE_SIZE - 0.18, 0.045, TILE_SIZE - 0.18), color, color.a)
+		root.add_child(preview_tile)
+		return root
+	var centre := mesh_box(Vector3(0.88, 0.055, 0.88), color)
+	centre.name = "RoadCentre"
+	root.add_child(centre)
+	var directions := [
+		{"offset": Vector3(-0.72, 0, 0), "size": Vector3(0.56, 0.05, 0.72), "cell": cell + Vector2i.LEFT},
+		{"offset": Vector3(0.72, 0, 0), "size": Vector3(0.56, 0.05, 0.72), "cell": cell + Vector2i.RIGHT},
+		{"offset": Vector3(0, 0, -0.72), "size": Vector3(0.72, 0.05, 0.56), "cell": cell + Vector2i.UP},
+		{"offset": Vector3(0, 0, 0.72), "size": Vector3(0.72, 0.05, 0.56), "cell": cell + Vector2i.DOWN},
+	]
+	for entry in directions:
+		if road_visual_connects(entry.cell):
+			var arm_size: Vector3 = entry.size
+			var arm_offset: Vector3 = entry.offset
+			if is_village_main_road_cell(entry.cell):
+				# The authored main street is 1.1 m wide inside the adjacent
+				# cell. Extend only this joining arm by the remaining 0.45 m;
+				# ordinary player-road and bridge joins keep their normal shape.
+				if entry.cell.x != cell.x:
+					arm_size.x = 1.02
+					arm_offset.x = signf(float(entry.cell.x - cell.x)) * 0.95
+				else:
+					arm_size.z = 1.02
+					arm_offset.z = signf(float(entry.cell.y - cell.y)) * 0.95
+			var arm := mesh_box(arm_size, color)
+			arm.position = arm_offset
+			root.add_child(arm)
+	# A few pale pavers break up the flat surface and keep roads readable from
+	# the high planning camera without adding an expensive unique model per tile.
+	for offset in [Vector3(-0.20, 0.035, -0.12), Vector3(0.22, 0.035, 0.16)]:
+		var paver := mesh_box(Vector3(0.25, 0.022, 0.18), Color("aa9271"))
+		paver.position = offset
+		root.add_child(paver)
+	return root
+
+func refresh_road_model(cell: Vector2i) -> void:
+	if not roads.has(cell):
+		return
+	var old_node = roads[cell]
+	if old_node != null and is_instance_valid(old_node):
+		old_node.queue_free()
+	var model := create_road_model(cell)
+	model.position = grid_to_world(cell) + Vector3(0, 0.225, 0)
+	road_root.add_child(model)
+	roads[cell] = model
+
+func refresh_road_and_neighbors(cell: Vector2i) -> void:
+	refresh_road_model(cell)
+	for neighbor in cardinal_cells(cell):
+		refresh_road_model(neighbor)
+
+func add_road(cell: Vector2i, free := false) -> void:
+	if roads.has(cell):
+		return
+	roads[cell] = null
+	if not free:
+		wood -= ROAD_WOOD_COST
+	refresh_road_and_neighbors(cell)
+
+func remove_road(cell: Vector2i, refund := true) -> void:
+	if not roads.has(cell):
+		return
+	var node = roads[cell]
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+	roads.erase(cell)
+	if refund:
+		wood = mini(wood_capacity(), wood + ROAD_WOOD_COST)
+	for neighbor in cardinal_cells(cell):
+		refresh_road_model(neighbor)
+
+func is_road_connected(cell: Vector2i) -> bool:
+	if not road_segment_connects(cell):
+		return false
+	var frontier: Array[Vector2i] = [cell]
+	var visited := {}
+	while not frontier.is_empty():
+		var current: Vector2i = frontier.pop_front()
+		if visited.has(current):
+			continue
+		visited[current] = true
+		if is_village_main_road_cell(current):
+			return true
+		for neighbor in road_network_neighbors(current):
+			if not visited.has(neighbor):
+				frontier.append(neighbor)
+	return false
+
+func building_has_connected_road(record: Dictionary) -> bool:
+	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
+		return false
+	for neighbor in cardinal_cells(record.cell):
+		if road_segment_connects(neighbor) and is_road_connected(neighbor):
+			return true
+	return false
+
+func road_bonus_for_building(record: Dictionary) -> int:
+	if not bool(record.get("enabled", true)) or not bool(record.get("last_running", false)):
+		return 0
+	var required_workers := int(BUILDINGS[record.type].workers)
+	if required_workers > 0 and int(record.get("assigned_workers", 0)) < required_workers:
+		return 0
+	if not building_has_connected_road(record):
+		return 0
+	return ROAD_TRANSPORT_BONUS
+
+func daily_road_transport_income() -> int:
+	var income := 0
+	for record in buildings:
+		income += road_bonus_for_building(record)
+	return mini(ROAD_TRANSPORT_COIN_CAP, income)
+
 func can_place(type: String, cell: Vector2i) -> String:
 	if not BUILDINGS.has(type):
 		return "未知建筑类型"
@@ -1798,12 +2022,16 @@ func can_place(type: String, cell: Vector2i) -> String:
 		return region_lock_message(region_level)
 	if is_water_cell(cell):
 		return "河道上不能建造"
+	if is_village_main_road_cell(cell):
+		return "村庄主路上不能建造"
 	if is_npc_bridge_access_cell(cell):
 		return "桥头需留出通行空间"
 	if is_reserved_forest(cell):
 		return "保留林地不能建造，请在林缘布置伐木场"
 	if occupied.has(cell):
 		return "这里已有建筑"
+	if roads.has(cell):
+		return "这里已有道路，请先拆除道路"
 	var definition: Dictionary = BUILDINGS[type]
 	if wood < int(definition.cost):
 		return "木材不足（需要 %d）" % definition.cost
@@ -1938,6 +2166,15 @@ func remove_building_by_id(building_id: int, refund := true) -> void:
 		update_citizen_schedules()
 
 func demolish_selected() -> void:
+	if roads.has(selected_road_cell):
+		var removed_cell := selected_road_cell
+		remove_road(removed_cell, true)
+		selected_road_cell = Vector2i(-1, -1)
+		inspector.visible = false
+		show_message("已拆除道路，返还木材 %d" % ROAD_WOOD_COST)
+		update_ui()
+		save_game(false)
+		return
 	if selected_building_id < 0:
 		return
 	var name := "建筑"
@@ -2027,9 +2264,9 @@ func next_day() -> void:
 			var assigned := int(record.get("assigned_workers", 0))
 			var produced_wood := int(floor(building_output(str(record.type), "wood") * assigned / float(required_workers)))
 			var produced_food := int(floor(building_output(str(record.type), "food") * assigned / float(required_workers)))
+			record.last_running = assigned > 0
 			wood_gain += produced_wood
 			food_gain += produced_food
-			record.last_running = assigned > 0
 	var wood_before_gathering := wood
 	var food_before_gathering := food
 	wood = mini(wood_capacity(), wood + wood_gain)
@@ -2098,6 +2335,8 @@ func next_day() -> void:
 			academy_income += academy_coin_output
 			running_academies += 1
 		record.last_running = true
+	var road_transport_income := daily_road_transport_income()
+	coins += road_transport_income
 
 	var population_tax := int(floor(population / 2.0))
 	# Every settlement can recover from an empty purse through a small household
@@ -2202,7 +2441,8 @@ func next_day() -> void:
 		population_message, wood_stored, wood_overflow, workshop_wood_used,
 		food_stored, food_overflow, life_food_used, workshop_food_used, market_food_used,
 		population_tax, basic_trade_income,
-		workshop_income, market_income, academy_income, maintenance_bill
+		workshop_income, market_income, academy_income, maintenance_bill,
+		road_transport_income
 	)
 	if maintenance_debt > 0:
 		summary += "；欠款 %d" % maintenance_debt
@@ -2220,7 +2460,8 @@ func daily_settlement_text(
 	population_message: String, wood_stored: int, wood_overflow: int, workshop_wood_used: int,
 	food_stored: int, food_overflow: int, life_food_used: int, workshop_food_used: int, market_food_used: int,
 	population_tax: int, basic_trade_income: int, workshop_income: int,
-	market_income: int, academy_income: int, maintenance_bill: int
+	market_income: int, academy_income: int, maintenance_bill: int,
+	road_transport_income := 0
 ) -> String:
 	var wood_parts: Array[String] = []
 	append_daily_flow(wood_parts, "伐木入库", wood_stored, true)
@@ -2247,9 +2488,12 @@ func daily_settlement_text(
 	append_daily_flow(coin_parts, "本日维护应付", maintenance_bill, false)
 	if coin_parts.is_empty():
 		coin_parts.append("无变化")
-	return "%s\n日结｜木材：%s｜粮食：%s\n铜钱｜%s" % [
+	var result := "%s\n日结｜木材：%s｜粮食：%s\n铜钱｜%s" % [
 		population_message, " · ".join(wood_parts), " · ".join(food_parts), " · ".join(coin_parts)
 	]
+	if road_transport_income > 0:
+		result += "\n道路运输｜铜钱 +%d（联网且正常运行，全城上限 +%d）" % [road_transport_income, ROAD_TRANSPORT_COIN_CAP]
+	return result
 
 func daily_basic_trade_income() -> int:
 	var income := 0
@@ -2368,19 +2612,17 @@ func update_ui() -> void:
 	if region_panel and region_title and region_body and region_unlock_button:
 		if map_region_level >= REGION_DEFINITIONS.size() - 1:
 			region_title.text = "%s · %s" % [CAMPAIGN_CHAPTERS[6], CAMPAIGN_STAGE_NAMES[6]]
-			region_body.text = "建设：东境全域\n用途：建成完整而稳定的新城\n\n固定目标：\n%s\n\n奖励：赢得“东境全域复兴”" % final_goal_requirements_text()
+			region_body.text = "建设：东境全域\n用途：建成完整而稳定的新城\n\n固定目标：\n%s" % final_goal_requirements_text()
 			region_unlock_button.text = "全域已开放"
 			region_unlock_button.disabled = true
 			region_unlock_button.tooltip_text = "完成终章目标即可复兴东境"
 		else:
 			var next_level := map_region_level + 1
 			var next_region: Dictionary = REGION_DEFINITIONS[next_level]
-			var cost: Dictionary = REGION_UNLOCK_COSTS[next_level]
 			var reason := can_unlock_next_region()
 			region_title.text = "%s · %s" % [CAMPAIGN_CHAPTERS[map_region_level], CAMPAIGN_STAGE_NAMES[map_region_level]]
-			region_body.text = "开拓：%s · %d格\n用途：%s\n\n固定目标：\n%s\n费用：木材 %d · 粮食 %d · 铜钱 %d\n奖励：%s" % [
-				next_region.name, next_region.area, next_region.summary, chapter_goal_requirements_text(next_level),
-				cost.wood, cost.food, cost.coins, objective_reward_text(next_level)
+			region_body.text = "开拓：%s · %d格\n用途：%s\n\n固定目标：\n%s" % [
+				next_region.name, next_region.area, next_region.summary, chapter_goal_requirements_text(next_level)
 			]
 			region_unlock_button.text = "开拓%s" % next_region.short_name
 			region_unlock_button.disabled = ended != "" or reason != ""
@@ -2389,20 +2631,12 @@ func update_ui() -> void:
 	update_build_menu()
 	if selected_building_id >= 0:
 		show_inspector(selected_building_id)
+	elif roads.has(selected_road_cell):
+		show_road_inspector(selected_road_cell)
 	update_time_controls()
 
 func show_message(text: String) -> void:
 	message_label.text = text
-
-func objective_reward_text(level: int) -> String:
-	match level:
-		1: return "200格新耕地 + 20粮 + 10铜钱"
-		2: return "200格林业用地 + 40木 + 15铜钱"
-		3: return "100格工坊高地 + 20铜钱 + 幸福 5"
-		4: return "432格大平原 + 50粮 + 25铜钱"
-		5: return "540格山林工坊区 + 80木 + 30铜钱"
-		6: return "432格天际新都 + 80粮 + 40铜钱 + 幸福 5"
-	return ""
 
 func next_stage_preview(level: int) -> String:
 	if level < REGION_DEFINITIONS.size() - 1:
@@ -2496,18 +2730,43 @@ func show_inspector(building_id: int) -> void:
 	for record in buildings:
 		if int(record.id) == building_id:
 			selected_building_id = building_id
+			selected_road_cell = Vector2i(-1, -1)
 			var definition: Dictionary = BUILDINGS[record.type]
 			inspector_title.text = definition.name
 			var cell: Vector2i = record.cell
 			var status := building_operation_text(record)
-			inspector_body.text = "%s\n%s\n\n位置：%d，%d\n拆除返还：%d 木材 · %d 铜钱" % [
-				building_effect_text(str(record.type)), status, cell.x + 1, cell.y + 1,
+			var road_status := building_road_status_text(record)
+			inspector_body.text = "%s\n%s%s\n\n位置：%d，%d\n拆除返还：%d 木材 · %d 铜钱" % [
+				building_effect_text(str(record.type)), status, "\n" + road_status if road_status != "" else "", cell.x + 1, cell.y + 1,
 				int(definition.cost) / 2, int(definition.coin_cost) / 2
 			]
 			inspector_toggle_button.visible = int(definition.workers) > 0
 			inspector_toggle_button.text = "暂停生产" if bool(record.get("enabled", true)) else "启用生产"
+			inspector_demolish_button.text = "删除建筑（返还一半木材与铜钱）"
 			inspector.visible = true
 			return
+
+func building_road_status_text(record: Dictionary) -> String:
+	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
+		return ""
+	if building_has_connected_road(record):
+		return "道路：已接通村庄主路｜正常运行时铜钱 +%d/日" % ROAD_TRANSPORT_BONUS
+	return "道路：未接通村庄主路｜相邻联网后，正常运行时铜钱 +%d/日" % ROAD_TRANSPORT_BONUS
+
+func show_road_inspector(cell: Vector2i) -> void:
+	if not roads.has(cell):
+		return
+	selected_building_id = -1
+	selected_road_cell = cell
+	inspector_title.text = "道路"
+	inspector_body.text = "铺设：木材 -%d/格\n作用：连接村庄主路与生产建筑\n收益：相邻且正常运行的农田、伐木场、工坊、集市或书院，铜钱 +%d/日（全城上限 +%d）\n\n状态：%s\n位置：%d，%d\n拆除返还：木材 %d" % [
+		ROAD_WOOD_COST, ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP,
+		"已接通村庄主路" if is_road_connected(cell) else "尚未接通村庄主路",
+		cell.x + 1, cell.y + 1, ROAD_WOOD_COST,
+	]
+	inspector_toggle_button.visible = false
+	inspector_demolish_button.text = "拆除道路（返还木材 %d）" % ROAD_WOOD_COST
+	inspector.visible = true
 
 func building_operation_text(record: Dictionary) -> String:
 	var definition: Dictionary = BUILDINGS[record.type]
@@ -2589,6 +2848,8 @@ func reset_game(confirm_reset := true) -> void:
 		end_layer = null
 	for child in building_root.get_children():
 		child.queue_free()
+	for child in road_root.get_children():
+		child.queue_free()
 	day = 1
 	wood = 100
 	food = 40
@@ -2609,9 +2870,12 @@ func reset_game(confirm_reset := true) -> void:
 	next_id = 1
 	buildings.clear()
 	occupied.clear()
+	roads.clear()
 	for child in citizen_root.get_children():
 		child.queue_free()
 	selected_building_id = -1
+	selected_road_cell = Vector2i(-1, -1)
+	road_tool_selected = false
 	inspector.visible = false
 	clear_ghost()
 	update_region_visuals()
@@ -2632,11 +2896,14 @@ func save_game(show_feedback := true) -> void:
 			"id": record.id, "type": record.type, "x": cell.x, "z": cell.y,
 			"enabled": bool(record.get("enabled", true))
 		})
+	var road_data: Array[Dictionary] = []
+	for cell in roads:
+		road_data.append({"x": cell.x, "z": cell.y})
 	var data := {
 		"version": SAVE_VERSION, "map_region_level": map_region_level, "day": day, "wood": wood, "food": food, "coins": coins,
 		"population": population, "happiness": happiness, "low_happiness_days": low_happiness_days,
 		"stable_days": stable_days, "maintenance_debt": maintenance_debt,
-		"next_id": next_id, "ended": ended, "buildings": building_data
+		"next_id": next_id, "ended": ended, "buildings": building_data, "roads": road_data
 	}
 	var file := FileAccess.open(target_path, FileAccess.WRITE)
 	if file:
@@ -2656,7 +2923,7 @@ func load_game(show_feedback := true) -> void:
 	var file := FileAccess.open(target_path, FileAccess.READ)
 	var parsed = JSON.parse_string(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) not in [1, 2, 3]:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) not in [1, 2, 3, 4]:
 		if show_feedback:
 			show_message("存档格式无效，当前进度未改变")
 		return
@@ -2667,8 +2934,11 @@ func load_game(show_feedback := true) -> void:
 		return
 	for child in building_root.get_children():
 		child.queue_free()
+	for child in road_root.get_children():
+		child.queue_free()
 	buildings.clear()
 	occupied.clear()
+	roads.clear()
 	day = int(parsed.get("day", 1))
 	wood = int(parsed.get("wood", 100))
 	food = int(parsed.get("food", 40))
@@ -2694,8 +2964,13 @@ func load_game(show_feedback := true) -> void:
 				type, Vector2i(int(record.get("x", 0)), int(record.get("z", 0))), true,
 				int(record.get("id", -1)), bool(record.get("enabled", true))
 			)
+	if loaded_version >= 4:
+		for road_record in parsed.get("roads", []):
+			add_road(Vector2i(int(road_record.get("x", 0)), int(road_record.get("z", 0))), true)
 	selected_type = ""
+	road_tool_selected = false
 	selected_building_id = -1
+	selected_road_cell = Vector2i(-1, -1)
 	inspector.visible = false
 	clear_ghost()
 	update_region_visuals()
@@ -2749,6 +3024,8 @@ func validate_save_data(data: Dictionary) -> String:
 		return "区域等级超出范围"
 	if typeof(data.get("buildings")) != TYPE_ARRAY:
 		return "建筑列表缺失"
+	if save_version >= 4 and (not data.has("roads") or typeof(data.get("roads")) != TYPE_ARRAY):
+		return "道路列表缺失"
 	var raw_buildings: Array = data.buildings
 	if raw_buildings.size() > GRID_SIZE * GRID_SIZE:
 		return "建筑数量超出地图容量"
@@ -2794,6 +3071,36 @@ func validate_save_data(data: Dictionary) -> String:
 		max_id = maxi(max_id, building_id)
 		if type == "warehouse":
 			warehouse_count += 1
+	var used_road_cells := {}
+	# Roads did not exist before v4. Ignore any injected field on older saves so
+	# migration is deterministic and cannot import unsupported infrastructure.
+	var raw_roads: Array = data.get("roads", []) if save_version >= 4 else []
+	if raw_roads.size() > GRID_SIZE * GRID_SIZE:
+		return "道路数量超出地图容量"
+	for raw_road in raw_roads:
+		if typeof(raw_road) != TYPE_DICTIONARY:
+			return "道路记录类型错误"
+		var road_record: Dictionary = raw_road
+		if not road_record.has("x") or not is_json_number(road_record.x) or float(road_record.x) != floor(float(road_record.x)):
+			return "道路横坐标无效"
+		if not road_record.has("z") or not is_json_number(road_record.z) or float(road_record.z) != floor(float(road_record.z)):
+			return "道路纵坐标无效"
+		var road_cell := Vector2i(int(road_record.x), int(road_record.z))
+		if road_cell.x < 0 or road_cell.x >= GRID_SIZE or road_cell.y < 0 or road_cell.y >= GRID_SIZE:
+			return "道路坐标超出地图"
+		if region_level_for_cell(road_cell) > saved_region_level:
+			return "道路位于尚未开放的区域"
+		if is_water_cell(road_cell):
+			return "道路位于水面"
+		if is_reserved_forest(road_cell):
+			return "道路位于保留林地"
+		if is_fixed_road_infrastructure(road_cell):
+			return "道路与村庄主路或桥梁重叠"
+		if used_cells.has(road_cell):
+			return "道路与建筑占用同一格"
+		if used_road_cells.has(road_cell):
+			return "道路坐标重复"
+		used_road_cells[road_cell] = true
 	var saved_capacity := 100 + warehouse_count * 75
 	if saved_wood < 0 or saved_wood > saved_capacity or saved_food < 0 or saved_food > saved_capacity:
 		return "资源数量超出当前仓储容量"
@@ -2833,7 +3140,7 @@ func update_ghost(cell: Vector2i) -> void:
 		clear_ghost()
 		return
 	var locked_region := region_level_for_cell(cell) > map_region_level
-	if selected_type == "" and not locked_region:
+	if selected_type == "" and not road_tool_selected and not locked_region:
 		clear_ghost()
 		return
 	if (ghost or locked_hover) and hover_cell == cell:
@@ -2844,6 +3151,12 @@ func update_ghost(cell: Vector2i) -> void:
 		locked_hover = mesh_box(Vector3(TILE_SIZE - 0.10, 0.035, TILE_SIZE - 0.10), Color(0.80, 0.67, 0.38, 0.72), 0.72)
 		locked_hover.position = grid_to_world(cell) + Vector3(0, 0.24, 0)
 		world.add_child(locked_hover)
+		return
+	if road_tool_selected:
+		var road_valid := can_place_road(cell) == ""
+		ghost = create_road_model(cell, true, road_valid)
+		ghost.position = grid_to_world(cell) + Vector3(0, 0.225, 0)
+		world.add_child(ghost)
 		return
 	ghost = create_building_model(selected_type, true)
 	ghost.position = grid_to_world(cell)
@@ -2918,11 +3231,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			pending_confirm_action = ""
 		elif settings_overlay and settings_overlay.visible:
 			close_settings_menu()
-		elif selected_type != "":
+		elif selected_type != "" or road_tool_selected:
 			cancel_building()
-			show_message("已取消摆放，进入查看模式")
+			show_message("已取消建造，进入查看模式")
 		elif inspector and inspector.visible:
 			selected_building_id = -1
+			selected_road_cell = Vector2i(-1, -1)
 			inspector.visible = false
 		get_viewport().set_input_as_handled()
 		return
@@ -2940,9 +3254,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				drag_last = event.position
 				drag_moved = false
 			elif event.button_index == drag_button:
-				if drag_button == MOUSE_BUTTON_RIGHT and not drag_moved and selected_type != "":
+				if drag_button == MOUSE_BUTTON_RIGHT and not drag_moved and (selected_type != "" or road_tool_selected):
 					cancel_building()
-					show_message("已取消摆放，进入查看模式")
+					show_message("已取消建造，进入查看模式")
 					get_viewport().set_input_as_handled()
 				elif drag_button == MOUSE_BUTTON_LEFT and not drag_moved:
 					handle_world_click(event.position)
@@ -2973,10 +3287,27 @@ func handle_world_click(mouse_position: Vector2) -> void:
 		show_message(region_lock_message(region_level_for_cell(cell)))
 		return
 	if occupied.has(cell):
-		if selected_type != "":
+		if selected_type != "" or road_tool_selected:
 			cancel_building()
 			show_message("已取消摆放，已选中建筑")
 		show_inspector(int(occupied[cell]))
+		return
+	if roads.has(cell):
+		if selected_type != "" or road_tool_selected:
+			cancel_building()
+			show_message("已取消建造，已选中道路")
+		show_road_inspector(cell)
+		return
+	if road_tool_selected:
+		var road_reason := can_place_road(cell)
+		if road_reason != "":
+			show_message(road_reason)
+			return
+		add_road(cell)
+		show_message("已铺设道路：木材 -%d；接通村庄主路后可提供运输收益" % ROAD_WOOD_COST)
+		clear_ghost()
+		update_ui()
+		save_game(false)
 		return
 	if selected_type != "":
 		var reason := can_place(selected_type, cell)
@@ -2990,6 +3321,7 @@ func handle_world_click(mouse_position: Vector2) -> void:
 		save_game(false)
 	else:
 		selected_building_id = -1
+		selected_road_cell = Vector2i(-1, -1)
 		inspector.visible = false
 
 func pan_camera(delta: Vector2) -> void:

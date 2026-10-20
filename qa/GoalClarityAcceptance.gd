@@ -7,15 +7,15 @@ extends SceneTree
 const VIEWPORT_SIZE := Vector2i(1366, 768)
 const SAVE_PATH := "res://saves/savegame.json"
 const EXPECTED_AREAS := [400, 200, 200, 100, 432, 540, 432]
-## Keep this list to chapter, destination and reward copy.  Requirement counts
-## remain gameplay data and must not return as visible x/y goal progress.
+## Persistent chapter UI only needs to identify the chapter and its destination.
+## Unlock costs and rewards belong to the unlock action, not the standing goal.
 const CHAPTER_EXPECTATIONS := [
-	["第一章", "安家河湾", "北坡梯田", "200", "20"],
-	["第二章", "木通东麓", "东麓林场", "200", "40"],
-	["第三章", "百工登台", "云岫高台", "100", "幸福"],
-	["第四章", "东原成镇", "沧波东原", "432", "50"],
-	["第五章", "北关兴业", "朔岭关田", "540", "80"],
-	["第六章", "新都落成", "天际新都", "432", "80"],
+	["第一章", "安家河湾", "北坡梯田"],
+	["第二章", "木通东麓", "东麓林场"],
+	["第三章", "百工登台", "云岫高台"],
+	["第四章", "东原成镇", "沧波东原"],
+	["第五章", "北关兴业", "朔岭关田"],
+	["第六章", "新都落成", "天际新都"],
 ]
 
 var failures: Array[String] = []
@@ -126,9 +126,8 @@ func check_goal_panel_at_1366(game) -> void:
 	var top_text := str(game.goal_label.text)
 	var panel_text := goal_panel_text(game)
 	require_terms(top_text, ["第一章", "安家河湾", "目标：", "开拓北坡"], "顶栏目标")
-	require_terms(panel_text, ["北坡梯田", "用途", "固定目标：", "聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日", "费用", "木材", "粮食", "铜钱", "奖励", "20"], "复兴目标面板")
-	var first_cost: Dictionary = game.REGION_UNLOCK_COSTS[1]
-	require_terms(panel_text, [str(first_cost.wood), str(first_cost.food), str(first_cost.coins)], "首章开拓费用")
+	require_terms(panel_text, ["北坡梯田", "用途", "固定目标：", "聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"], "复兴目标面板")
+	assert_no_persistent_unlock_details(game, top_text, panel_text, 1, "第一章常驻目标")
 	if top_text.count("目标：") != 1:
 		fail("顶栏必须只显示一句章节目标：%s" % top_text)
 	if panel_text.count("目标：") != 1:
@@ -200,7 +199,8 @@ func check_chapter_previews(game) -> void:
 		var expected: Array = CHAPTER_EXPECTATIONS[index]
 		var combined := current_goal_text(game)
 		require_terms(combined, expected, "第 %d 章目标预告" % (index + 1))
-		require_terms(combined, ["目标：", "铜钱", "奖励"], "第 %d 章精简目标信息" % (index + 1))
+		require_terms(combined, ["目标："], "第 %d 章精简目标信息" % (index + 1))
+		assert_no_persistent_unlock_details(game, str(game.goal_label.text), goal_panel_text(game), index + 1, "第 %d 章常驻目标" % (index + 1))
 		assert_no_goal_progress(combined, "第 %d 章可见目标" % (index + 1))
 		assert_no_dynamic_goal_language(combined, "第 %d 章固定目标" % (index + 1))
 		if combined.find("日期") >= 0:
@@ -213,6 +213,7 @@ func check_chapter_previews(game) -> void:
 	game.update_ui()
 	var final_text := current_goal_text(game)
 	require_terms(final_text, ["第七章", "东境复兴", "目标：", "人口 45", "木材 200", "粮食 200", "铜钱 150", "幸福 80", "稳定运转 7 日"], "终局目标")
+	assert_no_unlock_copy(final_text, "终局常驻目标")
 	assert_no_goal_progress(final_text, "终局目标")
 	assert_no_dynamic_goal_language(final_text, "终局目标")
 
@@ -242,13 +243,40 @@ func check_first_unlock_reward_and_transition(game) -> void:
 	if int(game.coins) != coins_before - int(first_cost.coins) + int(first_reward.coins):
 		fail("北坡开拓铜钱扣费或奖励错误")
 	var transitioned_text := current_goal_text(game)
-	require_terms(transitioned_text, ["第二章", "木通东麓", "东麓林场", "奖励", "40"], "章节切换")
+	require_terms(transitioned_text, ["第二章", "木通东麓", "东麓林场"], "章节切换")
+	assert_no_persistent_unlock_details(game, str(game.goal_label.text), goal_panel_text(game), 2, "开拓后的第二章常驻目标")
+	var unlock_message := str(game.message_label.text)
+	require_terms(unlock_message, ["北坡梯田已开放", "开拓奖励", "获得粮食 20", "获得铜钱 10"], "北坡开拓一次性提示")
+	if unlock_message.find("费用") >= 0:
+		fail("开拓成功提示混入了已扣除费用：%s" % unlock_message)
 	var level_after := int(game.map_region_level)
 	wood_before = int(game.wood)
 	food_before = int(game.food)
 	game.unlock_next_region()
 	if int(game.map_region_level) != level_after or int(game.wood) != wood_before or int(game.food) != food_before:
 		fail("重复点击在条件不足时造成越级、重复扣费或重复奖励")
+	if str(game.message_label.text).find("开拓奖励") >= 0:
+		fail("开拓奖励提示没有在下一次操作反馈后消失：%s" % game.message_label.text)
+
+func assert_no_persistent_unlock_details(game, top_text: String, panel_text: String, next_level: int, context: String) -> void:
+	assert_no_unlock_copy(top_text, "%s顶栏" % context)
+	assert_no_unlock_copy(panel_text, "%s右侧目标栏" % context)
+	if next_level < 1 or next_level >= game.REGION_UNLOCK_COSTS.size():
+		return
+	var cost: Dictionary = game.REGION_UNLOCK_COSTS[next_level]
+	var cost_phrases := [
+		"木材 %d" % int(cost.wood),
+		"粮食 %d" % int(cost.food),
+		"铜钱 %d" % int(cost.coins),
+	]
+	for phrase in cost_phrases:
+		if top_text.find(phrase) >= 0 or panel_text.find(phrase) >= 0:
+			fail("%s仍常驻显示开拓成本“%s”：%s" % [context, phrase, "%s\n%s" % [top_text, panel_text]])
+
+func assert_no_unlock_copy(text_value: String, context: String) -> void:
+	for term in ["费用", "奖励"]:
+		if text_value.find(term) >= 0:
+			fail("%s仍常驻显示“%s”：%s" % [context, term, text_value])
 
 func assert_current_task(game, terms: Array, context: String) -> void:
 	var text_value := current_goal_text(game)
@@ -311,7 +339,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("GOAL_CLARITY_ACCEPTANCE_OK: 48x48, 7 regions, chapter-stable goal lists, costs/rewards, no visible progress")
+		print("GOAL_CLARITY_ACCEPTANCE_OK: 48x48, 7 regions, stable goal-only UI, unlock-only reward feedback, no visible progress")
 		quit(0)
 	else:
 		print("GOAL_CLARITY_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

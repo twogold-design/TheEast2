@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Release acceptance for the v3 economy.  These checks exercise the live Main
+## Release acceptance for the economy persisted by the v4 road-capable save.
 ## scene instead of duplicating the settlement formulas, so save migration,
 ## production, labour allocation, upkeep and the visible objective copy must
 ## continue to work together.
@@ -52,8 +52,8 @@ func run() -> void:
 
 
 func check_economy_contract(game) -> void:
-	if int(game.SAVE_VERSION) != 3:
-		fail("经济存档版本应为 v3，实际为 v%d" % int(game.SAVE_VERSION))
+	if int(game.SAVE_VERSION) != 4:
+		fail("经济存档版本应为 v4，实际为 v%d" % int(game.SAVE_VERSION))
 	for property_name in ["coins", "stable_days"]:
 		if not has_property(game, property_name):
 			fail("经济状态缺少字段：%s" % property_name)
@@ -106,11 +106,13 @@ func check_v2_save_migration(game) -> void:
 
 	game.save_game(false)
 	var migrated := read_save_json()
-	if int(migrated.get("version", 0)) != 3:
-		fail("旧存档保存后没有升级为 v3")
+	if int(migrated.get("version", 0)) != 4:
+		fail("旧存档保存后没有升级为 v4")
 	for field in ["coins", "stable_days"]:
 		if not migrated.has(field):
-			fail("升级后的 v3 存档缺少字段：%s" % field)
+			fail("升级后的 v4 存档缺少字段：%s" % field)
+	if typeof(migrated.get("roads")) != TYPE_ARRAY or not migrated.roads.is_empty():
+		fail("旧存档升级为 v4 后道路列表没有默认置空")
 	var saved_buildings: Array = migrated.get("buildings", [])
 	if saved_buildings.is_empty() or not saved_buildings[0].has("enabled") or not bool(saved_buildings[0].enabled):
 		fail("升级后的建筑记录没有保存 enabled=true")
@@ -209,7 +211,9 @@ func check_zero_coin_recovery(game) -> void:
 
 func check_workshop_atomic_recipe(game) -> void:
 	var no_workshop: Array = []
-	var workshop_layout := [{"type": "workshop", "cell": Vector2i(10, 10)}]
+	# Keep this recipe test away from the authored village road so it isolates
+	# the workshop's own +10/-2 economy from the optional +1 transport income.
+	var workshop_layout := [{"type": "workshop", "cell": Vector2i(8, 8)}]
 	var control := run_one_day(game, no_workshop, 20, 50, 80, 500)
 	var operating := run_one_day(game, workshop_layout, 20, 50, 80, 500)
 	if int(operating.wood_delta) - int(control.wood_delta) != -4:
@@ -437,7 +441,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("ECONOMY_COMPLEXITY_ACCEPTANCE_OK: v3 migration, labour, pause, zero-coin recovery, basic trade, atomic workshop, maintenance, stability, storage, coin gates, concise goals")
+		print("ECONOMY_COMPLEXITY_ACCEPTANCE_OK: v4 migration, labour, pause, zero-coin recovery, basic trade, atomic workshop, maintenance, stability, storage, coin gates, concise goals")
 		quit(0)
 	else:
 		print("ECONOMY_COMPLEXITY_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

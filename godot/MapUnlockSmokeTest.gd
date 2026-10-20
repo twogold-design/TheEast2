@@ -1,6 +1,14 @@
 extends SceneTree
 
 const SAVE_PATH := "res://saves/savegame.json"
+const UNLOCK_MESSAGE_EXPECTATIONS := {
+	1: ["北坡梯田已开放", "开拓奖励", "获得粮食 20", "获得铜钱 10"],
+	2: ["东麓林场已开放", "开拓奖励", "获得木材 40", "获得铜钱 15"],
+	3: ["云岫高台已开放", "开拓奖励", "获得铜钱 20", "幸福度 +5"],
+	4: ["沧波东原已开放", "开拓奖励", "获得粮食 50", "获得铜钱 25"],
+	5: ["朔岭关田已开放", "开拓奖励", "获得木材 80", "获得铜钱 30"],
+	6: ["天际新都已开放", "开拓奖励", "获得粮食 80", "获得铜钱 40", "幸福度 +5"],
+}
 
 var original_save_exists := false
 var original_save_text := ""
@@ -32,7 +40,7 @@ func run() -> void:
 	game.reset_game(false)
 	restore_save_file()
 	if failures.is_empty():
-		print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, labour/coin/stability gates, compact goals, rewards, v1/v2-to-v3 saves")
+		print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, goal-only UI, unlock reward feedback, labour/coin/stability gates, v1/v2-to-v4 saves")
 		quit(0)
 	else:
 		print("MAP_UNLOCK_SMOKE_FAILED: %d issue(s)" % failures.size())
@@ -93,14 +101,19 @@ func check_goal_guidance(game) -> void:
 	if header.find("第一章") < 0 or header.find("安家河湾") < 0 or header.find("目标：") < 0 or header.find("开拓北坡") < 0:
 		fail("顶栏没有明确显示第一章的固定目标：%s" % header)
 		return
-	for keyword in ["北坡梯田", "用途", "固定目标：", "人口 8", "住房 8", "农田 1", "稳定运转 1 日", "费用", "木材", "粮食", "铜钱", "奖励", "200", "20"]:
+	for keyword in ["北坡梯田", "用途", "固定目标：", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"]:
 		if panel.find(keyword) < 0:
 			fail("复兴目标面板缺少关键词 %s" % keyword)
 			return
 	var first_cost: Dictionary = game.REGION_UNLOCK_COSTS[1]
-	for value in [first_cost.wood, first_cost.food, first_cost.coins]:
-		if panel.find(str(value)) < 0:
-			fail("复兴目标面板没有显示实际开拓费用 %s" % value)
+	for forbidden in [
+		"费用", "奖励",
+		"木材 %d" % int(first_cost.wood),
+		"粮食 %d" % int(first_cost.food),
+		"铜钱 %d" % int(first_cost.coins),
+	]:
+		if header.find(forbidden) >= 0 or panel.find(forbidden) >= 0:
+			fail("常驻目标仍显示开拓费用或奖励“%s”：%s\n%s" % [forbidden, header, panel])
 			return
 	if has_visible_goal_progress(header + "\n" + panel):
 		fail("可见目标仍显示进度、数字/数字或当前/要求：%s\n%s" % [header, panel])
@@ -134,6 +147,20 @@ func check_goal_guidance(game) -> void:
 func check_unlock_ladder(game) -> void:
 	for level in range(1, game.REGION_DEFINITIONS.size()):
 		prepare_unlock_level(game, level)
+		var standing_goal := "%s\n%s\n%s" % [game.goal_label.text, game.region_title.text, game.region_body.text]
+		var standing_cost: Dictionary = game.REGION_UNLOCK_COSTS[level]
+		for forbidden in [
+			"费用", "奖励",
+			"木材 %d" % int(standing_cost.wood),
+			"粮食 %d" % int(standing_cost.food),
+			"铜钱 %d" % int(standing_cost.coins),
+		]:
+			if standing_goal.find(forbidden) >= 0:
+				fail("第%d级常驻目标仍显示开拓信息“%s”：%s" % [level, forbidden, standing_goal])
+				return
+		if str(game.message_label.text).find("开拓奖励") >= 0:
+			fail("第%d级尚未开拓就显示奖励提示：%s" % [level, game.message_label.text])
+			return
 		var reason := str(game.can_unlock_next_region())
 		if reason != "":
 			fail("第%d级条件齐备后仍不可开拓：%s" % [level, reason])
@@ -151,6 +178,16 @@ func check_unlock_ladder(game) -> void:
 		if int(game.wood) != expected_wood or int(game.food) != expected_food or int(game.coins) != int(reward.coins) or int(game.happiness) != expected_happiness:
 			fail("第%d级没有按木材%d、粮食%d、铜钱%d费用及奖励结算" % [level, cost.wood, cost.food, cost.coins])
 			return
+		var unlock_message := str(game.message_label.text)
+		for expected in UNLOCK_MESSAGE_EXPECTATIONS[level]:
+			if unlock_message.find(str(expected)) < 0:
+				fail("第%d级开拓成功提示缺少“%s”：%s" % [level, expected, unlock_message])
+				return
+		var persistent_goal := "%s\n%s\n%s" % [game.goal_label.text, game.region_title.text, game.region_body.text]
+		for forbidden in ["费用", "奖励"]:
+			if persistent_goal.find(forbidden) >= 0:
+				fail("第%d级开拓后“%s”仍进入常驻目标：%s" % [level, forbidden, persistent_goal])
+				return
 		if level < game.REGION_DEFINITIONS.size() - 1 and str(game.goal_label.text).find(game.CAMPAIGN_CHAPTERS[level]) < 0:
 			fail("第%d级开拓后没有立即切换下一章" % level)
 			return
@@ -198,20 +235,22 @@ func prepare_unlock_level(game, level: int) -> void:
 func check_save_compatibility(game) -> void:
 	game.save_game(false)
 	var saved := read_save(game.save_path())
-	if int(saved.get("version", 0)) != 3 or int(saved.get("map_region_level", -1)) != 6:
-		fail("新存档没有保持v3格式或区域等级")
+	if int(saved.get("version", 0)) != 4 or int(saved.get("map_region_level", -1)) != 6:
+		fail("新存档没有保持v4格式或区域等级")
 		return
 	for field in ["coins", "stable_days", "maintenance_debt"]:
 		if not saved.has(field):
-			fail("v3存档缺少经济字段：%s" % field)
+			fail("v4存档缺少经济字段：%s" % field)
 			return
+	if typeof(saved.get("roads")) != TYPE_ARRAY:
+		fail("v4存档缺少道路列表")
 	write_save(game.save_path(), {
 		"version": 1, "day": 2, "wood": 100, "food": 40, "population": 4,
 		"happiness": 60, "low_happiness_days": 0, "next_id": 2,
 		"buildings": [{"id": 1, "type": "house", "x": 9, "z": 9}]
 	})
 	game.load_game()
-	if game.map_region_level != 0 or game.day != 2 or game.coins <= 0 or game.stable_days != 0:
+	if game.map_region_level != 0 or game.day != 2 or game.coins <= 0 or game.stable_days != 0 or not game.roads.is_empty():
 		fail("v1存档兼容失败")
 		return
 	write_save(game.save_path(), {
@@ -220,7 +259,7 @@ func check_save_compatibility(game) -> void:
 		"buildings": [{"id": 1, "type": "house", "x": 9, "z": 9}]
 	})
 	game.load_game()
-	if game.map_region_level != 3 or game.coins <= 0 or game.stable_days != 0 or str(game.goal_label.text).find("第四章") < 0:
+	if game.map_region_level != 3 or game.coins <= 0 or game.stable_days != 0 or not game.roads.is_empty() or str(game.goal_label.text).find("第四章") < 0:
 		fail("旧v2等级3存档未进入第四章")
 
 func write_save(path: String, data: Dictionary) -> void:

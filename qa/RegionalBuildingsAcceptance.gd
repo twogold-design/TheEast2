@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Acceptance for buildings unlocked by regional expansion.  The checks use the
-## live settlement scene so menu paging, labour, upkeep, daily effects and v3
+## live settlement scene so menu paging, labour, upkeep, daily effects and v4
 ## persistence cannot drift apart.
 
 const RealisticKit = preload("res://godot/RealisticAssets.gd")
@@ -39,7 +39,7 @@ func run() -> void:
 	check_market_operation(game)
 	check_clinic_operation(game)
 	check_academy_operation(game)
-	check_pause_and_v3_roundtrip(game)
+	check_pause_and_v4_roundtrip(game)
 
 	restore_save_file()
 	finish()
@@ -222,6 +222,8 @@ func check_clinic_operation(game) -> void:
 
 
 func check_academy_operation(game) -> void:
+	# Keep the standalone academy economy check away from the fixed main road;
+	# road transport income is covered by RoadGameplayAcceptance.
 	prepare_layout(game, [{"type": "academy", "cell": Vector2i(8, 8)}], 10, 80, 100)
 	game.next_day()
 	# 5人口税 + 5书院收入 - 4维护。
@@ -231,7 +233,7 @@ func check_academy_operation(game) -> void:
 		fail("满员书院没有标记为开课")
 
 
-func check_pause_and_v3_roundtrip(game) -> void:
+func check_pause_and_v4_roundtrip(game) -> void:
 	prepare_layout(game, [
 		{"type": "market", "cell": Vector2i(8, 8)},
 		{"type": "clinic", "cell": Vector2i(9, 8)},
@@ -241,23 +243,26 @@ func check_pause_and_v3_roundtrip(game) -> void:
 	game.save_game(false)
 	game.load_game(false)
 	if game.buildings.size() != 3:
-		fail("v3存档未完整读取三种区域建筑")
+		fail("v4存档未完整读取三种区域建筑")
 		return
 	var loaded_types := {}
 	for record in game.buildings:
 		loaded_types[str(record.type)] = bool(record.get("enabled", true))
 	for type in ["market", "clinic", "academy"]:
 		if not loaded_types.has(type):
-			fail("v3存档丢失%s" % type)
+			fail("v4存档丢失%s" % type)
 	if bool(loaded_types.get("market", true)):
-		fail("集市暂停状态没有通过v3存档保留")
+		fail("集市暂停状态没有通过v4存档保留")
 
 
 func prepare_layout(game, layout: Array, residents: int, provisions: int, money: int) -> void:
 	for child in game.building_root.get_children():
 		child.queue_free()
+	for child in game.road_root.get_children():
+		child.queue_free()
 	game.buildings.clear()
 	game.occupied.clear()
+	game.roads.clear()
 	game.next_id = 1
 	game.map_region_level = 6
 	game.day = 2
@@ -306,7 +311,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("REGIONAL_BUILDINGS_ACCEPTANCE_OK: 5 opening buildings, 3 unlock tiers, paged menu, distinct models, daily effects, pause, v3 persistence")
+		print("REGIONAL_BUILDINGS_ACCEPTANCE_OK: 5 opening buildings, 3 unlock tiers, paged menu, distinct models, daily effects, pause, v4 persistence")
 		quit(0)
 	else:
 		print("REGIONAL_BUILDINGS_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

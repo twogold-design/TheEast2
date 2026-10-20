@@ -178,6 +178,16 @@ if not "%EXIT_CODE%"=="0" (
   exit /b %EXIT_CODE%
 )
 pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/RoadGameplayAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-road-gameplay-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Road gameplay acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-road-gameplay-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
 "%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/MapExpansionAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-map-test.log"
 set "EXIT_CODE=%ERRORLEVEL%"
 popd

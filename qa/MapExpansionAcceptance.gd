@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Release acceptance for the 48x48 map, seven regions and v3 economy migration.
+## Release acceptance for the 48x48 map, seven regions and v4 save migration.
 
 const SAVE_PATH := "res://saves/savegame.json"
 
@@ -169,11 +169,13 @@ func check_save_migration(game) -> void:
 		return
 	game.save_game(false)
 	var migrated := read_save(target)
-	if int(migrated.get("version", 0)) != 3 or int(migrated.get("map_region_level", -1)) != 0:
-		fail("v1存档未迁移为v3")
+	if int(migrated.get("version", 0)) != 4 or int(migrated.get("map_region_level", -1)) != 0:
+		fail("v1存档未迁移为v4")
 	for field in ["coins", "stable_days", "maintenance_debt"]:
 		if not migrated.has(field):
-			fail("v3存档缺少经济字段：%s" % field)
+			fail("v4存档缺少经济字段：%s" % field)
+	if typeof(migrated.get("roads")) != TYPE_ARRAY or not migrated.roads.is_empty():
+		fail("v1存档迁移为v4后道路列表没有默认置空")
 	var migrated_buildings: Array = migrated.get("buildings", [])
 	if migrated_buildings.is_empty() or not bool(migrated_buildings[0].get("enabled", false)):
 		fail("旧建筑迁移后没有默认启用")
@@ -250,7 +252,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("MAP_EXPANSION_ACCEPTANCE_OK: 48x48, 7 regions, MultiMesh locks, v1/v2-to-v3 migration, coin/stability victory")
+		print("MAP_EXPANSION_ACCEPTANCE_OK: 48x48, 7 regions, MultiMesh locks, v1/v2-to-v4 migration, coin/stability victory")
 		quit(0)
 	else:
 		print("MAP_EXPANSION_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())
