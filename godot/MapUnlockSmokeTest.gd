@@ -5,6 +5,7 @@ const SAVE_PATH := "res://saves/savegame.json"
 var original_save_exists := false
 var original_save_text := ""
 var save_snapshot_ready := false
+var failures: Array[String] = []
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -14,6 +15,8 @@ func run() -> void:
 	var scene := load("res://godot/Main.tscn") as PackedScene
 	if scene == null:
 		fail("无法加载主场景")
+		restore_save_file()
+		quit(1)
 		return
 	var game = scene.instantiate()
 	root.add_child(game)
@@ -28,8 +31,12 @@ func run() -> void:
 	check_save_compatibility(game)
 	game.reset_game(false)
 	restore_save_file()
-	print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, day-one unlocks, rewards, goal chain, v1/v2 saves")
-	quit(0)
+	if failures.is_empty():
+		print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, labour/coin/stability gates, compact goals, rewards, v1/v2-to-v3 saves")
+		quit(0)
+	else:
+		print("MAP_UNLOCK_SMOKE_FAILED: %d issue(s)" % failures.size())
+		quit(1)
 
 func preserve_save_file() -> void:
 	original_save_exists = FileAccess.file_exists(SAVE_PATH)
@@ -83,119 +90,128 @@ func check_map_layout(game) -> void:
 func check_goal_guidance(game) -> void:
 	var header := str(game.goal_label.text)
 	var panel := str(game.region_title.text) + "\n" + str(game.region_body.text)
-	if header.find("第一章") < 0 or header.find("进度") < 0 or header.find("当前") < 0 or header.find("农田") < 0:
-		fail("顶栏没有明确显示第一章进度和当前农田任务：%s" % header)
+	if header.find("第一章") < 0 or header.find("安家河湾") < 0 or header.find("目标：") < 0 or header.find("开拓北坡") < 0:
+		fail("顶栏没有明确显示第一章的固定目标：%s" % header)
 		return
-	for keyword in ["北坡梯田", "当前任务", "费用", "奖励", "200", "20"]:
+	for keyword in ["北坡梯田", "用途", "固定目标：", "人口 8", "住房 8", "农田 1", "稳定运转 1 日", "费用", "木材", "粮食", "铜钱", "奖励", "200", "20"]:
 		if panel.find(keyword) < 0:
 			fail("复兴目标面板缺少关键词 %s" % keyword)
 			return
-	game.add_building("farm", Vector2i(4, 10), true)
-	game.update_ui()
-	if str(game.goal_label.text).find("茅舍") < 0:
-		fail("完成农田后当前任务没有切换到住房")
+	var first_cost: Dictionary = game.REGION_UNLOCK_COSTS[1]
+	for value in [first_cost.wood, first_cost.food, first_cost.coins]:
+		if panel.find(str(value)) < 0:
+			fail("复兴目标面板没有显示实际开拓费用 %s" % value)
+			return
+	if has_visible_goal_progress(header + "\n" + panel):
+		fail("可见目标仍显示进度、数字/数字或当前/要求：%s\n%s" % [header, panel])
 		return
+	var unlock_reason := str(game.can_unlock_next_region())
+	if unlock_reason != "" and str(game.region_unlock_button.tooltip_text).find(unlock_reason) < 0:
+		fail("不可开拓时按钮悬停没有说明首个阻碍")
+		return
+	if has_visible_goal_progress(str(game.goal_label.tooltip_text) + "\n" + str(game.region_body.tooltip_text) + "\n" + str(game.region_unlock_button.tooltip_text)):
+		fail("目标悬停提示仍显示完成进度")
+		return
+	var fixed_header := header
+	var fixed_panel := panel
+	game.add_building("farm", Vector2i(4, 10), true)
 	game.add_building("house", Vector2i(8, 8), true)
+	game.population = 8
+	game.happiness = 80
+	game.wood = 100
+	game.food = 100
+	game.coins = 100
+	game.stable_days = 8
+	game.day = 20
 	game.update_ui()
-	if str(game.goal_label.text).find("居民迁入") < 0 or str(game.goal_label.text).find("4/8") < 0:
-		fail("补足住房后当前任务没有切换到人口迁入")
+	var updated_panel := str(game.region_title.text) + "\n" + str(game.region_body.text)
+	if str(game.goal_label.text) != fixed_header or updated_panel != fixed_panel:
+		fail("同一章节内目标随条件完成发生变化")
 		return
 	game.remove_building_by_id(2, false)
 	game.remove_building_by_id(3, false)
 
 func check_unlock_ladder(game) -> void:
-	game.reset_game(false)
-	game.day = 1
-	game.population = 8
-	game.add_building("farm", Vector2i(4, 10), true)
-	game.wood = 100
-	game.food = 40
-	game.unlock_next_region()
-	if game.map_region_level != 1 or game.wood != 50 or game.food != 45:
-		fail("第一章扣费或20粮奖励错误")
-		return
-	if str(game.goal_label.text).find("第二章") < 0 or str(game.region_body.text).find("40木奖励") < 0:
-		fail("开拓后没有立即切换第二章及奖励预告")
-		return
-
-	game.day = 1
-	game.population = 12
-	game.add_building("lumber", Vector2i(14, 10), true)
-	game.add_building("lumber", Vector2i(15, 10), true)
-	game.add_building("warehouse", Vector2i(6, 10), true)
-	game.wood = 100
-	game.food = 50
-	game.unlock_next_region()
-	if game.map_region_level != 2 or game.wood != 50 or game.food != 20:
-		fail("第二章扣费或40木奖励错误")
-		return
-
-	game.day = 1
-	game.population = 18
-	game.happiness = 65
-	game.add_building("workshop", Vector2i(7, 10), true)
-	game.wood = 150
-	game.food = 100
-	game.unlock_next_region()
-	if game.map_region_level != 3 or game.wood != 10 or game.food != 50 or game.happiness != 70:
-		fail("第三章扣费或幸福奖励错误")
-		return
-
-	game.day = 1
-	game.population = 24
-	game.add_building("farm", Vector2i(4, 11), true)
-	game.add_building("farm", Vector2i(4, 12), true)
-	game.add_building("warehouse", Vector2i(8, 10), true)
-	game.wood = 200
-	game.food = 100
-	game.unlock_next_region()
-	if game.map_region_level != 4 or game.wood != 20 or game.food != 80:
-		fail("第四章扣费或50粮奖励错误")
-		return
-
-	game.day = 1
-	game.population = 32
-	game.happiness = 70
-	game.add_building("lumber", Vector2i(20, 10), true)
-	game.add_building("workshop", Vector2i(9, 10), true)
-	game.add_building("warehouse", Vector2i(10, 10), true)
-	game.wood = 250
-	game.food = 150
-	game.unlock_next_region()
-	if game.map_region_level != 5 or game.wood != 90 or game.food != 50:
-		fail("第五章扣费或80木奖励错误")
-		return
-
-	game.day = 1
-	game.population = 40
-	game.happiness = 75
-	game.add_building("workshop", Vector2i(11, 10), true)
-	game.add_building("warehouse", Vector2i(12, 10), true)
-	game.add_building("warehouse", Vector2i(13, 10), true)
-	for x in range(5, 15):
-		game.add_building("house", Vector2i(x, 12), true)
-	game.wood = 350
-	game.food = 200
-	game.unlock_next_region()
-	if game.map_region_level != 6 or game.wood != 30 or game.food != 140 or game.happiness != 80:
-		fail("第六章扣费或新都奖励错误")
-		return
+	for level in range(1, game.REGION_DEFINITIONS.size()):
+		prepare_unlock_level(game, level)
+		var reason := str(game.can_unlock_next_region())
+		if reason != "":
+			fail("第%d级条件齐备后仍不可开拓：%s" % [level, reason])
+			return
+		var cost: Dictionary = game.REGION_UNLOCK_COSTS[level]
+		var reward: Dictionary = game.REGION_UNLOCK_REWARDS[level]
+		var happiness_before := int(game.happiness)
+		game.unlock_next_region()
+		var expected_wood := mini(int(game.wood_capacity()), int(reward.wood))
+		var expected_food := mini(int(game.food_capacity()), int(reward.food))
+		var expected_happiness := mini(100, happiness_before + int(reward.happiness))
+		if int(game.map_region_level) != level:
+			fail("第%d级开拓后区域等级没有推进" % level)
+			return
+		if int(game.wood) != expected_wood or int(game.food) != expected_food or int(game.coins) != int(reward.coins) or int(game.happiness) != expected_happiness:
+			fail("第%d级没有按木材%d、粮食%d、铜钱%d费用及奖励结算" % [level, cost.wood, cost.food, cost.coins])
+			return
+		if level < game.REGION_DEFINITIONS.size() - 1 and str(game.goal_label.text).find(game.CAMPAIGN_CHAPTERS[level]) < 0:
+			fail("第%d级开拓后没有立即切换下一章" % level)
+			return
+	game.wood = int(game.BUILDINGS.house.cost)
+	game.coins = int(game.BUILDINGS.house.coin_cost)
 	if game.can_place("house", Vector2i(47, 47)) != "":
 		fail("天际新都开放后仍不可建造")
+
+func prepare_unlock_level(game, level: int) -> void:
+	game.reset_game(false)
+	game.time_paused = true
+	game.map_region_level = level - 1
+	var requirement: Dictionary = game.REGION_REQUIREMENTS[level]
+	var cost: Dictionary = game.REGION_UNLOCK_COSTS[level]
+	var houses_needed := ceili(int(requirement.housing) / 4.0)
+	for index in range(maxi(0, houses_needed - 1)):
+		game.add_building("house", Vector2i(5 + index % 12, 5 + index / 12), true)
+	var building_rows := {
+		"farm": 10, "lumber": 11, "warehouse": 12, "workshop": 13,
+		"market": 14, "clinic": 15, "academy": 16,
+	}
+	for type in requirement.buildings:
+		for index in range(int(requirement.buildings[type])):
+			game.add_building(str(type), Vector2i(5 + index, int(building_rows[type])), true)
+	var local_cells := {
+		1: Vector2i(10, 10),
+		2: Vector2i(4, 22),
+		3: Vector2i(22, 4),
+		4: Vector2i(22, 22),
+		5: Vector2i(35, 8),
+		6: Vector2i(15, 35),
+	}
+	for type in requirement.get("local_buildings", {}):
+		for _index in range(int(requirement.local_buildings[type])):
+			game.add_building(str(type), local_cells[level], true)
+	game.population = int(requirement.population)
+	game.happiness = maxi(60, int(requirement.happiness))
+	game.stable_days = int(requirement.stable_days)
+	game.wood = int(cost.wood)
+	game.food = int(cost.food)
+	game.coins = int(cost.coins)
+	game.maintenance_debt = 0
+	game.update_ui()
 
 func check_save_compatibility(game) -> void:
 	game.save_game(false)
 	var saved := read_save(game.save_path())
-	if int(saved.get("version", 0)) != 2 or int(saved.get("map_region_level", -1)) != 6:
-		fail("新存档没有保持v2格式或区域等级")
+	if int(saved.get("version", 0)) != 3 or int(saved.get("map_region_level", -1)) != 6:
+		fail("新存档没有保持v3格式或区域等级")
 		return
+	for field in ["coins", "stable_days", "maintenance_debt"]:
+		if not saved.has(field):
+			fail("v3存档缺少经济字段：%s" % field)
+			return
 	write_save(game.save_path(), {
 		"version": 1, "day": 2, "wood": 100, "food": 40, "population": 4,
 		"happiness": 60, "low_happiness_days": 0, "next_id": 2,
 		"buildings": [{"id": 1, "type": "house", "x": 9, "z": 9}]
 	})
 	game.load_game()
-	if game.map_region_level != 0 or game.day != 2:
+	if game.map_region_level != 0 or game.day != 2 or game.coins <= 0 or game.stable_days != 0:
 		fail("v1存档兼容失败")
 		return
 	write_save(game.save_path(), {
@@ -204,7 +220,7 @@ func check_save_compatibility(game) -> void:
 		"buildings": [{"id": 1, "type": "house", "x": 9, "z": 9}]
 	})
 	game.load_game()
-	if game.map_region_level != 3 or str(game.goal_label.text).find("第四章") < 0:
+	if game.map_region_level != 3 or game.coins <= 0 or game.stable_days != 0 or str(game.goal_label.text).find("第四章") < 0:
 		fail("旧v2等级3存档未进入第四章")
 
 func write_save(path: String, data: Dictionary) -> void:
@@ -218,7 +234,21 @@ func read_save(path: String) -> Dictionary:
 	file.close()
 	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
 
+func has_visible_goal_progress(text_value: String) -> bool:
+	if text_value.find("进度") >= 0:
+		return true
+	var ratio_regex := RegEx.new()
+	ratio_regex.compile("\\d+\\s*/\\s*\\d+")
+	if ratio_regex.search(text_value) != null:
+		return true
+	var percentage_regex := RegEx.new()
+	percentage_regex.compile("\\d+\\s*%")
+	if percentage_regex.search(text_value) != null:
+		return true
+	var current_required_regex := RegEx.new()
+	current_required_regex.compile("当前[^\\n]*要求")
+	return current_required_regex.search(text_value) != null
+
 func fail(message: String) -> void:
-	restore_save_file()
+	failures.append(message)
 	push_error("MAP_UNLOCK_SMOKE_FAILED: " + message)
-	quit(1)

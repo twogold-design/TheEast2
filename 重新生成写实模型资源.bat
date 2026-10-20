@@ -5,9 +5,11 @@ title The East - Rebuild Realistic 3D Assets
 set "PROJECT_ROOT=%~dp0"
 if "%PROJECT_ROOT:~-1%"=="\" set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 set "BLENDER_EXE=D:\tools\blender\setup\blender.exe"
+set "GODOT_CONSOLE=D:\tools\Godot-4.7.2\Godot_v4.7.2-stable_win64_console.exe"
 set "GENERATOR=%PROJECT_ROOT%\tools\generate_realistic_assets.py"
 set "BLENDER_DATA=%PROJECT_ROOT%\.blender-user"
 set "LOG_DIR=%BLENDER_DATA%\Logs"
+set "GODOT_DATA=%PROJECT_ROOT%\.godot-user"
 
 if not exist "%BLENDER_EXE%" (
   echo Blender was not found:
@@ -21,6 +23,13 @@ if not exist "%GENERATOR%" (
   echo %GENERATOR%
   pause
   exit /b 2
+)
+
+if not exist "%GODOT_CONSOLE%" (
+  echo Godot console was not found:
+  echo %GODOT_CONSOLE%
+  pause
+  exit /b 3
 )
 
 if /I "%~1"=="check" (
@@ -64,8 +73,31 @@ if errorlevel 1 (
   exit /b 4
 )
 
+echo Importing regenerated assets into Godot...
+set "APPDATA=%GODOT_DATA%\AppData\Roaming"
+set "LOCALAPPDATA=%GODOT_DATA%\AppData\Local"
+set "TEMP=%GODOT_DATA%\Temp"
+set "TMP=%GODOT_DATA%\Temp"
+if not exist "%APPDATA%" mkdir "%APPDATA%"
+if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%"
+if not exist "%TEMP%" mkdir "%TEMP%"
+if not exist "%GODOT_DATA%\Logs" mkdir "%GODOT_DATA%\Logs"
+
+pushd "%PROJECT_ROOT%" || exit /b 5
+"%GODOT_CONSOLE%" --editor --headless --path "%PROJECT_ROOT%" --quit --log-file "%GODOT_DATA%\Logs\realistic-asset-import.log"
+set "IMPORT_EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%IMPORT_EXIT_CODE%"=="0" (
+  echo.
+  echo Godot asset import failed. Exit code: %IMPORT_EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\realistic-asset-import.log
+  pause
+  exit /b %IMPORT_EXIT_CODE%
+)
+
 echo.
 echo Realistic full asset set generated successfully.
+echo Godot import completed successfully.
 echo Models:  %PROJECT_ROOT%\godot\assets\realistic\models
 echo Source:  %PROJECT_ROOT%\godot\assets\realistic\source\east_valley_realistic_full.blend
 echo Preview: %PROJECT_ROOT%\godot\assets\realistic\previews\realistic_full_asset_sheet.png

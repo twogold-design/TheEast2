@@ -82,6 +82,19 @@ static func create_asset(key: String, preview := false, allow_fallback := true, 
 	return fallback
 
 static func create_building(type: String, preview := false, allow_fallback := true) -> Node3D:
+	if type in ["market", "clinic", "academy"]:
+		# Regional buildings are composed from the verified core kit and do not
+		# pretend to be additional imported GLBs in the 15-item asset manifest.
+		var base_type: String = {"market": "warehouse", "clinic": "house", "academy": "workshop"}[type]
+		var composite := create_asset("building.%s" % base_type, preview, allow_fallback)
+		if composite:
+			composite.name = "Realistic_Building_%s" % type.capitalize()
+			composite.set_meta("building_type", type)
+			composite.set_meta("composite_base", base_type)
+			_add_regional_identity(composite, type)
+			if preview:
+				apply_preview_tint(composite, true)
+		return composite
 	return create_asset("building.%s" % type, preview, allow_fallback)
 
 static func create_tree(variant := 0, allow_fallback := true) -> Node3D:
@@ -151,6 +164,68 @@ static func _create_fallback(key: String, preview: bool, variant: int) -> Node3D
 		"citizen":
 			return ArtKit.create_citizen(variant)
 	return null
+
+static func _add_regional_identity(root: Node3D, type: String) -> void:
+	var identity := Node3D.new()
+	identity.name = "RegionalIdentity_%s" % type.capitalize()
+	root.add_child(identity)
+	match type:
+		"market":
+			# A broad vermilion street canopy, hanging sign and roof pennants read as
+			# commerce even at the normal high camera angle.
+			_add_box(identity, "MarketCanopy", Vector3(1.72, 0.10, 0.52), Vector3(0.0, 0.78, 0.94), Color("b94f3f"))
+			_add_box(identity, "MarketValance", Vector3(1.72, 0.32, 0.06), Vector3(0.0, 0.60, 1.18), Color("d6a74a"))
+			_add_box(identity, "MarketCounter", Vector3(1.34, 0.38, 0.34), Vector3(0.0, 0.24, 0.92), Color("76513b"))
+			_add_box(identity, "MarketRoofBanner", Vector3(0.66, 0.08, 0.28), Vector3(0.0, 1.92, 0.10), Color("c94f43"))
+			_add_cylinder(identity, "MarketLanternLeft", 0.12, 0.28, Vector3(-0.66, 0.48, 1.20), Color("c85a3f"), 12)
+			_add_cylinder(identity, "MarketLanternRight", 0.12, 0.28, Vector3(0.66, 0.48, 1.20), Color("c85a3f"), 12)
+		"clinic":
+			# The turquoise herb awning and oversized wooden medicine gourd create a
+			# different roof silhouette without covering the readable front facade.
+			_add_box(identity, "ClinicHerbAwning", Vector3(1.38, 0.10, 0.44), Vector3(0.0, 0.76, 0.95), Color("6f9982"))
+			_add_box(identity, "ClinicMedicineCabinet", Vector3(0.48, 0.70, 0.24), Vector3(-0.58, 0.36, 0.94), Color("806044"))
+			_add_cylinder(identity, "ClinicGourdLower", 0.18, 0.34, Vector3(0.42, 1.76, 0.16), Color("b6a064"), 14)
+			_add_cylinder(identity, "ClinicGourdUpper", 0.12, 0.24, Vector3(0.42, 2.00, 0.16), Color("c5b274"), 14)
+			_add_box(identity, "ClinicHerbSign", Vector3(0.50, 0.54, 0.08), Vector3(0.54, 0.90, 0.98), Color("496c5e"))
+		"academy":
+			# A blue scroll board across the ridge plus paired courtyard writing
+			# desks makes the academy distinct from the workshop shell.
+			_add_box(identity, "AcademyRoofScroll", Vector3(1.20, 0.12, 0.32), Vector3(0.0, 2.08, 0.04), Color("496b7a"))
+			_add_box(identity, "AcademyGoldRidge", Vector3(1.48, 0.08, 0.10), Vector3(0.0, 2.20, 0.04), Color("c49a51"))
+			_add_box(identity, "AcademyDeskLeft", Vector3(0.54, 0.12, 0.34), Vector3(-0.42, 0.34, 1.02), Color("725039"))
+			_add_box(identity, "AcademyDeskRight", Vector3(0.54, 0.12, 0.34), Vector3(0.42, 0.34, 1.02), Color("725039"))
+			_add_box(identity, "AcademyGateBoard", Vector3(0.92, 0.34, 0.09), Vector3(0.0, 1.08, 1.00), Color("3f6473"))
+
+static func _add_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, color: Color) -> void:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = _identity_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(instance)
+
+static func _add_cylinder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, color: Color, sides: int) -> void:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius * 0.88
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = sides
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = _identity_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(instance)
+
+static func _identity_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.88
+	return material
 
 static func _configure_root(root: Node3D, key: String, source: String, expected: String, preview: bool) -> void:
 	root.name = "Realistic_%s" % key.replace(".", "_").capitalize()

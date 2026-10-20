@@ -17,6 +17,12 @@ window/size/window_width_override=1366
 window/size/window_height_override=768
 window/stretch/mode="canvas_items"
 
+[physics]
+
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
+common/physics_interpolation=true
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

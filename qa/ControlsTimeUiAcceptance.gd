@@ -149,6 +149,7 @@ func check_right_click_cancel_and_building_delete(game) -> void:
 	var starter_id: int = int(game.occupied[starter_cell])
 	var starter_count: int = game.buildings.size()
 	var starter_wood: int = int(game.wood)
+	var starter_coins: int = int(game.coins)
 	var click_position: Vector2 = game.camera.unproject_position(game.grid_to_world(starter_cell))
 	game.handle_world_click(click_position)
 	await process_frame
@@ -161,8 +162,9 @@ func check_right_click_cancel_and_building_delete(game) -> void:
 	game.demolish_selected()
 	if game.buildings.size() != starter_count - 1 or game.occupied.has(starter_cell) or game.inspector.visible:
 		fail("选中建筑后无法拆除")
-	if int(game.wood) != starter_wood + 5:
-		fail("拆除建筑没有返还一半木材")
+	var house_definition: Dictionary = game.BUILDINGS.house
+	if int(game.wood) != starter_wood + int(house_definition.cost) / 2 or int(game.coins) != starter_coins + int(house_definition.coin_cost) / 2:
+		fail("拆除建筑没有返还一半木材与铜钱")
 
 func check_auto_time(game) -> void:
 	game.reset_game(false)
@@ -209,6 +211,8 @@ func check_region_panel_collapse(game) -> void:
 	game.region_panel_collapsed = false
 	game.update_ui()
 	await process_frame
+	var fixed_top_goal := str(game.goal_label.text)
+	var fixed_goal_list := str(game.region_body.text)
 	var expanded_area: float = game.region_panel.size.x * game.region_panel.size.y
 	game.toggle_region_panel()
 	await process_frame
@@ -219,13 +223,23 @@ func check_region_panel_collapse(game) -> void:
 		fail("目标栏收起后正文或开拓按钮仍可见")
 	if collapsed_area > expanded_area * 0.25:
 		fail("目标栏收起后占用面积仍过大")
-	if str(game.region_title.text).find("目标") < 0 or str(game.goal_label.text).find("当前") < 0:
-		fail("目标栏收起后没有保留实时进度或顶栏任务")
+	var compact_title := str(game.region_title.text).replace(" ", "")
+	if compact_title != "目标·北坡" or str(game.goal_label.text).find("目标：") < 0:
+		fail("目标栏收起后没有保留目标区域或顶栏动作目标")
+	assert_no_goal_progress("%s\n%s" % [game.region_title.text, game.goal_label.text], "收起目标栏")
 	check_inside_viewport(game.region_panel_toggle, "目标栏展开按钮")
 	game.day = 5
+	game.population = 8
+	game.happiness = 80
+	game.wood = 100
+	game.food = 100
+	game.coins = 100
+	game.stable_days = 8
 	game.update_ui()
-	if not game.region_panel_collapsed or str(game.region_title.text).find("目标") < 0:
+	if not game.region_panel_collapsed or str(game.region_title.text).find("目标") < 0 or str(game.goal_label.text).find("目标：") < 0:
 		fail("目标更新意外展开了目标栏")
+	if str(game.goal_label.text) != fixed_top_goal or str(game.region_body.text) != fixed_goal_list:
+		fail("同一章节内顶栏目标或目标清单随状态发生变化")
 	game.toggle_region_panel()
 	await process_frame
 	if game.region_panel_collapsed or not game.region_body.visible or not game.region_unlock_button.visible:
@@ -372,9 +386,25 @@ func fail(message: String) -> void:
 	failures.append(message)
 	push_error("CONTROLS_TIME_UI_ACCEPTANCE_FAILED: " + message)
 
+func assert_no_goal_progress(text_value: String, context: String) -> void:
+	if text_value.find("进度") >= 0:
+		fail("%s仍显示“进度”：%s" % [context, text_value])
+	var ratio_regex := RegEx.new()
+	ratio_regex.compile("\\d+\\s*/\\s*\\d+")
+	if ratio_regex.search(text_value) != null:
+		fail("%s仍显示数字/数字目标进度：%s" % [context, text_value])
+	var percentage_regex := RegEx.new()
+	percentage_regex.compile("\\d+\\s*%")
+	if percentage_regex.search(text_value) != null:
+		fail("%s仍显示百分比目标进度：%s" % [context, text_value])
+	var current_required_regex := RegEx.new()
+	current_required_regex.compile("当前[^\\n]*要求")
+	if current_required_regex.search(text_value) != null:
+		fail("%s仍显示当前/要求式说明：%s" % [context, text_value])
+
 func finish() -> void:
 	if failures.is_empty():
-		print("CONTROLS_TIME_UI_ACCEPTANCE_OK: middle-mouse pan, automatic time, collapsible objectives, layered settings menu")
+		print("CONTROLS_TIME_UI_ACCEPTANCE_OK: middle-mouse pan, automatic time, compact collapsible goals, layered settings menu")
 		quit(0)
 	else:
 		print("CONTROLS_TIME_UI_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

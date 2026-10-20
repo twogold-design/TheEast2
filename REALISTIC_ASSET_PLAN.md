@@ -120,6 +120,25 @@ M:\NewGames\TheEast\godot\assets\realistic\
 - 建筑单 LOD 最多 4 个材质槽，优先共享“建筑结构图集 + 功能道具图集”；环境小件最多 2 个材质槽。
 - 叶片可使用 Alpha Scissor，禁止大面积 Alpha Blend；灯笼仅灯芯/灯纸允许低强度 Emission，不为每盏灯创建实时 OmniLight3D。
 
+### 6.4 俯视屋顶识别硬性规则
+
+- 默认规划镜头是建筑辨识的首要验收视角。每类建筑必须在屋顶轮廓或屋面上设置唯一的小型功能构件，使玩家不旋转镜头、不点选建筑也能识别类型；构件应符合建筑用途和结构逻辑，尺寸以“清楚可见但不过度夸张”为准。
+- 不得只依赖墙面颜色、门窗、地面道具、悬浮文字、图标或其他 UI 区分建筑。墙面与门窗可以辅助识别，但不能替代俯视视角下可见的屋顶差异。
+- 无屋顶的生产设施也必须在占地范围内提供同等清晰的俯视功能识别件，并按本节的字段和验收规则登记。
+- 当前五类建筑的识别语义固定如下；后续调整造型时可以优化细节，但不得让两类建筑共享相同的俯视轮廓：
+
+| 建筑 | `roof_identity` | `roof_marker` | 默认规划镜头识别件 |
+| --- | --- | --- | --- |
+| 茅舍 | `tile_gable_red_brackets` | `RoofIdentity_HouseBrackets` | 红色檐下构件 |
+| 伐木场 | `tile_gable_timber_battens` | `RoofIdentity_TimberBatten` | 两根低矮深木色顺坡压条 |
+| 农田 | `roofless_field_scarecrow` | `RoofIdentity_FieldScarecrow` | 稻草人 |
+| 仓库 | `tile_gable_twin_vents` | `RoofIdentity_WarehouseVent` | 屋脊附近两个低矮通风帽 |
+| 小工坊 | `tile_gable_chimney` | `RoofIdentity_WorkshopChimney` | 单个高砖烟囱 |
+
+- 每个建筑 GLB 根节点的 extras 必须写入非空且全局唯一的 `roof_identity` 与 `roof_marker`；`roof_marker` 必须指向实际可见的网格节点。`realistic_manifest.json` 必须保存同名字段，且值与 GLB extras 完全一致。
+- `LOD0/LOD1/LOD2` 至少保留该类建筑的识别件及其主要轮廓。降级时允许减少面数和细节，不得删除识别件、改变其语义或使其在默认规划镜头下不可见；使用现有低模作为 `LOD3` 时也应补齐等价识别轮廓。
+- 新增建筑或修改屋顶后，必须先通过自动资产验收才能进入主场景。自动验收至少检查 `roof_identity` 非空且唯一、`roof_marker` 节点存在并含可见网格、GLB extras 与 manifest 一致、各 LOD 保留识别件，以及任意两类建筑未复用同一识别语义；随后在默认规划镜头截图中进行人工可读性签收。
+
 ## 7. 性能预算
 
 ### 7.1 单件预算

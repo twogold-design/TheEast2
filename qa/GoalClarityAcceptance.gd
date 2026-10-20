@@ -7,7 +7,8 @@ extends SceneTree
 const VIEWPORT_SIZE := Vector2i(1366, 768)
 const SAVE_PATH := "res://saves/savegame.json"
 const EXPECTED_AREAS := [400, 200, 200, 100, 432, 540, 432]
-const EXPECTED_CHAPTER_TOTALS := [3, 4, 4, 4, 5, 6]
+## Keep this list to chapter, destination and reward copy.  Requirement counts
+## remain gameplay data and must not return as visible x/y goal progress.
 const CHAPTER_EXPECTATIONS := [
 	["第一章", "安家河湾", "北坡梯田", "200", "20"],
 	["第二章", "木通东麓", "东麓林场", "200", "40"],
@@ -44,7 +45,7 @@ func run() -> void:
 	check_map_layout(game)
 	await check_goal_panel_at_1366(game)
 	check_current_task_priority(game)
-	check_chapter_previews(game)
+	await check_chapter_previews(game)
 	check_first_unlock_reward_and_transition(game)
 
 	game.reset_game(false)
@@ -124,14 +125,28 @@ func check_goal_panel_at_1366(game) -> void:
 	game.update_ui()
 	var top_text := str(game.goal_label.text)
 	var panel_text := goal_panel_text(game)
-	require_terms(top_text, ["第一章", "进度", "当前", "农田"], "顶栏目标")
-	require_terms(panel_text, ["北坡梯田", "当前任务", "费用", "木材", "粮食", "奖励", "200", "20"], "复兴目标面板")
+	require_terms(top_text, ["第一章", "安家河湾", "目标：", "开拓北坡"], "顶栏目标")
+	require_terms(panel_text, ["北坡梯田", "用途", "固定目标：", "聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日", "费用", "木材", "粮食", "铜钱", "奖励", "20"], "复兴目标面板")
+	var first_cost: Dictionary = game.REGION_UNLOCK_COSTS[1]
+	require_terms(panel_text, [str(first_cost.wood), str(first_cost.food), str(first_cost.coins)], "首章开拓费用")
+	if top_text.count("目标：") != 1:
+		fail("顶栏必须只显示一句章节目标：%s" % top_text)
+	if panel_text.count("目标：") != 1:
+		fail("复兴目标面板必须只显示一条动作目标：%s" % panel_text)
+	assert_no_goal_progress(top_text, "顶栏目标")
+	assert_no_goal_progress(panel_text, "展开目标栏")
 	if panel_text.find("日期") >= 0 or panel_text.find("第 5 日") >= 0:
 		fail("章节目标仍把日期列为条件：%s" % panel_text)
-	if top_text.find("0/1") < 0 and panel_text.find("0/1") < 0:
-		fail("开局农田目标没有显示 0/1 实时进度")
 	if not game.region_panel.visible or not game.region_unlock_button.visible:
 		fail("复兴目标面板或开拓按钮在 1366x768 下不可见")
+	if str(game.region_unlock_button.text).find("开拓") < 0:
+		fail("开拓按钮没有保留明确动作：%s" % game.region_unlock_button.text)
+	var unlock_reason := str(game.can_unlock_next_region())
+	if unlock_reason != "" and str(game.region_unlock_button.tooltip_text).find(unlock_reason) < 0:
+		fail("不可开拓时按钮悬停没有说明首个阻碍：%s" % game.region_unlock_button.tooltip_text)
+	assert_no_goal_progress(str(game.goal_label.tooltip_text), "顶栏目标悬停")
+	assert_no_goal_progress(str(game.region_body.tooltip_text), "展开目标栏悬停")
+	assert_no_goal_progress(str(game.region_unlock_button.tooltip_text), "开拓按钮悬停")
 	await process_frame
 	check_inside_viewport(game.region_panel, "复兴目标面板")
 	check_inside_viewport(game.region_unlock_button, "开拓按钮")
@@ -142,62 +157,64 @@ func check_goal_panel_at_1366(game) -> void:
 	var goal_minimum: Vector2 = game.goal_label.get_combined_minimum_size()
 	if goal_minimum.y > game.goal_label.size.y + 2.0:
 		fail("顶栏目标文字被纵向裁切：需要 %.0f，实际 %.0f" % [goal_minimum.y, game.goal_label.size.y])
+	game.toggle_region_panel()
+	await process_frame
+	var collapsed_text := "%s\n%s" % [str(game.goal_label.text), str(game.region_title.text)]
+	var compact_title := str(game.region_title.text).replace(" ", "")
+	if compact_title != "目标·北坡":
+		fail("收起目标栏必须显示“目标 · 区域名”：%s" % game.region_title.text)
+	assert_no_goal_progress(collapsed_text, "收起目标栏与顶栏")
+	game.toggle_region_panel()
 
 func check_current_task_priority(game) -> void:
 	game.reset_game(false)
 	game.update_ui()
-	assert_current_task(game, ["农田", "0/1"], "开局应先指引专属建筑")
+	var fixed_top := str(game.goal_label.text)
+	var fixed_panel := goal_panel_text(game)
+	assert_current_task(game, ["目标：", "建好河湾聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"], "开局章节目标")
 
+	# Chapter UI must remain byte-for-byte stable as individual conditions are
+	# completed. Only opening the next region is allowed to replace it.
 	game.add_building("farm", Vector2i(1, 10), true)
-	game.update_ui()
-	assert_current_task(game, ["茅舍"], "农田完成后应先补足住房")
-
 	game.add_building("house", Vector2i(10, 9), true)
-	game.update_ui()
-	var housing_done_text := current_goal_text(game)
-	if (housing_done_text.find("迁入") < 0 and housing_done_text.find("人口") < 0) or housing_done_text.find("4/8") < 0:
-		fail("住房完成后没有给出 4/8 人口的可执行任务：%s" % housing_done_text)
-
 	game.population = 8
+	game.happiness = 80
 	game.wood = 100
 	game.food = 40
+	game.coins = 100
+	game.stable_days = int(game.REGION_REQUIREMENTS[1].stable_days)
+	game.day = 30
 	game.update_ui()
-	var ready_text := current_goal_text(game)
-	if ready_text.find("条件齐备") < 0 or ready_text.find("开拓") < 0:
-		fail("第 1 日满足非日期条件后没有明确要求点击开拓：%s" % ready_text)
-	if ready_text.find("日期") >= 0 or ready_text.find("第 5 日") >= 0:
-		fail("当前任务仍生成日期目标：%s" % ready_text)
-
-	game.reset_game(false)
-	game.map_region_level = 3
-	game.add_building("farm", Vector2i(1, 10), true)
-	game.add_building("farm", Vector2i(1, 11), true)
-	game.add_building("farm", Vector2i(1, 12), true)
-	game.add_building("warehouse", Vector2i(10, 10), true)
-	game.update_ui()
-	assert_current_task(game, ["再建 1 座仓库", "当前 1/2"], "部分完成的建筑任务应区分剩余数量和总进度")
+	if str(game.goal_label.text) != fixed_top or goal_panel_text(game) != fixed_panel:
+		fail("同一章节内目标随完成条件发生变化：\n原顶栏：%s\n现顶栏：%s\n原目标栏：%s\n现目标栏：%s" % [
+			fixed_top, game.goal_label.text, fixed_panel, goal_panel_text(game),
+		])
+	assert_no_dynamic_goal_language(current_goal_text(game), "条件全部满足后的章节目标")
 
 func check_chapter_previews(game) -> void:
 	for index in range(CHAPTER_EXPECTATIONS.size()):
 		game.reset_game(false)
 		game.map_region_level = index
 		game.update_ui()
+		await process_frame
 		var expected: Array = CHAPTER_EXPECTATIONS[index]
 		var combined := current_goal_text(game)
 		require_terms(combined, expected, "第 %d 章目标预告" % (index + 1))
-		if str(game.region_title.text).find("/%d" % EXPECTED_CHAPTER_TOTALS[index]) < 0:
-			fail("第 %d 章进度分母没有移除日期项：%s" % [index + 1, game.region_title.text])
+		require_terms(combined, ["目标：", "铜钱", "奖励"], "第 %d 章精简目标信息" % (index + 1))
+		assert_no_goal_progress(combined, "第 %d 章可见目标" % (index + 1))
+		assert_no_dynamic_goal_language(combined, "第 %d 章固定目标" % (index + 1))
 		if combined.find("日期") >= 0:
 			fail("第 %d 章仍显示日期目标" % (index + 1))
-		if combined.find("奖励") < 0:
-			fail("第 %d 章没有常驻奖励预告" % (index + 1))
+		var panel_minimum: Vector2 = game.region_panel.get_combined_minimum_size()
+		if panel_minimum.y > game.region_panel.size.y + 2.0:
+			fail("第 %d 章目标清单被纵向裁切：需要 %.0f，实际 %.0f" % [index + 1, panel_minimum.y, game.region_panel.size.y])
 
 	game.map_region_level = 6
 	game.update_ui()
 	var final_text := current_goal_text(game)
-	require_terms(final_text, ["第七章", "东境复兴", "45", "200", "80"], "终局目标")
-	if final_text.find("当前") < 0 and final_text.find("任务") < 0:
-		fail("第七章没有给出当前任务")
+	require_terms(final_text, ["第七章", "东境复兴", "目标：", "人口 45", "木材 200", "粮食 200", "铜钱 150", "幸福 80", "稳定运转 7 日"], "终局目标")
+	assert_no_goal_progress(final_text, "终局目标")
+	assert_no_dynamic_goal_language(final_text, "终局目标")
 
 func check_first_unlock_reward_and_transition(game) -> void:
 	game.reset_game(false)
@@ -207,16 +224,23 @@ func check_first_unlock_reward_and_transition(game) -> void:
 	game.day = 1
 	game.wood = 100
 	game.food = 40
+	game.coins = 100
+	game.stable_days = int(game.REGION_REQUIREMENTS[1].stable_days)
 	game.update_ui()
 	var wood_before := int(game.wood)
 	var food_before := int(game.food)
+	var coins_before := int(game.coins)
+	var first_cost: Dictionary = game.REGION_UNLOCK_COSTS[1]
+	var first_reward: Dictionary = game.REGION_UNLOCK_REWARDS[1]
 	game.unlock_next_region()
 	if int(game.map_region_level) != 1:
 		fail("第一章完成后没有进入第二章")
-	if int(game.wood) != wood_before - 50:
+	if int(game.wood) != mini(int(game.wood_capacity()), wood_before - int(first_cost.wood) + int(first_reward.wood)):
 		fail("北坡开拓木材扣费错误")
-	if int(game.food) != mini(int(game.food_capacity()), food_before - 15 + 20):
+	if int(game.food) != mini(int(game.food_capacity()), food_before - int(first_cost.food) + int(first_reward.food)):
 		fail("北坡开拓没有结算 20 粮食奖励")
+	if int(game.coins) != coins_before - int(first_cost.coins) + int(first_reward.coins):
+		fail("北坡开拓铜钱扣费或奖励错误")
 	var transitioned_text := current_goal_text(game)
 	require_terms(transitioned_text, ["第二章", "木通东麓", "东麓林场", "奖励", "40"], "章节切换")
 	var level_after := int(game.map_region_level)
@@ -255,6 +279,27 @@ func require_terms(text_value: String, terms: Array, context: String) -> void:
 		if text_value.find(str(term)) < 0:
 			fail("%s缺少“%s”：%s" % [context, term, text_value])
 
+func assert_no_goal_progress(text_value: String, context: String) -> void:
+	if text_value.find("进度") >= 0:
+		fail("%s仍显示“进度”：%s" % [context, text_value])
+	var ratio_regex := RegEx.new()
+	ratio_regex.compile("\\d+\\s*/\\s*\\d+")
+	if ratio_regex.search(text_value) != null:
+		fail("%s仍显示数字/数字目标进度：%s" % [context, text_value])
+	var percentage_regex := RegEx.new()
+	percentage_regex.compile("\\d+\\s*%")
+	if percentage_regex.search(text_value) != null:
+		fail("%s仍显示百分比目标进度：%s" % [context, text_value])
+	var current_required_regex := RegEx.new()
+	current_required_regex.compile("当前[^\\n]*要求")
+	if current_required_regex.search(text_value) != null:
+		fail("%s仍显示当前/要求式说明：%s" % [context, text_value])
+
+func assert_no_dynamic_goal_language(text_value: String, context: String) -> void:
+	for term in ["当前任务", "还需", "再建", "等待", "条件齐备", "目标达成"]:
+		if text_value.find(term) >= 0:
+			fail("%s仍包含动态下一步“%s”：%s" % [context, term, text_value])
+
 func check_inside_viewport(control: Control, label: String) -> void:
 	var rect := control.get_global_rect()
 	if rect.position.x < 0.0 or rect.position.y < 0.0 or rect.end.x > VIEWPORT_SIZE.x + 1.0 or rect.end.y > VIEWPORT_SIZE.y + 1.0:
@@ -266,7 +311,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("GOAL_CLARITY_ACCEPTANCE_OK: 48x48, 7 regions, no date gates, visible chapter/task/progress/reward")
+		print("GOAL_CLARITY_ACCEPTANCE_OK: 48x48, 7 regions, chapter-stable goal lists, costs/rewards, no visible progress")
 		quit(0)
 	else:
 		print("GOAL_CLARITY_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

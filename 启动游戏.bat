@@ -88,6 +88,16 @@ if not "%EXIT_CODE%"=="0" (
   exit /b %EXIT_CODE%
 )
 pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/RealisticAssetAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-realistic-asset-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Realistic asset acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-realistic-asset-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
 "%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/ControlsTimeUiAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-controls-test.log"
 set "EXIT_CODE=%ERRORLEVEL%"
 popd
@@ -97,7 +107,127 @@ if not "%EXIT_CODE%"=="0" (
   echo Log: %GODOT_DATA%\Logs\launcher-controls-test.log
   exit /b %EXIT_CODE%
 )
-echo Godot project and controls tests passed.
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/CameraEdgeAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-camera-edge-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Camera edge acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-camera-edge-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/NaturalBufferAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-natural-buffer-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Natural buffer acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-natural-buffer-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/TopBarCapacityAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-topbar-capacity-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Top bar capacity acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-topbar-capacity-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/GoalClarityAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-goals-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Goal clarity test failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-goals-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/EconomyComplexityAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-economy-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Economy complexity test failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-economy-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/BuildingCopyAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-building-copy-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Building copy acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-building-copy-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/RegionalBuildingsAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-regional-buildings-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Regional buildings acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-regional-buildings-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/MapExpansionAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-map-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Map expansion test failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-map-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/NpcScheduleAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-npc-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo NPC schedule test failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-npc-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/NpcWalkArtAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-npc-walk-art-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo NPC walk art acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-npc-walk-art-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/NpcScaleAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-npc-scale-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo NPC scale acceptance failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-npc-scale-test.log
+  exit /b %EXIT_CODE%
+)
+pushd "%PROJECT_ROOT%" || exit /b 3
+"%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/ProducerAcceptance.gd" --log-file "%GODOT_DATA%\Logs\launcher-producer-test.log"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Producer acceptance test failed. Exit code: %EXIT_CODE%
+  echo Log: %GODOT_DATA%\Logs\launcher-producer-test.log
+  exit /b %EXIT_CODE%
+)
+echo All Godot gameplay tests passed.
 exit /b 0
 
 :render_test

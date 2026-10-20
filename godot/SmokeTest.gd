@@ -25,7 +25,7 @@ func run() -> void:
 		fail("主场景必须默认使用写实资源且不能出现低模回退")
 		return
 
-	if game.day != 1 or game.wood != 100 or game.food != 40 or game.population != 4 or game.happiness != 60:
+	if game.day != 1 or game.wood != 100 or game.food != 40 or game.coins != 60 or game.population != 4 or game.happiness != 60 or game.stable_days != 0:
 		fail("初始经营数值不正确")
 		return
 	if game.buildings.size() != 1:
@@ -48,9 +48,10 @@ func run() -> void:
 		return
 
 	var wood_before: int = game.wood
+	var coins_before: int = game.coins
 	game.add_building("house", Vector2i(8, 8))
-	if game.wood != wood_before - 10:
-		fail("建造费用未正确扣除")
+	if game.wood != wood_before - int(game.BUILDINGS.house.cost) or game.coins != coins_before - int(game.BUILDINGS.house.coin_cost):
+		fail("建造没有同时扣除木材与铜钱")
 		return
 	game.next_day()
 	if game.day != 2:
@@ -62,10 +63,12 @@ func run() -> void:
 		fail("项目内存档未生成")
 		return
 	var saved_day: int = game.day
+	var saved_coins: int = game.coins
 	game.day = 99
+	game.coins = 0
 	game.load_game()
-	if game.day != saved_day:
-		fail("读取存档没有恢复日期")
+	if game.day != saved_day or game.coins != saved_coins:
+		fail("读取存档没有恢复日期与铜钱")
 		return
 	var valid_count: int = game.buildings.size()
 	var bad_file := FileAccess.open("res://saves/savegame.json", FileAccess.WRITE)

@@ -1,0 +1,98 @@
+{
+  "generator": "tools/generate_jiangnan_style_assets_v4.py",
+  "tier": "jiangnan_style_v4",
+  "art_version": 4,
+  "style": "ink-wash Jiangnan courtyard architecture with coherent gable roofs and visible verandas",
+  "tile_meters": 2.0,
+  "coordinate_contract": "meters; ground-center origin; Godot +Z building entrance",
+  "coverage": "7/7",
+  "preview": "godot/assets/jiangnan_style_v4/previews/jiangnan_style_v4_gallery.png",
+  "source": "godot/assets/jiangnan_style_v4/source/jiangnan_style_v4_gallery.blend",
+  "legacy_assets_preserved": "godot/assets/realistic",
+  "assets": [
+    {
+      "file": "building_house_open.glb",
+      "root": "Jiangnan_House_V4",
+      "asset_type": "building",
+      "building_type": "house",
+      "fallback_key": "house",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 21,
+      "triangles_before_modifiers": 91984,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_farm_open.glb",
+      "root": "Jiangnan_Farm_V4",
+      "asset_type": "building",
+      "building_type": "farm",
+      "fallback_key": "farm",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 19,
+      "triangles_before_modifiers": 63932,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_lumber_open.glb",
+      "root": "Jiangnan_Lumber_V4",
+      "asset_type": "building",
+      "building_type": "lumber",
+      "fallback_key": "lumber",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 15,
+      "triangles_before_modifiers": 97724,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_warehouse_open.glb",
+      "root": "Jiangnan_Warehouse_V4",
+      "asset_type": "building",
+      "building_type": "warehouse",
+      "fallback_key": "warehouse",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 17,
+      "triangles_before_modifiers": 103260,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_workshop_open.glb",
+      "root": "Jiangnan_Workshop_V4",
+      "asset_type": "building",
+      "building_type": "workshop",
+      "fallback_key": "workshop",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 18,
+      "triangles_before_modifiers": 103140,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_market_open.glb",
+      "root": "Jiangnan_Market_V4",
+      "asset_type": "building",
+      "building_type": "market",
+      "fallback_key": "market",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 19,
+      "triangles_before_modifiers": 108080,
+      "functional_read": "open_front_visible_work_area"
+    },
+    {
+      "file": "building_tea_pavilion_open.glb",
+      "root": "Jiangnan_Tea_Pavilion_V4",
+      "asset_type": "building",
+      "building_type": "tea_pavilion",
+      "fallback_key": "tea_pavilion",
+      "godot_entrance_axis": "+Z",
+      "art_style": "jiangnan_ink_wash",
+      "mesh_parts": 20,
+      "triangles_before_modifiers": 103216,
+      "functional_read": "open_front_visible_work_area"
+    }
+  ]
+}

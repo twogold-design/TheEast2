@@ -366,6 +366,8 @@ def build_house():
     r["building_type"] = "house"
     r["entrance_axis_godot"] = "+Z"
     r["bounds_m"] = "2.20,2.55,2.05"
+    r["roof_identity"] = "tile_gable_red_brackets"
+    r["roof_marker"] = "RoofIdentity_HouseBrackets"
 
     cube("StoneFoundation", (1.94, 1.72, 0.22), (0, 0, 0.11), "stone", r, bevel=0.035)
     cube("RaisedFloor", (1.74, 1.52, 0.16), (0, 0, 0.27), "wood_warm", r, bevel=0.018)
@@ -395,7 +397,7 @@ def build_house():
     # Brackets and eaves create a readable traditional timber silhouette.
     for x in (-0.78, -0.39, 0.0, 0.39, 0.78):
         for y in (-0.76, 0.76):
-            cube("EaveBracket", (0.18, 0.30, 0.08), (x, y, 1.43), "paint_red", r, bevel=0.012)
+            cube("RoofIdentity_HouseBrackets", (0.18, 0.30, 0.08), (x, y, 1.43), "paint_red", r, bevel=0.012)
             cube("BracketBlock", (0.12, 0.15, 0.15), (x, y * 0.96, 1.50), "wood_dark", r, bevel=0.01)
 
     roof_angle = math.radians(30)
@@ -446,6 +448,37 @@ def add_tiled_gable_roof(parent, width, half_run, ridge_z, angle_degrees=30, col
                  rotation=(0, math.radians(90), 0), top_radius=0.065, bevel=0.003)
 
 
+def add_lumber_roof_identity(parent):
+    """Two restrained timber battens make the lumber shed readable from above."""
+    roof_angle = math.radians(25)
+    distance = 0.50
+    surface_z = 2.20 - distance * math.tan(roof_angle)
+    for x in (-0.52, 0.52):
+        cube(
+            "RoofIdentity_TimberBatten", (0.10, 0.62, 0.055),
+            (x, -distance, surface_z + 0.055), "wood_dark", parent,
+            rotation=(roof_angle, 0, 0), bevel=0.010,
+        )
+
+
+def add_warehouse_roof_identity(parent):
+    """Twin low vent caps distinguish the enclosed warehouse from the lumber shed."""
+    roof_angle = math.radians(31)
+    distance = 0.22
+    surface_z = 2.42 - distance * math.tan(roof_angle)
+    for x in (-0.48, 0.48):
+        cylinder(
+            "RoofIdentity_WarehouseVent", 0.09, 0.18,
+            (x, -distance, surface_z + 0.11), "wood_dark", parent, 14,
+            top_radius=0.075, bevel=0.006,
+        )
+        cylinder(
+            "RoofIdentity_WarehouseVentCap", 0.14, 0.055,
+            (x, -distance, surface_z + 0.225), "roof_tile", parent, 18,
+            top_radius=0.11, bevel=0.004,
+        )
+
+
 def add_log_stack(parent, center, levels=3, logs_per_level=3, length=1.10):
     cx, cy, cz = center
     for level in range(levels):
@@ -465,6 +498,8 @@ def build_lumber():
     r["building_type"] = "lumber"
     r["entrance_axis_godot"] = "+Z"
     r["bounds_m"] = "2.45,2.30,2.25"
+    r["roof_identity"] = "tile_gable_timber_battens"
+    r["roof_marker"] = "RoofIdentity_TimberBatten"
 
     cube("StonePad", (2.18, 1.92, 0.18), (0, 0, 0.09), "stone", r, bevel=0.035)
     cube("TimberDeck", (2.04, 1.76, 0.14), (0, 0, 0.24), "wood_warm", r, bevel=0.018)
@@ -475,6 +510,7 @@ def build_lumber():
     for y in (-0.70, 0.70):
         cube("TieBeam", (1.98, 0.12, 0.14), (0, y, 1.78), "wood_dark", r, bevel=0.012)
     add_tiled_gable_roof(r, 2.18, 0.90, 2.20, 25, 15, 4)
+    add_lumber_roof_identity(r)
 
     add_log_stack(r, (-0.45, 0.46, 0.42), 3, 3, 1.08)
     cube("SawBenchTop", (0.92, 0.44, 0.10), (0.48, -0.35, 0.69), "wood_warm", r, bevel=0.012)
@@ -516,6 +552,8 @@ def build_farm():
     r["building_type"] = "farm"
     r["entrance_axis_godot"] = "+Z"
     r["bounds_m"] = "2.35,1.70,2.20"
+    r["roof_identity"] = "roofless_field_scarecrow"
+    r["roof_marker"] = "RoofIdentity_FieldScarecrow"
 
     cube("FarmPlot", (2.20, 1.92, 0.10), (0, 0, 0.05), "wet_soil", r, bevel=0.025)
     ridge_x = (-0.73, 0.0, 0.73)
@@ -532,7 +570,7 @@ def build_farm():
     cylinder("ScarecrowPost", 0.040, 1.38, (0.73, 0.30, 0.91), "wood_dark", r, 10, bevel=0.004)
     cylinder("ScarecrowArms", 0.035, 0.82, (0.73, 0.30, 1.12), "wood_dark", r, 10,
              rotation=(0, math.radians(90), 0), bevel=0.004)
-    cube("ScarecrowCoat", (0.48, 0.18, 0.45), (0.73, 0.30, 0.91), "cloth", r, bevel=0.035)
+    cube("RoofIdentity_FieldScarecrow", (0.48, 0.18, 0.45), (0.73, 0.30, 0.91), "cloth", r, bevel=0.035)
     uv_sphere("ScarecrowHead", 0.13, (0.73, 0.30, 1.35), "rope", r, 16, 8, (0.90, 0.90, 1.0))
     cylinder("ScarecrowHatBrim", 0.22, 0.035, (0.73, 0.30, 1.47), "grain", r, 18, bevel=0.003)
     cylinder("ScarecrowHat", 0.13, 0.13, (0.73, 0.30, 1.54), "grain", r, 16, top_radius=0.04, bevel=0.003)
@@ -545,6 +583,8 @@ def build_warehouse():
     r["building_type"] = "warehouse"
     r["entrance_axis_godot"] = "+Z"
     r["bounds_m"] = "2.45,2.65,2.30"
+    r["roof_identity"] = "tile_gable_twin_vents"
+    r["roof_marker"] = "RoofIdentity_WarehouseVent"
 
     cube("HighStonePlinth", (2.15, 1.92, 0.34), (0, 0, 0.17), "stone", r, bevel=0.045)
     cube("WarehouseFloor", (1.94, 1.70, 0.16), (0, 0, 0.41), "wood_warm", r, bevel=0.018)
@@ -574,6 +614,7 @@ def build_warehouse():
         for slit in (-0.09, 0.0, 0.09):
             cube("VentSlat", (0.028, 0.07, 0.26), (side * 0.54 + slit, 0.87, 1.33), "wood_warm", r, bevel=0.003)
     add_tiled_gable_roof(r, 2.25, 0.94, 2.42, 31, 16, 5)
+    add_warehouse_roof_identity(r)
 
     for index, (x, y, z, scale) in enumerate(((-0.73, -0.95, 0.55, 0.28), (0.72, -0.96, 0.52, 0.25))):
         uv_sphere("GrainSack_%02d" % index, scale, (x, y, z), "rope", r, 18, 10, (0.74, 0.48, 1.12))
@@ -587,6 +628,8 @@ def build_workshop():
     r["building_type"] = "workshop"
     r["entrance_axis_godot"] = "+Z"
     r["bounds_m"] = "2.55,3.05,2.35"
+    r["roof_identity"] = "tile_gable_chimney"
+    r["roof_marker"] = "RoofIdentity_WorkshopChimney"
 
     cube("WorkshopFoundation", (2.12, 1.92, 0.24), (0, 0, 0.12), "stone", r, bevel=0.040)
     cube("FireproofFloor", (1.94, 1.74, 0.14), (0, 0, 0.29), "brick", r, bevel=0.018)
@@ -605,7 +648,7 @@ def build_workshop():
     cube("ForgeBody", (0.66, 0.54, 0.72), (0.54, 0.34, 0.67), "brick", r, bevel=0.025)
     cube("Firebox", (0.42, 0.08, 0.29), (0.54, 0.055, 0.66), "iron", r, bevel=0.025)
     uv_sphere("ForgeGlow", 0.15, (0.54, 0.005, 0.64), "lantern_paper", r, 18, 9, (1.0, 0.38, 0.72))
-    cylinder("Chimney", 0.18, 1.55, (0.58, 0.40, 2.15), "brick", r, 16, top_radius=0.15, bevel=0.008)
+    cylinder("RoofIdentity_WorkshopChimney", 0.18, 1.55, (0.58, 0.40, 2.15), "brick", r, 16, top_radius=0.15, bevel=0.008)
     cylinder("ChimneyCap", 0.24, 0.08, (0.58, 0.40, 2.94), "roof_tile", r, 18, bevel=0.005)
     marker("Smoke", (0.58, 0.40, 3.03), r)
 
@@ -986,31 +1029,159 @@ def build_bridge():
 def build_citizen():
     r = root("Realistic_Citizen", "citizen", "citizen")
     r["height_m"] = 1.62
-    # Feet, legs and robe layers make a grounded human silhouette without requiring a rig.
+    r["animation_clip"] = "Walk-loop"
+    r["animation_duration_seconds"] = 0.8
+    r["animation_fps"] = 30
+    r["animation_style"] = "rigged alternating limbs with subtle centre-of-mass rise"
+
+    # Keep references to each rigid garment piece.  The generated resident uses
+    # a deliberately small armature: this leaves the established mesh and PBR
+    # materials untouched while giving Godot a real, editable walk clip instead
+    # of moving the whole model as a single block.
+    leg_parts = {-1: [], 1: []}
     for side in (-1, 1):
-        cube("Shoe", (0.17, 0.32, 0.09), (side * 0.10, -0.045, 0.07), "hair", r, bevel=0.025)
-        cylinder("LowerLeg", 0.075, 0.44, (side * 0.10, 0, 0.30), "cloth_blue", r, 14, top_radius=0.085, bevel=0.004)
-    cylinder("RobeLower", 0.29, 0.64, (0, 0, 0.59), "cloth_blue", r, 20, top_radius=0.22, bevel=0.006)
-    cylinder("Torso", 0.23, 0.52, (0, 0, 1.02), "cloth", r, 20, top_radius=0.18, bevel=0.007)
-    cube("Sash", (0.48, 0.36, 0.09), (0, 0, 0.80), "brass", r, bevel=0.012)
-    cylinder("Neck", 0.065, 0.12, (0, 0, 1.33), "skin", r, 16, bevel=0.003)
-    uv_sphere("Head", 0.18, (0, -0.012, 1.49), "skin", r, 24, 12, (0.94, 0.92, 1.05))
-    uv_sphere("HairCap", 0.185, (0, 0.005, 1.56), "hair", r, 24, 10, (0.96, 0.96, 0.62))
-    cylinder("HatBrim", 0.31, 0.045, (0, 0, 1.67), "rope", r, 24, bevel=0.004)
-    cylinder("HatCrown", 0.20, 0.17, (0, 0, 1.76), "rope", r, 20, top_radius=0.055, bevel=0.004)
+        leg_parts[side].append(cube("Shoe_%s" % ("L" if side < 0 else "R"), (0.17, 0.32, 0.09), (side * 0.10, -0.045, 0.07), "hair", r, bevel=0.025))
+        leg_parts[side].append(cylinder("LowerLeg_%s" % ("L" if side < 0 else "R"), 0.075, 0.44, (side * 0.10, 0, 0.30), "cloth_blue", r, 14, top_radius=0.085, bevel=0.004))
+    body_parts = [
+        cylinder("RobeLower", 0.29, 0.64, (0, 0, 0.59), "cloth_blue", r, 20, top_radius=0.22, bevel=0.006),
+        cylinder("Torso", 0.23, 0.52, (0, 0, 1.02), "cloth", r, 20, top_radius=0.18, bevel=0.007),
+        cube("Sash", (0.48, 0.36, 0.09), (0, 0, 0.80), "brass", r, bevel=0.012),
+        cylinder("Neck", 0.065, 0.12, (0, 0, 1.33), "skin", r, 16, bevel=0.003),
+        uv_sphere("Head", 0.18, (0, -0.012, 1.49), "skin", r, 24, 12, (0.94, 0.92, 1.05)),
+        uv_sphere("HairCap", 0.185, (0, 0.005, 1.56), "hair", r, 24, 10, (0.96, 0.96, 0.62)),
+        cylinder("HatBrim", 0.31, 0.045, (0, 0, 1.67), "rope", r, 24, bevel=0.004),
+        cylinder("HatCrown", 0.20, 0.17, (0, 0, 1.76), "rope", r, 20, top_radius=0.055, bevel=0.004),
+    ]
+    upper_arm_parts = {-1: [], 1: []}
+    lower_arm_parts = {-1: [], 1: []}
     for side in (-1, 1):
         shoulder = Vector((side * 0.24, 0, 1.19))
         elbow = Vector((side * 0.32, -0.05, 0.92))
         hand = Vector((side * 0.28, -0.12, 0.70))
-        branch(r, "UpperArm", shoulder, elbow, 0.07).data.materials.clear()
-        r.children[-1].data.materials.append(MATERIALS["cloth"])
-        branch(r, "Forearm", elbow, hand, 0.055).data.materials.clear()
-        r.children[-1].data.materials.append(MATERIALS["skin"])
-        uv_sphere("Hand", 0.065, hand, "skin", r, 16, 8, (0.85, 0.75, 1.0))
+        side_name = "L" if side < 0 else "R"
+        upper = branch(r, "UpperArm_%s" % side_name, shoulder, elbow, 0.07)
+        upper.data.materials.clear()
+        upper.data.materials.append(MATERIALS["cloth"])
+        upper_arm_parts[side].append(upper)
+        forearm = branch(r, "Forearm_%s" % side_name, elbow, hand, 0.055)
+        forearm.data.materials.clear()
+        forearm.data.materials.append(MATERIALS["skin"])
+        lower_arm_parts[side].append(forearm)
+        lower_arm_parts[side].append(uv_sphere("Hand_%s" % side_name, 0.065, hand, "skin", r, 16, 8, (0.85, 0.75, 1.0)))
     # Woven market basket gives the character a readable occupation prop.
-    cylinder("Basket", 0.20, 0.30, (0.36, -0.12, 0.58), "rope", r, 18, top_radius=0.25, bevel=0.004)
-    curve_tube("BasketHandle", [(0.16, -0.12, 0.68), (0.36, -0.12, 0.91), (0.56, -0.12, 0.68)], 0.018, "rope", r, 2)
+    lower_arm_parts[1].append(cylinder("Basket", 0.20, 0.30, (0.36, -0.12, 0.58), "rope", r, 18, top_radius=0.25, bevel=0.004))
+    lower_arm_parts[1].append(curve_tube("BasketHandle", [(0.16, -0.12, 0.68), (0.36, -0.12, 0.91), (0.56, -0.12, 0.68)], 0.018, "rope", r, 2))
+
+    rig = create_citizen_walk_rig(r)
+    for obj in body_parts:
+        bind_rigid_mesh(obj, rig, "Root")
+    for side, suffix in ((-1, "L"), (1, "R")):
+        for obj in leg_parts[side]:
+            bind_rigid_mesh(obj, rig, "Leg.%s" % suffix)
+        for obj in upper_arm_parts[side]:
+            bind_rigid_mesh(obj, rig, "UpperArm.%s" % suffix)
+        for obj in lower_arm_parts[side]:
+            bind_rigid_mesh(obj, rig, "LowerArm.%s" % suffix)
+    animate_citizen_walk(rig)
     return r
+
+
+def create_citizen_walk_rig(parent):
+    """Build a compact deformation rig that preserves the resident's silhouette."""
+    armature_data = bpy.data.armatures.new("CitizenRig")
+    rig = bpy.data.objects.new("CitizenRig", armature_data)
+    bpy.context.scene.collection.objects.link(rig)
+    rig.parent = parent
+    rig.show_in_front = True
+    bpy.context.view_layer.objects.active = rig
+    rig.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+
+    bones = armature_data.edit_bones
+    root_bone = bones.new("Root")
+    root_bone.head = (0, 0, 0.02)
+    root_bone.tail = (0, 0, 0.82)
+    for side, suffix in ((-1, "L"), (1, "R")):
+        leg = bones.new("Leg.%s" % suffix)
+        leg.head = (side * 0.10, 0, 0.55)
+        leg.tail = (side * 0.10, -0.03, 0.06)
+        leg.parent = root_bone
+
+        upper_arm = bones.new("UpperArm.%s" % suffix)
+        upper_arm.head = (side * 0.24, 0, 1.19)
+        upper_arm.tail = (side * 0.32, -0.05, 0.92)
+        upper_arm.parent = root_bone
+
+        lower_arm = bones.new("LowerArm.%s" % suffix)
+        lower_arm.head = (side * 0.32, -0.05, 0.92)
+        lower_arm.tail = (side * 0.28, -0.12, 0.70)
+        lower_arm.parent = upper_arm
+        lower_arm.use_connect = True
+
+    bpy.ops.object.mode_set(mode="POSE")
+    for pose_bone in rig.pose.bones:
+        pose_bone.rotation_mode = "XYZ"
+    bpy.ops.object.mode_set(mode="OBJECT")
+    rig.select_set(False)
+    return rig
+
+
+def bind_rigid_mesh(obj, rig, bone_name):
+    """Assign every vertex of one authored part to a single animation bone."""
+    # glTF requires the Armature object to be the direct parent of every
+    # skinned mesh. Preserve the authored world transform while moving the part
+    # from the asset root under the rig.
+    world_matrix = obj.matrix_world.copy()
+    obj.parent = rig
+    obj.matrix_world = world_matrix
+    vertex_group = obj.vertex_groups.new(name=bone_name)
+    vertex_group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
+    modifier = obj.modifiers.new("CitizenRig", "ARMATURE")
+    modifier.object = rig
+    modifier.use_vertex_groups = True
+
+
+def animate_citizen_walk(rig):
+    """Author a 24-frame (0.8 s at 30 fps) seamless stylised walk cycle."""
+    scene = bpy.context.scene
+    scene.render.fps = 30
+    scene.frame_start = 1
+    scene.frame_end = 25
+    rig.animation_data_create()
+    action = bpy.data.actions.new("Walk-loop")
+    action.use_fake_user = True
+    action.use_cyclic = True
+    rig.animation_data.action = action
+
+    # Contact, passing, opposite contact, passing, then the first pose again.
+    poses = (
+        (1, 16.0, -14.0, 7.0, 0.014),
+        (7, 0.0, 0.0, 1.5, 0.000),
+        (13, -16.0, 14.0, -5.0, 0.014),
+        (19, 0.0, 0.0, 1.5, 0.000),
+        (25, 16.0, -14.0, 7.0, 0.014),
+    )
+    root_pose = rig.pose.bones["Root"]
+    for frame, leg_left, arm_left, elbow_left, rise in poses:
+        scene.frame_set(frame)
+        root_pose.location = (0, 0, rise)
+        root_pose.keyframe_insert("location", frame=frame, group="CentreOfMass")
+        for suffix, direction in (("L", 1.0), ("R", -1.0)):
+            leg = rig.pose.bones["Leg.%s" % suffix]
+            upper_arm = rig.pose.bones["UpperArm.%s" % suffix]
+            lower_arm = rig.pose.bones["LowerArm.%s" % suffix]
+            leg.rotation_euler = (math.radians(leg_left * direction), 0, 0)
+            upper_arm.rotation_euler = (math.radians(arm_left * direction), 0, math.radians(2.0 * direction))
+            lower_arm.rotation_euler = (math.radians(elbow_left * direction), 0, 0)
+            leg.keyframe_insert("rotation_euler", frame=frame, group="Legs")
+            upper_arm.keyframe_insert("rotation_euler", frame=frame, group="Arms")
+            lower_arm.keyframe_insert("rotation_euler", frame=frame, group="Arms")
+
+    for fcurve in action.fcurves:
+        for keyframe in fcurve.keyframe_points:
+            keyframe.interpolation = "BEZIER"
+        fcurve.modifiers.new("CYCLES")
+    scene.frame_set(1)
 
 
 def descendants(obj):
@@ -1036,17 +1207,31 @@ def export_asset(asset_root, filename, entrance_axis="n/a"):
     mesh_objects = [obj for obj in objects if obj.type == "MESH"]
     triangle_count = sum(sum(max(0, len(poly.vertices) - 2) for poly in obj.data.polygons) for obj in mesh_objects)
     material_names = sorted({slot.material.name for obj in mesh_objects for slot in obj.material_slots if slot.material})
-    ASSET_RECORDS.append({
+    record = {
         "file": filename,
         "root": asset_root.name,
         "asset_type": asset_root.get("asset_type", "prop"),
         "fallback_key": asset_root.get("fallback_key", ""),
+    }
+    roof_identity = asset_root.get("roof_identity", "")
+    roof_marker = asset_root.get("roof_marker", "")
+    if roof_identity and roof_marker:
+        record["roof_identity"] = roof_identity
+        record["roof_marker"] = roof_marker
+    animation_clip = asset_root.get("animation_clip", "")
+    if animation_clip:
+        record["animation_clip"] = animation_clip
+        record["animation_duration_seconds"] = asset_root.get("animation_duration_seconds", 0.0)
+        record["animation_fps"] = asset_root.get("animation_fps", 30)
+        record["animation_style"] = asset_root.get("animation_style", "")
+    record.update({
         "origin": "ground_center",
         "godot_entrance_axis": entrance_axis,
         "mesh_parts": len(mesh_objects),
         "triangles_before_modifiers": triangle_count,
         "materials": material_names,
     })
+    ASSET_RECORDS.append(record)
 
 
 def aim(obj, target):
@@ -1120,6 +1305,43 @@ def build_preview(roots):
     bpy.ops.render.render(write_still=True)
 
 
+def render_citizen_walk_previews(citizen_root):
+    """Render three close views that make the alternating stride reviewable."""
+    output_dir = PROJECT_DIR / "qa" / "npc-walk-art"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    scene = bpy.context.scene
+    camera = scene.camera
+    previous_location = camera.location.copy()
+    previous_rotation = camera.rotation_euler.copy()
+    previous_scale = camera.data.ortho_scale
+    previous_resolution = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_filepath = scene.render.filepath
+    previous_frame = scene.frame_current
+
+    target = citizen_root.location + Vector((0, 0, 0.92))
+    camera.location = citizen_root.location + Vector((2.25, -4.35, 2.05))
+    camera.data.ortho_scale = 2.25
+    aim(camera, target)
+    scene.render.resolution_x = 680
+    scene.render.resolution_y = 760
+    scene.render.resolution_percentage = 100
+    for frame, filename in (
+        (1, "walk-contact-left.png"),
+        (7, "walk-passing.png"),
+        (13, "walk-contact-right.png"),
+    ):
+        scene.frame_set(frame)
+        scene.render.filepath = str(output_dir / filename)
+        bpy.ops.render.render(write_still=True)
+
+    scene.frame_set(previous_frame)
+    camera.location = previous_location
+    camera.rotation_euler = previous_rotation
+    camera.data.ortho_scale = previous_scale
+    scene.render.resolution_x, scene.render.resolution_y = previous_resolution
+    scene.render.filepath = previous_filepath
+
+
 def main():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
@@ -1159,9 +1381,12 @@ def main():
         "source": "godot/assets/realistic/source/east_valley_realistic_full.blend",
         "assets": ASSET_RECORDS,
     }
-    (MODEL_DIR / "realistic_manifest.json").write_text(json.dumps(manifest, ensure_ascii=True, indent=2), encoding="utf-8")
-    (SOURCE_DIR / ".gdignore").write_text("# Blender source is intentionally excluded from Godot import.\n", encoding="ascii")
+    manifest_text = json.dumps(manifest, ensure_ascii=True, indent=2) + "\n"
+    (MODEL_DIR / "realistic_manifest.json").write_bytes(manifest_text.encode("utf-8"))
+    (SOURCE_DIR / ".gdignore").write_bytes(b"# Blender source is intentionally excluded from Godot import.\n")
     build_preview(roots)
+    citizen_root = next(obj for obj in roots if obj.name == "Realistic_Citizen")
+    render_citizen_walk_previews(citizen_root)
     print("REALISTIC_FULL_OK", len(ASSET_RECORDS), MODEL_DIR)
 
 
