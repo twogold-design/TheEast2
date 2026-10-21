@@ -1,17 +1,28 @@
 extends SceneTree
 
 ## Release acceptance for the economy persisted by the v4 road-capable save.
-## scene instead of duplicating the settlement formulas, so save migration,
+## isolated scene instead of duplicating the settlement formulas, so save migration,
 ## production, labour allocation, upkeep and the visible objective copy must
 ## continue to work together.
 
 const VIEWPORT_SIZE := Vector2i(1366, 768)
-const SAVE_PATH := "res://saves/savegame.json"
+const SAVE_PATH := "res://.godot-user/qa/economy-complexity-fixture.json"
+
+class IsolatedGame extends "res://godot/Main.gd":
+	func save_path() -> String:
+		return ProjectSettings.globalize_path("res://.godot-user/qa/economy-complexity-fixture.json")
+	func audio_settings_path() -> String:
+		return "res://.godot-user/qa/economy-complexity-audio.cfg"
+	func save_game(_show_feedback := true) -> void:
+		pass
+	func load_game(_show_feedback := true) -> void:
+		pass
+	func save_fixture() -> void:
+		super.save_game(false)
+	func load_fixture() -> void:
+		super.load_game(false)
 
 var failures: Array[String] = []
-var original_save_exists := false
-var original_save_text := ""
-var save_snapshot_ready := false
 
 
 func _initialize() -> void:
@@ -19,15 +30,13 @@ func _initialize() -> void:
 
 
 func run() -> void:
-	preserve_save_file()
 	root.size = VIEWPORT_SIZE
-	var packed := load("res://godot/Main.tscn") as PackedScene
-	if packed == null:
-		fail("主场景无法加载")
-		finish()
-		return
-	var game = packed.instantiate()
+	var game := IsolatedGame.new()
 	root.add_child(game)
+	game.background_music.player.stop()
+	game.background_music.player.stream = null
+	game.set_process(false)
+	game.set_physics_process(false)
 	await process_frame
 	await process_frame
 	if game.get_script() == null or not game.has_method("next_day"):
@@ -40,14 +49,17 @@ func run() -> void:
 	check_v2_save_migration(game)
 	check_labour_reduces_production(game)
 	check_pause_releases_labour(game)
-	check_zero_coin_recovery(game)
+	check_low_coin_income_and_zero_failure(game)
 	check_workshop_atomic_recipe(game)
 	check_maintenance_and_stability(game)
 	check_storage_and_region_costs(game)
 	check_objective_ui_has_no_progress(game)
 
 	game.time_paused = true
-	restore_save_file()
+	game.queue_free()
+	await process_frame
+	await process_frame
+	await create_timer(0.4, true, false, true).timeout
 	finish()
 
 
@@ -94,7 +106,7 @@ func check_v2_save_migration(game) -> void:
 		],
 	}
 	write_save_text(JSON.stringify(legacy, "  "))
-	game.load_game(false)
+	game.load_fixture()
 	if int(game.day) != 7 or int(game.map_region_level) != 2 or int(game.wood) != 50 or int(game.food) != 30:
 		fail("读取旧 v2 存档时改变了原有日期、区域或资源")
 	if int(game.coins) <= 0:
@@ -104,7 +116,7 @@ func check_v2_save_migration(game) -> void:
 	if game.buildings.size() != 1 or not bool(game.buildings[0].get("enabled", false)):
 		fail("旧建筑迁移后没有默认启用")
 
-	game.save_game(false)
+	game.save_fixture()
 	var migrated := read_save_json()
 	if int(migrated.get("version", 0)) != 4:
 		fail("旧存档保存后没有升级为 v4")
@@ -120,7 +132,7 @@ func check_v2_save_migration(game) -> void:
 
 func check_labour_reduces_production(game) -> void:
 	var layout := [
-		{"type": "farm", "cell": Vector2i(1, 10)},
+		{"type": "farm", "cell": Vector2i(0, 10)},
 		{"type": "farm", "cell": Vector2i(4, 11)},
 		{"type": "lumber", "cell": Vector2i(14, 10)},
 		{"type": "lumber", "cell": Vector2i(15, 11)},
@@ -143,7 +155,7 @@ func check_labour_reduces_production(game) -> void:
 
 func check_pause_releases_labour(game) -> void:
 	var layout := [
-		{"type": "farm", "cell": Vector2i(1, 10)},
+		{"type": "farm", "cell": Vector2i(0, 10)},
 		{"type": "farm", "cell": Vector2i(4, 11)},
 		{"type": "lumber", "cell": Vector2i(14, 10)},
 	]
@@ -164,56 +176,43 @@ func check_pause_releases_labour(game) -> void:
 		fail("暂停农田没有把劳动力释放给伐木场：暂停后 %d，全部启用 %d" % [paused_wood_gain, all_enabled.wood_delta])
 
 
-func check_zero_coin_recovery(game) -> void:
+func check_low_coin_income_and_zero_failure(game) -> void:
 	var no_workshop: Array = [
-		{"type": "farm", "cell": Vector2i(1, 10)},
+		{"type": "farm", "cell": Vector2i(0, 10)},
 		{"type": "lumber", "cell": Vector2i(14, 10)},
-		{"type": "warehouse", "cell": Vector2i(10, 10)},
+		{"type": "warehouse", "cell": Vector2i(6, 12)},
 	]
-	var last_resident := run_one_day(game, [], 1, 50, 80, 0)
+	var last_resident := run_one_day(game, [], 1, 50, 80, 1)
 	if int(last_resident.coin_delta) < 1:
-		fail("仅剩 1 名居民且铜钱为零时，最低人口税没有提供恢复渠道")
-	var passive := run_one_day(game, [], 4, 50, 80, 0)
-	var productive := run_one_day(game, no_workshop, 4, 50, 80, 0)
+		fail("仅剩 1 名居民且仍有铜钱时，最低人口税没有提供收入")
+	var passive := run_one_day(game, [], 4, 50, 80, 1)
+	var productive := run_one_day(game, no_workshop, 4, 50, 80, 1)
 	if int(passive.coin_delta) <= 0:
-		fail("零铜钱且没有工坊时，人口税仍无法提供最低恢复渠道")
+		fail("没有工坊时，人口税没有提供基础收入")
 	if int(productive.coin_delta) <= int(passive.coin_delta):
-		fail("维持农田和伐木场没有比无脑等待更快地恢复铜钱")
-	if str(game.message_label.text).find("民生交易") < 0:
-		fail("每日结算没有显示民生交易收入")
-
+		fail("维持农田和伐木场没有比无脑等待获得更多铜钱")
+	if str(game.message_label.text) != "居民争执：幸福度 -8":
+		fail("每日结算应只显示意外事件，不显示收入账单")
 	prepare_layout(game, no_workshop, 4, 50, 80, 0)
-	var workshop_cost := int(game.BUILDINGS.workshop.coin_cost)
-	var recovery_days := 0
-	while int(game.coins) < workshop_cost and recovery_days < 8:
-		game.next_day()
-		recovery_days += 1
-	if int(game.building_count("workshop")) != 0:
-		fail("零铜钱恢复模拟意外预建了小工坊")
-	if int(game.coins) < workshop_cost:
-		fail("零铜钱、无小工坊且承担 3 铜钱维护时，基础生产在 8 日内仍无法恢复到小工坊造价")
-	if int(game.wood) < int(game.BUILDINGS.workshop.cost):
-		fail("恢复到小工坊铜钱造价时，基础生产没有保留足够木材")
+	game.next_day()
+	if game.ended != "lose" or game.coins != 0 or game.day != 2:
+		fail("铜钱为零必须失败，不能依靠后续日结恢复")
 
 	prepare_layout(game, [
-		{"type": "house", "cell": Vector2i(10, 9)},
-		{"type": "farm", "cell": Vector2i(1, 10)},
+		{"type": "house", "cell": Vector2i(8, 9)},
+		{"type": "farm", "cell": Vector2i(0, 10)},
 		{"type": "lumber", "cell": Vector2i(14, 10)},
-	], 8, 100, 100, 0)
+	], 8, 100, 100, 1)
 	game.stable_days = 1
-	# Income channels are explained by their building descriptions and daily
-	# settlement report. The chapter goal stays fixed instead of turning into a
-	# changing economy hint as individual thresholds are met.
 	var fixed_goal := str(game.current_task_text(1))
 	if fixed_goal != "建好河湾聚落，开拓北坡":
 		fail("经济状态改变了第一章固定目标：%s" % fixed_goal)
-
 
 func check_workshop_atomic_recipe(game) -> void:
 	var no_workshop: Array = []
 	# Keep this recipe test away from the authored village road so it isolates
 	# the workshop's own +10/-2 economy from the optional +1 transport income.
-	var workshop_layout := [{"type": "workshop", "cell": Vector2i(8, 8)}]
+	var workshop_layout := [{"type": "workshop", "cell": Vector2i(6, 8)}]
 	var control := run_one_day(game, no_workshop, 20, 50, 80, 500)
 	var operating := run_one_day(game, workshop_layout, 20, 50, 80, 500)
 	if int(operating.wood_delta) - int(control.wood_delta) != -4:
@@ -241,11 +240,11 @@ func check_workshop_atomic_recipe(game) -> void:
 
 func check_maintenance_and_stability(game) -> void:
 	var costly_layout := [
-		{"type": "warehouse", "cell": Vector2i(10, 10)},
-		{"type": "warehouse", "cell": Vector2i(11, 10)},
-		{"type": "warehouse", "cell": Vector2i(12, 10)},
+		{"type": "warehouse", "cell": Vector2i(6, 12)},
+		{"type": "warehouse", "cell": Vector2i(8, 12)},
+		{"type": "warehouse", "cell": Vector2i(6, 15)},
 	]
-	prepare_layout(game, costly_layout, 1, 40, 50, 0)
+	prepare_layout(game, costly_layout, 1, 40, 50, 1)
 	game.stable_days = 5
 	game.happiness = 80
 	game.next_day()
@@ -255,8 +254,8 @@ func check_maintenance_and_stability(game) -> void:
 		fail("维护不足没有使幸福度下行")
 
 	var stable_layout := [
-		{"type": "house", "cell": Vector2i(10, 9)},
-		{"type": "farm", "cell": Vector2i(1, 10)},
+		{"type": "house", "cell": Vector2i(8, 9)},
+		{"type": "farm", "cell": Vector2i(0, 10)},
 		{"type": "farm", "cell": Vector2i(4, 11)},
 		{"type": "lumber", "cell": Vector2i(14, 10)},
 	]
@@ -275,12 +274,25 @@ func check_storage_and_region_costs(game) -> void:
 	game.time_paused = true
 	if int(game.wood_capacity()) != 100 or int(game.food_capacity()) != 100:
 		fail("无仓库时木材和粮食容量应为 100")
-	game.add_building("warehouse", Vector2i(10, 10), true)
+	game.add_building("warehouse", Vector2i(6, 12), true)
+	if int(game.wood_capacity()) != 100 or int(game.food_capacity()) != 100:
+		fail("断路仓库不应提供额外容量")
+	# Reach the far (non-anchor) east edge rather than just the origin cell.
+	game.add_road(Vector2i(8, 13), true)
+	game.add_road(Vector2i(9, 13), true)
 	if int(game.wood_capacity()) != 175 or int(game.food_capacity()) != 175:
-		fail("每座仓库应使木材和粮食容量各增加 75")
-	game.add_building("warehouse", Vector2i(11, 10), true)
+		fail("接通非锚点边界的仓库应使木材和粮食容量各增加 75")
+	game.add_building("warehouse", Vector2i(6, 15), true)
+	if int(game.wood_capacity()) != 175 or int(game.food_capacity()) != 175:
+		fail("第二座断路仓库不应增加容量")
+	game.add_road(Vector2i(8, 16), true)
+	game.add_road(Vector2i(9, 16), true)
+	game.add_road(Vector2i(9, 15), true)
 	if int(game.wood_capacity()) != 250 or int(game.food_capacity()) != 250:
-		fail("两座仓库的木材和粮食容量应为 250")
+		fail("两座联网仓库的木材和粮食容量应为 250")
+	game.remove_road(Vector2i(9, 13), false)
+	if int(game.wood_capacity()) != 175 or int(game.food_capacity()) != 175:
+		fail("拆断第一座仓库道路后只应保留第二座容量")
 	for level in range(1, game.REGION_UNLOCK_COSTS.size()):
 		var cost: Dictionary = game.REGION_UNLOCK_COSTS[level]
 		if not cost.has("coins") or int(cost.coins) <= 0:
@@ -387,31 +399,6 @@ func has_property(object: Object, property_name: String) -> bool:
 	return false
 
 
-func preserve_save_file() -> void:
-	original_save_exists = FileAccess.file_exists(SAVE_PATH)
-	if not original_save_exists:
-		save_snapshot_ready = true
-		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		fail("无法暂存验收前的真实存档")
-		return
-	original_save_text = file.get_as_text()
-	save_snapshot_ready = true
-
-
-func restore_save_file() -> void:
-	if not save_snapshot_ready:
-		return
-	if original_save_exists:
-		write_save_text(original_save_text)
-		return
-	if FileAccess.file_exists(SAVE_PATH):
-		var error := DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-		if error != OK:
-			fail("无法清理验收生成的临时存档")
-
-
 func write_save_text(contents: String) -> void:
 	var absolute_path := ProjectSettings.globalize_path(SAVE_PATH)
 	DirAccess.make_dir_recursive_absolute(absolute_path.get_base_dir())
@@ -441,7 +428,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("ECONOMY_COMPLEXITY_ACCEPTANCE_OK: v4 migration, labour, pause, zero-coin recovery, basic trade, atomic workshop, maintenance, stability, storage, coin gates, concise goals")
+		print("ECONOMY_COMPLEXITY_ACCEPTANCE_OK: v4 migration, labour, pause, zero-coin failure, low-coin income, basic trade, atomic workshop, maintenance, stability, storage, coin gates, concise goals")
 		quit(0)
 	else:
 		print("ECONOMY_COMPLEXITY_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

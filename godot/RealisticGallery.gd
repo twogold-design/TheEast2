@@ -67,7 +67,7 @@ func create_collection() -> void:
 	turntable_root.name = "AssetCollection"
 	add_child(turntable_root)
 	var exhibits: Array[Dictionary] = [
-		{"key": "building.house", "pos": Vector3(-6.6, 0, -4.0), "label": "茅舍", "scale": 0.86},
+		{"key": "building.house", "pos": Vector3(-6.6, 0, -4.0), "label": "民居", "scale": 0.86},
 		{"key": "building.lumber", "pos": Vector3(-3.3, 0, -4.0), "label": "伐木场", "scale": 0.86},
 		{"key": "building.farm", "pos": Vector3(0.0, 0, -4.0), "label": "农田", "scale": 0.86},
 		{"key": "building.warehouse", "pos": Vector3(3.3, 0, -4.0), "label": "仓库", "scale": 0.86},

@@ -132,11 +132,27 @@ func check_connectivity_and_bridge(game) -> void:
 	for child in main_road_join.get_children():
 		if child is MeshInstance3D and child.mesh is BoxMesh:
 			leftmost_surface = minf(leftmost_surface, child.position.x - child.mesh.size.x * 0.5)
-	# Cell centres are two world units apart and the authored street is 1.1m
-	# wide, so the player road must reach x=-1.45 locally to meet its edge.
-	if leftmost_surface > -1.40:
+	# The authored street is 1.1m wide. The connector must reach its edge from
+	# the current player-road cell, regardless of the configured cell pitch.
+	var expected_side_edge := -(float(game.TILE_SIZE) - 0.55)
+	if leftmost_surface > expected_side_edge + 0.05:
 		fail("玩家道路与固定村庄主路存在明显视觉断缝：最远仅到 %.2f" % leftmost_surface)
 	main_road_join.free()
+	# The authored street is a continuous mesh whose end is exactly one cell
+	# beyond the endpoint centre.  A road placed outside that endpoint must stop
+	# at the boundary; extending the arm into the street produces the visible
+	# raised overlap/intersection seam reported in the planning view.
+	var endpoint_join: Node3D = game.create_road_model(Vector2i(10, 3))
+	var endpoint_arm_end := -INF
+	for child in endpoint_join.get_children():
+		if child is MeshInstance3D and child.mesh is BoxMesh:
+			var mesh_size: Vector3 = child.mesh.size
+			if child.position.z > 0.5 and mesh_size.x < 0.8:
+				endpoint_arm_end = maxf(endpoint_arm_end, child.position.z + mesh_size.z * 0.5)
+	var expected_endpoint_edge := float(game.TILE_SIZE) * 0.5
+	if endpoint_arm_end < expected_endpoint_edge - 0.02 or endpoint_arm_end > expected_endpoint_edge + 0.02:
+		fail("主路端点连接臂与固定主路重叠：边界 %.2f（应为 %.2f）" % [endpoint_arm_end, expected_endpoint_edge])
+	endpoint_join.free()
 	game.add_road(Vector2i(8, 8), true)
 	if game.is_road_connected(Vector2i(8, 8)):
 		fail("与主路分离的孤立道路被错误识别为联网")

@@ -70,7 +70,8 @@ func check_visual_scale(game) -> void:
 	var expected := float(game.NPC_VISUAL_SCALE)
 	if expected < 0.45 or expected > 0.60:
 		fail("NPC视觉缩放超出与单格房屋协调的范围：%.2f" % expected)
-	if not visual.scale.is_equal_approx(Vector3.ONE * expected):
+	var age_scale := 0.78 if int(visual.get_meta("npc_variant", -1)) == 5 else 1.0
+	if not visual.scale.is_equal_approx(Vector3.ONE * expected * age_scale):
 		fail("NPC视觉节点没有应用统一缩放：%s" % visual.scale)
 	if absf(float(visual.get_meta("gameplay_visual_scale", -1.0)) - expected) > EPSILON:
 		fail("NPC视觉节点缺少可验收的缩放元数据")

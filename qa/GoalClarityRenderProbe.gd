@@ -24,6 +24,24 @@ func run() -> void:
 	if not save_viewport(OUTPUT_DIR + "/chapter-one-1366x768.png"):
 		quit(1)
 		return
+	# Capture the same chapter after its requirements are met so the green
+	# completion treatment is reviewed alongside the neutral target view.
+	game.add_building("farm", Vector2i(1, 10), true)
+	game.add_building("house", Vector2i(10, 9), true)
+	game.population = 8
+	game.happiness = 80
+	game.stable_days = 0
+	game.wood = 100
+	game.food = 40
+	game.coins = 100
+	game.update_ui()
+	await process_frame
+	await process_frame
+	if not save_viewport(OUTPUT_DIR + "/chapter-one-complete-1366x768.png"):
+		quit(1)
+		return
+	game.reset_game(false)
+	game.update_ui()
 	game.show_inspector(int(game.occupied[Vector2i(9, 9)]))
 	await process_frame
 	await process_frame
@@ -80,7 +98,7 @@ func run() -> void:
 	if not save_viewport(OUTPUT_DIR + "/chapter-four-1366x768.png"):
 		quit(1)
 		return
-	print("GOAL_CLARITY_RENDER_OK: chapter_one, building_selection, boundary_hills, collapsed, settings_menu, chapter_four_1366x768")
+	print("GOAL_CLARITY_RENDER_OK: chapter_one, chapter_one_complete, building_selection, boundary_hills, collapsed, settings_menu, chapter_four_1366x768")
 	quit(0)
 
 func save_viewport(path: String) -> bool:

@@ -237,6 +237,16 @@ if not "%EXIT_CODE%"=="0" (
   echo Log: %GODOT_DATA%\Logs\launcher-producer-test.log
   exit /b %EXIT_CODE%
 )
+for %%T in (AnimalAssetsAcceptance NpcAppearanceAcceptance NpcVarietyAcceptance MarketFootprintAcceptance MarketActivityAcceptance BuildingStatusAcceptance GoalSegmentsAcceptance OpenWorkshopAcceptance DetailedTreesAcceptance RiverLifeAcceptance DailyEventHelpAcceptance BackgroundMusicAcceptance FailureConditionsAcceptance ForestRoadAcceptance WarehouseFootprintAcceptance ClinicWarehouseArtProbe MountainDetailAcceptance ExpandedFarmArtAcceptance FishpondArtAcceptance FishpondGameplayAcceptance BuildingRotationAcceptance AnimalBuildingAvoidanceAcceptance OpenHouseArtAcceptance FemaleCitizenAcceptance WarehouseRoadAcceptance WorkshopClinicFootprintAcceptance ServiceCourtArtAcceptance) do (
+  pushd "%PROJECT_ROOT%" || exit /b 3
+  "%GODOT_CONSOLE%" --path "%PROJECT_ROOT%" --headless --script "res://qa/%%T.gd" --log-file "%GODOT_DATA%\Logs\launcher-%%T.log"
+  if errorlevel 1 (
+    popd
+    echo %%T failed. See %GODOT_DATA%\Logs\launcher-%%T.log
+    exit /b 1
+  )
+  popd
+)
 echo All Godot gameplay tests passed.
 exit /b 0
 

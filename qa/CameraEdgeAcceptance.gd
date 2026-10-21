@@ -9,18 +9,26 @@ const EPSILON := 0.05
 
 var failures: Array[String] = []
 
+class IsolatedGame:
+	extends "res://godot/Main.gd"
+	func _ready() -> void:
+		pass
+	func save_game(_show_feedback := true) -> void:
+		push_error("CAMERA_TEST_MUST_NOT_SAVE")
+	func load_game(_show_feedback := true) -> void:
+		push_error("CAMERA_TEST_MUST_NOT_LOAD")
+
 func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
 	root.size = VIEWPORT_SIZE
-	var packed := load("res://godot/Main.tscn") as PackedScene
-	if packed == null:
-		fail("主场景无法加载")
-		finish()
-		return
-	var game = packed.instantiate()
+	var game := IsolatedGame.new()
+	game.time_paused = true
 	root.add_child(game)
+	game.create_world()
+	game.set_process(false)
+	game.set_physics_process(false)
 	await process_frame
 	await process_frame
 	game.time_paused = true
@@ -59,14 +67,14 @@ func check_buffer_aware_clamp(game) -> void:
 	game.camera.size = float(game.CAMERA_MIN_SIZE)
 	game.clamp_camera_target_to_bounds()
 	var near_bounds: Vector2 = game.camera_pan_bounds()
-	if near_bounds.x <= far_bounds.x + 8.0 or near_bounds.y <= far_bounds.y + 8.0:
-		fail("平移范围没有随近景缩放扩大：远景 %s，近景 %s" % [far_bounds, near_bounds])
-	if near_bounds.x < 44.0 or near_bounds.y < 44.0:
-		fail("近景平移不足以浏览可建地图边缘：%s" % near_bounds)
+	var browse_extent: float = (game.GRID_SIZE * 0.5 + game.CAMERA_EDGE_BROWSE_CELLS) * game.TILE_SIZE
+	if near_bounds.x < browse_extent - EPSILON or near_bounds.y < browse_extent - EPSILON or far_bounds.x < browse_extent - EPSILON or far_bounds.y < browse_extent - EPSILON:
+		fail("近景和远景都应能浏览边缘外4格：远景 %s，近景 %s" % [far_bounds, near_bounds])
 
 func check_corner_browsing(game) -> void:
 	game.camera.size = float(game.CAMERA_MIN_SIZE)
-	for corner in [Vector3(-47, 0, -47), Vector3(47, 0, -47), Vector3(-47, 0, 47), Vector3(47, 0, 47)]:
+	var extent: float = (game.GRID_SIZE - 1) * game.TILE_SIZE * 0.5
+	for corner in [Vector3(-extent, 0, -extent), Vector3(extent, 0, -extent), Vector3(-extent, 0, extent), Vector3(extent, 0, extent)]:
 		move_camera_target(game, corner)
 		await process_frame
 		assert_camera_inside_buffer(game, "四角浏览")

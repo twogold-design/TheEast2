@@ -40,7 +40,7 @@ func run() -> void:
 	game.reset_game(false)
 	restore_save_file()
 	if failures.is_empty():
-		print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, goal-only UI, unlock reward feedback, labour/coin/stability gates, v1/v2-to-v4 saves")
+		print("MAP_UNLOCK_SMOKE_OK: 48x48, 7 regions, goal-only UI, unlock reward feedback, numeric stock/population/happiness gates, v1/v2-to-v4 saves")
 		quit(0)
 	else:
 		print("MAP_UNLOCK_SMOKE_FAILED: %d issue(s)" % failures.size())
@@ -101,7 +101,7 @@ func check_goal_guidance(game) -> void:
 	if header.find("第一章") < 0 or header.find("安家河湾") < 0 or header.find("目标：") < 0 or header.find("开拓北坡") < 0:
 		fail("顶栏没有明确显示第一章的固定目标：%s" % header)
 		return
-	for keyword in ["北坡梯田", "用途", "固定目标：", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"]:
+	for keyword in ["北坡梯田", "用途", "目标：", "人口 8", "幸福度 55", "木材 90", "粮食 60", "铜钱 45"]:
 		if panel.find(keyword) < 0:
 			fail("复兴目标面板缺少关键词 %s" % keyword)
 			return
@@ -169,13 +169,16 @@ func check_unlock_ladder(game) -> void:
 		var reward: Dictionary = game.REGION_UNLOCK_REWARDS[level]
 		var happiness_before := int(game.happiness)
 		game.unlock_next_region()
-		var expected_wood := mini(int(game.wood_capacity()), int(reward.wood))
-		var expected_food := mini(int(game.food_capacity()), int(reward.food))
+		var requirement: Dictionary = game.REGION_REQUIREMENTS[level]
+		var remaining_wood := int(requirement.wood) - int(cost.wood)
+		var expected_wood := remaining_wood + mini(maxi(0, int(game.wood_capacity()) - remaining_wood), int(reward.wood))
+		var remaining_food := int(requirement.food) - int(cost.food)
+		var expected_food := remaining_food + mini(maxi(0, int(game.food_capacity()) - remaining_food), int(reward.food))
 		var expected_happiness := mini(100, happiness_before + int(reward.happiness))
 		if int(game.map_region_level) != level:
 			fail("第%d级开拓后区域等级没有推进" % level)
 			return
-		if int(game.wood) != expected_wood or int(game.food) != expected_food or int(game.coins) != int(reward.coins) or int(game.happiness) != expected_happiness:
+		if int(game.wood) != expected_wood or int(game.food) != expected_food or int(game.coins) != int(requirement.coins) - int(cost.coins) + int(reward.coins) or int(game.happiness) != expected_happiness:
 			fail("第%d级没有按木材%d、粮食%d、铜钱%d费用及奖励结算" % [level, cost.wood, cost.food, cost.coins])
 			return
 		var unlock_message := str(game.message_label.text)
@@ -201,34 +204,10 @@ func prepare_unlock_level(game, level: int) -> void:
 	game.time_paused = true
 	game.map_region_level = level - 1
 	var requirement: Dictionary = game.REGION_REQUIREMENTS[level]
-	var cost: Dictionary = game.REGION_UNLOCK_COSTS[level]
-	var houses_needed := ceili(int(requirement.housing) / 4.0)
-	for index in range(maxi(0, houses_needed - 1)):
-		game.add_building("house", Vector2i(5 + index % 12, 5 + index / 12), true)
-	var building_rows := {
-		"farm": 10, "lumber": 11, "warehouse": 12, "workshop": 13,
-		"market": 14, "clinic": 15, "academy": 16,
-	}
-	for type in requirement.buildings:
-		for index in range(int(requirement.buildings[type])):
-			game.add_building(str(type), Vector2i(5 + index, int(building_rows[type])), true)
-	var local_cells := {
-		1: Vector2i(10, 10),
-		2: Vector2i(4, 22),
-		3: Vector2i(22, 4),
-		4: Vector2i(22, 22),
-		5: Vector2i(35, 8),
-		6: Vector2i(15, 35),
-	}
-	for type in requirement.get("local_buildings", {}):
-		for _index in range(int(requirement.local_buildings[type])):
-			game.add_building(str(type), local_cells[level], true)
-	game.population = int(requirement.population)
-	game.happiness = maxi(60, int(requirement.happiness))
-	game.stable_days = int(requirement.stable_days)
-	game.wood = int(cost.wood)
-	game.food = int(cost.food)
-	game.coins = int(cost.coins)
+	# Regional gates use current metrics, never a prescribed building mix.
+	for key in requirement:
+		game.set(key, requirement[key])
+	game.stable_days = 0
 	game.maintenance_debt = 0
 	game.update_ui()
 

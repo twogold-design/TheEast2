@@ -5,6 +5,13 @@ extends RefCounted
 ## as an explicit fallback and the returned root always records its source.
 
 const ArtKit = preload("res://godot/ArtAssets.gd")
+const AnimalKit = preload("res://godot/AnimalAssets.gd")
+const OpenMarketKit = preload("res://godot/OpenMarketAssets.gd")
+const MarketActivityKit = preload("res://godot/MarketCharacterAnimation.gd")
+const OpenWorkshopKit = preload("res://godot/OpenWorkshopAssets.gd")
+const OpenClinicKit = preload("res://godot/OpenClinicAssets.gd")
+const OpenWarehouseKit = preload("res://godot/OpenWarehouseAssets.gd")
+const FishpondKit = preload("res://godot/FishpondAssets.gd")
 const BASE_DIR := "res://godot/assets/realistic/models"
 const MANIFEST_PATH := BASE_DIR + "/realistic_manifest.json"
 
@@ -81,11 +88,119 @@ static func create_asset(key: String, preview := false, allow_fallback := true, 
 		_configure_root(fallback, key, "fallback", path, preview)
 	return fallback
 
-static func create_building(type: String, preview := false, allow_fallback := true) -> Node3D:
-	if type in ["market", "clinic", "academy"]:
-		# Regional buildings are composed from the verified core kit and do not
-		# pretend to be additional imported GLBs in the 15-item asset manifest.
-		var base_type: String = {"market": "warehouse", "clinic": "house", "academy": "workshop"}[type]
+static func create_building(type: String, preview := false, allow_fallback := true, compact := false, farm_cells := Vector2i(2, 2)) -> Node3D:
+	if type == "house":
+		var source := create_asset("building.house", false, allow_fallback)
+		if source and source.get_meta("asset_source", "") == "realistic":
+			var home := preload("res://godot/OpenHouseAssets.gd").create_house(source)
+			home.set_meta("expected_path", "res://godot/OpenHouseAssets.gd")
+			if preview:
+				apply_preview_tint(home, true)
+			else:
+				_ensure_collision(home, Vector3(1.70, 1.45, 0.94), "AssetCollision")
+				(home.get_node("AssetCollision") as Node3D).position.z = -0.43
+			return home
+		if source and preview:
+			var collision := source.find_child("AssetCollision", true, false)
+			if collision:
+				collision.free()
+			apply_preview_tint(source, true)
+		return source
+	if type == "farm":
+		var source := create_asset("building.farm", false, allow_fallback)
+		if source:
+			var farm := preload("res://godot/ExpandedFarmAssets.gd").create_farm(source, farm_cells)
+			if preview:
+				apply_preview_tint(farm, true)
+			else:
+				_ensure_collision(farm, Vector3(4.26, 0.28, 4.00 if farm_cells.y == 2 else 1.94), "AssetCollision")
+			return farm
+		return source
+	if type == "fishpond":
+		var pond := FishpondKit.create_pond(preview)
+		if preview:
+			apply_preview_tint(pond, true)
+		return pond
+	if type in ["clinic", "warehouse"]:
+		var base_type := "house" if type == "clinic" else "warehouse"
+		var source := create_asset("building." + base_type, preview, allow_fallback)
+		if source and source.get_meta("asset_source", "") == "realistic":
+			var model := OpenClinicKit.create_clinic(source) if type == "clinic" else OpenWarehouseKit.create_warehouse(source)
+			if type == "clinic" and not compact:
+				model = preload("res://godot/ExpandedServiceCourts.gd").expand(model, "clinic")
+			model.set_meta("composite_base", base_type)
+			model.set_meta("expected_path", "res://godot/OpenClinicAssets.gd" if type == "clinic" else "res://godot/OpenWarehouseAssets.gd")
+			if type == "clinic":
+				var doctor := create_citizen_variant(204, 2, allow_fallback)
+				if doctor:
+					doctor.name = "ClinicDoctor"
+					doctor.scale = Vector3.ONE * 0.40
+					doctor.position = model.get_node("DoctorAnchor").position
+					model.add_child(doctor)
+					var activity := MarketActivityKit.attach(doctor, "vendor", 2, preview)
+					activity.name = "ClinicActivity"
+			if preview:
+				apply_preview_tint(model, true)
+			else:
+				var hall_size := (Vector3(1.70, 1.20, 0.80) if compact else Vector3(3.76, 1.20, 0.90)) if type == "clinic" else Vector3(3.50, 1.60, 1.60)
+				_ensure_collision(model, hall_size, "AssetCollision")
+				(model.get_node("AssetCollision") as Node3D).position.z = (-0.56 if compact else -1.41) if type == "clinic" else -1.03
+			return model
+		return source
+	if type == "workshop":
+		var source := create_asset("building.workshop", false, allow_fallback)
+		if source and source.get_meta("asset_source", "") == "realistic":
+			var workshop := OpenWorkshopKit.rebuild(source)
+			if not compact:
+				workshop = preload("res://godot/ExpandedServiceCourts.gd").expand(workshop, "workshop")
+			var artisan := create_citizen_variant(200, 1, allow_fallback)
+			if artisan:
+				artisan.name = "WorkshopArtisan"
+				artisan.scale = Vector3.ONE * 0.44
+				artisan.position = workshop.get_node("ArtisanAnchor").position
+				workshop.add_child(artisan)
+				var activity := MarketActivityKit.attach(artisan, "workshop", 0, preview)
+				activity.name = "WorkshopActivity"
+				activity.attach_workshop_hammer()
+			if not preview:
+				_ensure_collision(workshop, Vector3(1.66, 1.3, 0.84) if compact else Vector3(3.76, 1.3, 0.94), "AssetCollision")
+				(workshop.get_node("AssetCollision") as Node3D).position.z = -0.55 if compact else -1.40
+			else:
+				apply_preview_tint(workshop, true)
+			return workshop
+		if source and preview:
+			var collision := source.find_child("AssetCollision", true, false)
+			if collision:
+				collision.free()
+			apply_preview_tint(source, true)
+		return source
+	if type == "market":
+		var market := OpenMarketKit.create_market()
+		market.set_meta("asset_key", "building.market")
+		market.set_meta("expected_path", "res://godot/OpenMarketAssets.gd")
+		for i in range(4):
+			var vendor := create_citizen_variant(100 + i, [0, 3, 2, 1][i], allow_fallback)
+			if vendor:
+				vendor.name = "MarketVendor_%d" % i
+				vendor.scale = Vector3.ONE * 0.48
+				vendor.position = Vector3(-1.30 if i < 2 else 1.30, 0.28, -0.98 if i % 2 == 0 else 0.98)
+				vendor.rotation.y = PI / 2 if i < 2 else -PI / 2
+				market.add_child(vendor)
+				MarketActivityKit.attach(vendor, "vendor", i, preview)
+		for i in range(2):
+			var visitor := create_citizen_variant(110 + i, [4, 3][i], allow_fallback)
+			if visitor:
+				visitor.name = "MarketCustomer_%d" % i
+				visitor.scale = Vector3.ONE * 0.48
+				visitor.position = Vector3(-0.16 if i == 0 else 0.16, 0.28, -0.98 if i == 0 else 0.98)
+				visitor.rotation.y = PI / 2 if i == 0 else -PI / 2
+				market.add_child(visitor)
+				MarketActivityKit.attach(visitor, "customer", i + 4, preview)
+		if preview:
+			apply_preview_tint(market, true)
+		return market
+	if type == "academy":
+		var base_type := "workshop"
 		var composite := create_asset("building.%s" % base_type, preview, allow_fallback)
 		if composite:
 			composite.name = "Realistic_Building_%s" % type.capitalize()
@@ -99,7 +214,8 @@ static func create_building(type: String, preview := false, allow_fallback := tr
 
 static func create_tree(variant := 0, allow_fallback := true) -> Node3D:
 	var normalized := posmod(variant, 3)
-	return create_asset("prop.tree.%02d" % (normalized + 1), false, allow_fallback, normalized)
+	var tree := create_asset("prop.tree.%02d" % (normalized + 1), false, allow_fallback, normalized)
+	return preload("res://godot/DetailedTreeAssets.gd").enhance(tree, normalized)
 
 static func create_rock(variant := 0, allow_fallback := true) -> Node3D:
 	var normalized := posmod(variant, 3)
@@ -121,8 +237,38 @@ static func create_citizen(index := 0, allow_fallback := true) -> Node3D:
 		citizen.set_meta("palette_variant", posmod(index, 4))
 	return citizen
 
+## Returns the same authored resident body with a readable occupation/age
+## silhouette.  The base GLB stays shared; only the small accessory layer is
+## unique, so dozens of residents remain cheap to instantiate.
+static func create_citizen_variant(index := 0, variant := -1, allow_fallback := true) -> Node3D:
+	var citizen := create_citizen(index, allow_fallback)
+	if citizen == null:
+		return null
+	var resolved := posmod(index if variant < 0 else variant, 8)
+	citizen.set_meta("npc_variant", resolved)
+	citizen.set_meta("npc_variant_name", ["农户", "匠人", "书生", "商贩", "舟夫", "孩童", "白衣女居民", "紫衣女居民"][resolved])
+	var cloth_colors := [Color("8b9c76"), Color("6f8b9a"), Color("bfc5b6"), Color("af795b"), Color("658386"), Color("d0a25f"), Color("e6e1d5"), Color("a998b8")]
+	# Keep the original imported farmer, including its textured straw hat,
+	# basket and clothes. Only the other occupations receive outfit changes.
+	if resolved != 0:
+		_apply_citizen_outfit(citizen, cloth_colors[resolved], resolved)
+	_add_citizen_variant_details(citizen, resolved)
+	if resolved >= 6:
+		preload("res://godot/FemaleCitizenAssets.gd").dress(citizen, resolved)
+	if resolved == 5:
+		citizen.scale *= 0.78
+	return citizen
+
+static func create_animal(species: String, index := 0) -> Node3D:
+	return AnimalKit.create_animal(species, index)
+
+static func get_animal_species() -> Array[String]:
+	return AnimalKit.SPECIES.duplicate()
+
 static func apply_preview_tint(root: Node3D, valid: bool) -> void:
 	ArtKit.apply_preview_tint(root, valid)
+	for label in root.find_children("*", "Label3D", true, false):
+		label.modulate = Color(0.40, 0.90, 0.65, 0.55) if valid else Color(0.95, 0.35, 0.30, 0.55)
 
 static func read_manifest() -> Dictionary:
 	if not FileAccess.file_exists(MANIFEST_PATH):
@@ -170,15 +316,6 @@ static func _add_regional_identity(root: Node3D, type: String) -> void:
 	identity.name = "RegionalIdentity_%s" % type.capitalize()
 	root.add_child(identity)
 	match type:
-		"market":
-			# A broad vermilion street canopy, hanging sign and roof pennants read as
-			# commerce even at the normal high camera angle.
-			_add_box(identity, "MarketCanopy", Vector3(1.72, 0.10, 0.52), Vector3(0.0, 0.78, 0.94), Color("b94f3f"))
-			_add_box(identity, "MarketValance", Vector3(1.72, 0.32, 0.06), Vector3(0.0, 0.60, 1.18), Color("d6a74a"))
-			_add_box(identity, "MarketCounter", Vector3(1.34, 0.38, 0.34), Vector3(0.0, 0.24, 0.92), Color("76513b"))
-			_add_box(identity, "MarketRoofBanner", Vector3(0.66, 0.08, 0.28), Vector3(0.0, 1.92, 0.10), Color("c94f43"))
-			_add_cylinder(identity, "MarketLanternLeft", 0.12, 0.28, Vector3(-0.66, 0.48, 1.20), Color("c85a3f"), 12)
-			_add_cylinder(identity, "MarketLanternRight", 0.12, 0.28, Vector3(0.66, 0.48, 1.20), Color("c85a3f"), 12)
 		"clinic":
 			# The turquoise herb awning and oversized wooden medicine gourd create a
 			# different roof silhouette without covering the readable front facade.
@@ -220,6 +357,86 @@ static func _add_cylinder(parent: Node3D, node_name: String, radius: float, heig
 	instance.material_override = _identity_material(color)
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	parent.add_child(instance)
+
+static func _add_citizen_variant_details(root: Node3D, variant: int) -> void:
+	var layer := Node3D.new()
+	layer.name = "CitizenVariant_%02d" % variant
+	layer.set_meta("variant_name", ["农户", "匠人", "书生", "商贩", "舟夫", "孩童", "白衣女居民", "紫衣女居民"][variant])
+	root.add_child(layer)
+	# The imported resident is authored close to 1.8 m tall.  Details sit above
+	# the head and at the shoulder line, then inherit the game's NPC visual scale.
+	match variant:
+		0: # Original GLB straw hat and basket are already present.
+			pass
+		1: # blue headband and tool satchel
+			_variant_box(layer, "CraftsmanHeadband", Vector3(0.37, 0.07, 0.08), Vector3(0, 1.55, 0.05), Color("5d8792"))
+			_variant_box(layer, "CraftsmanSatchel", Vector3(0.22, 0.28, 0.16), Vector3(0.25, 0.86, 0.12), Color("8a5c3b"))
+			_variant_cylinder(layer, "CraftsmanHammer", 0.035, 0.32, Vector3(-0.27, 0.83, 0.12), Color("51392d"), 8).rotation_degrees.z = -16.0
+		2: # scholar cap and scroll
+			_variant_box(layer, "ScholarCap", Vector3(0.42, 0.08, 0.32), Vector3(0, 1.66, -0.01), Color("3f5961"))
+			_variant_cylinder(layer, "ScholarScroll", 0.055, 0.26, Vector3(-0.27, 0.84, 0.08), Color("d6c395"), 10).rotation_degrees.z = 90.0
+			_variant_box(layer, "ScholarSash", Vector3(0.08, 0.46, 0.05), Vector3(0.18, 1.08, 0.08), Color("b58d53"))
+		3: # Uncovered hair, subdued sash and purse.
+			_variant_box(layer, "MerchantSash", Vector3(0.48, 0.10, 0.07), Vector3(0, 0.92, 0.02), Color("795c48"))
+			_variant_box(layer, "MerchantPouch", Vector3(0.20, 0.18, 0.16), Vector3(-0.27, 0.85, 0.14), Color("9b8055"))
+		4: # boatman blue scarf and pole
+			_variant_box(layer, "BoatmanScarf", Vector3(0.44, 0.08, 0.10), Vector3(0, 1.50, 0.03), Color("718d96"))
+			_variant_cylinder(layer, "BoatmanPole", 0.025, 0.95, Vector3(0.31, 0.93, 0.08), Color("8a5c3b"), 8).rotation_degrees.z = -8.0
+			_variant_box(layer, "BoatmanShoulderCloth", Vector3(0.52, 0.06, 0.06), Vector3(0, 1.21, -0.02), Color("657f82"))
+		5: # Child with uncovered hair and a small satchel.
+			_variant_box(layer, "ChildSatchel", Vector3(0.19, 0.20, 0.14), Vector3(-0.22, 0.84, 0.12), Color("78916e"))
+
+static func _apply_citizen_outfit(node: Node, cloth_color: Color, variant: int) -> void:
+	if node is MeshInstance3D:
+		var part := node as MeshInstance3D
+		# The source farmer already has a straw hat and basket. Remove those
+		# accessories before adding each occupation's distinct head silhouette.
+		if str(part.name) in ["HatBrim", "HatCrown", "Basket", "BasketHandle"]:
+			part.visible = false
+		if str(part.name) in ["Torso", "RobeLower", "UpperArm_L", "UpperArm_R", "Forearm_L", "Forearm_R"]:
+			var material := _variant_material(cloth_color)
+			if part.mesh and part.mesh.get_surface_count() > 0:
+				var original := part.mesh.surface_get_material(0) as StandardMaterial3D
+				if original:
+					material = original.duplicate() as StandardMaterial3D
+					material.albedo_color = cloth_color
+			part.material_override = material
+	for child in node.get_children():
+		_apply_citizen_outfit(child, cloth_color, variant)
+
+static func _variant_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, color: Color) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = _variant_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(instance)
+	return instance
+
+static func _variant_cylinder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, color: Color, sides: int) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius * 0.88
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = sides
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = _variant_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(instance)
+	return instance
+
+static func _variant_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.88
+	material.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
+	return material
 
 static func _identity_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()

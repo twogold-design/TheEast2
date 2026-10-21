@@ -1,20 +1,30 @@
 extends SceneTree
 
-## Acceptance for the eight building descriptions.  The checks deliberately
+## Acceptance for the live building descriptions.  The checks deliberately
 ## read the live building catalog and run the real daily settlement so the
 ## build menu, tooltip, inspector and economy cannot silently disagree.
 
 const VIEWPORT_SIZE := Vector2i(1366, 768)
-const SAVE_PATH := "res://saves/savegame.json"
-const TYPES := ["house", "farm", "lumber", "warehouse", "workshop", "market", "clinic", "academy"]
+class IsolatedGame extends "res://godot/Main.gd":
+	func save_path() -> String:
+		return "res://.godot-user/qa/building-copy-never-written.json"
+	func audio_settings_path() -> String:
+		return "res://.godot-user/qa/building-copy-audio.cfg"
+	func save_game(_show_feedback := true) -> void:
+		pass
+	func load_game(_show_feedback := true) -> void:
+		pass
+
+const TYPES := ["house", "farm", "lumber", "warehouse", "workshop", "market", "fishpond", "clinic", "academy"]
 
 const EXPECTED_DEFINITIONS := {
 	"house": {"workers": 0, "maintenance": 0, "inputs": {"food": 1}, "effects": {"housing": 4}},
 	"farm": {"workers": 2, "maintenance": 1, "outputs": {"food": 10}, "trade_coins": 2},
 	"lumber": {"workers": 2, "maintenance": 1, "outputs": {"wood": 7}, "trade_coins": 2},
-	"warehouse": {"workers": 0, "maintenance": 1, "effects": {"wood_capacity": 75, "food_capacity": 75}},
+	"warehouse": {"workers": 0, "maintenance": 1, "requires_road": true, "effects": {"wood_capacity": 75, "food_capacity": 75}},
 	"workshop": {"workers": 3, "maintenance": 2, "inputs": {"wood": 4, "food": 2}, "outputs": {"coins": 10}, "effects": {"happiness_target": 4}, "effect_cap": 12},
 	"market": {"workers": 2, "maintenance": 2, "inputs": {"food": 3}, "outputs": {"coins": 9}},
+	"fishpond": {"workers": 2, "maintenance": 2, "outputs": {"food": 14}},
 	"clinic": {"workers": 2, "maintenance": 3, "effects": {"happiness_target": 7}, "effect_cap": 14},
 	"academy": {"workers": 3, "maintenance": 4, "outputs": {"coins": 5}, "effects": {"happiness_target": 4}, "effect_cap": 8},
 }
@@ -23,9 +33,10 @@ const EXPECTED_COPY := {
 	"house": ["每日：粮食 -1", "维护：无", "住房容量 +4"],
 	"farm": ["岗位：2", "粮食 0/+5/+10", "在岗 0/1/2 人", "铜钱 +2", "农田与伐木场合计上限 +4", "维护：铜钱 -1/日（启用即收）"],
 	"lumber": ["岗位：2", "木材 0/+3/+7", "在岗 0/1/2 人", "铜钱 +2", "农田与伐木场合计上限 +4", "维护：铜钱 -1/日（启用即收）"],
-	"warehouse": ["维护：铜钱 -1/日（固定收取）", "木材容量 +75", "粮食容量 +75"],
+	"warehouse": ["维护：铜钱 -1/日（未接通也收取）", "接通主路：木材/粮食容量各 +75"],
 	"workshop": ["岗位：3（满员运行）", "木材 -4、粮食 -2", "铜钱 +10", "维护：铜钱 -2/日（启用即收）", "幸福度目标 +4", "合计上限 +12"],
 	"market": ["岗位：2（满员运行）", "粮食 -3", "铜钱 +9", "维护：铜钱 -2/日（启用即收）"],
+	"fishpond": ["岗位：2", "粮食 0/+7/+14", "在岗 0/1/2 人", "维护：铜钱 -2/日（启用即收）"],
 	"clinic": ["岗位：2（满员运行）", "维护：铜钱 -3/日（启用即收）", "幸福度目标 +7", "合计上限 +14"],
 	"academy": ["岗位：3（满员运行）", "铜钱 +5", "维护：铜钱 -4/日（启用即收）", "幸福度目标 +4", "合计上限 +8"],
 }
@@ -37,13 +48,12 @@ const EXPECTED_DAILY_DIFFERENCE := {
 	"warehouse": {"wood": 0, "food": 0, "coins": -1},
 	"workshop": {"wood": -4, "food": -2, "coins": 8},
 	"market": {"wood": 0, "food": -3, "coins": 7},
+	"fishpond": {"wood": 0, "food": 14, "coins": -2},
 	"clinic": {"wood": 0, "food": 0, "coins": -3},
 	"academy": {"wood": 0, "food": 0, "coins": 1},
 }
 
 var failures: Array[String] = []
-var original_save_exists := false
-var original_save_text := ""
 
 
 func _initialize() -> void:
@@ -51,15 +61,13 @@ func _initialize() -> void:
 
 
 func run() -> void:
-	preserve_save_file()
 	root.size = VIEWPORT_SIZE
-	var packed := load("res://godot/Main.tscn") as PackedScene
-	if packed == null:
-		fail("主场景无法加载")
-		finish()
-		return
-	var game = packed.instantiate()
+	var game := IsolatedGame.new()
 	root.add_child(game)
+	game.background_music.player.stop()
+	game.background_music.player.stream = null
+	game.set_process(false)
+	game.set_physics_process(false)
 	await process_frame
 	await process_frame
 	game.time_paused = true
@@ -72,19 +80,22 @@ func run() -> void:
 	check_runtime_status_copy(game)
 	check_daily_settlement_matches_copy(game)
 
-	restore_save_file()
+	game.queue_free()
+	await process_frame
+	await process_frame
+	await create_timer(0.4, true, false, true).timeout
 	finish()
 
 
 func check_public_copy_api(game) -> void:
-	for method in ["building_input", "building_output", "building_effect", "building_effect_lines", "building_effect_text", "building_tooltip_text", "building_operation_text", "daily_settlement_text"]:
+	for method in ["building_input", "building_output", "building_effect", "building_effect_lines", "building_effect_text", "building_tooltip_text", "building_operation_text"]:
 		if not game.has_method(method):
 			fail("建筑文案缺少统一公开方法：%s" % method)
 
 
 func check_definition_contract(game) -> void:
 	if game.BUILDINGS.size() != TYPES.size():
-		fail("建筑目录应为8类，实际%d类" % game.BUILDINGS.size())
+		fail("建筑目录应为9类，实际%d类" % game.BUILDINGS.size())
 	for type in TYPES:
 		var definition: Dictionary = game.BUILDINGS.get(type, {})
 		if definition.is_empty():
@@ -93,7 +104,7 @@ func check_definition_contract(game) -> void:
 		for removed_field in ["description", "wood", "food", "housing"]:
 			if definition.has(removed_field):
 				fail("%s仍保留易与日结漂移的旧字段：%s" % [definition.name, removed_field])
-		for scalar in ["workers", "maintenance", "trade_coins", "effect_cap"]:
+		for scalar in ["workers", "maintenance", "trade_coins", "effect_cap", "requires_road"]:
 			if not EXPECTED_DEFINITIONS[type].has(scalar):
 				continue
 			if int(definition.get(scalar, -1)) != int(EXPECTED_DEFINITIONS[type][scalar]):
@@ -112,7 +123,9 @@ func check_generated_copy(game) -> void:
 		var definition: Dictionary = game.BUILDINGS[type]
 		var effect_text := str(game.building_effect_text(type))
 		var tooltip_text := str(game.building_tooltip_text(type))
-		if tooltip_text != effect_text:
+		var footprint_hint: String = {"market": "占地：2×2 格（开放集市）\n", "warehouse": "占地：2×2 格（开放仓院）\n", "farm": "占地：2×2 格（河岸农田）\n", "fishpond": "占地：3×2 格（人工鱼塘，可建于陆地）\n", "workshop": "占地：2×2 格（开放工坊）\n", "clinic": "占地：2×2 格（诊堂药院）\n"}.get(type, "")
+		var expected_tooltip := footprint_hint + effect_text
+		if tooltip_text != expected_tooltip:
 			fail("%s按钮提示与统一效果文案不一致" % definition.name)
 		if effect_text.strip_edges() == "":
 			fail("%s效果文案为空" % definition.name)
@@ -158,10 +171,18 @@ func check_menu_and_inspector_layout(game) -> void:
 		if str(game.inspector_title.text) != str(definition.name):
 			fail("%s选中详情标题错误" % definition.name)
 		var body := str(game.inspector_body.text)
-		if body.find(str(game.building_effect_text(type))) < 0:
+		if body.find(str(game.building_effect_text(type, false))) < 0:
 			fail("%s选中详情未使用统一效果文案" % definition.name)
-		if body.find(str(game.building_operation_text(record))) < 0:
-			fail("%s选中详情未显示实时运行状态" % definition.name)
+		if str(game.inspector_status.text) != str(game.building_operation_text(record)):
+			fail("%s选中详情顶部状态未显示实时运行状态" % definition.name)
+		if "状态：" in body:
+			fail("%s详情正文重复显示状态" % definition.name)
+		if game.inspector_status.get_index() != game.inspector_title.get_index() + 1 or game.inspector_status.get_index() >= game.inspector_body.get_index():
+			fail("%s实时状态未置于标题下方、正文上方" % definition.name)
+		var state: Dictionary = game.building_operation_state(record)
+		var expected_color := Color("a63d32") if str(state.code) in ["paused", "workers", "materials", "road"] else Color("39764b")
+		if not game.inspector_status.get_theme_color("font_color").is_equal_approx(expected_color):
+			fail("%s实时状态颜色没有匹配运行状态" % definition.name)
 		check_control_fits(game.inspector, "%s选中详情面板" % definition.name)
 		if game.inspector_body.get_combined_minimum_size().y > game.inspector_body.size.y + 1.0:
 			fail("%s选中详情正文被垂直裁切：需要%.0f，实际%.0f" % [definition.name, game.inspector_body.get_combined_minimum_size().y, game.inspector_body.size.y])
@@ -210,24 +231,16 @@ func check_daily_settlement_matches_copy(game) -> void:
 			var actual_difference := int(result[resource]) - int(control[resource])
 			if actual_difference != int(expected[resource]):
 				fail("%s日结%s与说明不一致：相对基线%+d，说明应为%+d" % [game.BUILDINGS[type].name, resource, actual_difference, int(expected[resource])])
-		var summary := str(result.summary)
-		match type:
-			"farm":
-				require_terms(summary, ["农田入库 +10", "民生交易 +2", "本日维护应付 -1"], "农田日结")
-			"lumber":
-				require_terms(summary, ["伐木入库 +7", "民生交易 +2", "本日维护应付 -1"], "伐木场日结")
-			"workshop":
-				require_terms(summary, ["工坊 -4", "工坊 -2", "工坊 +10", "本日维护应付 -2"], "小工坊日结")
-			"market":
-				require_terms(summary, ["集市 -3", "集市 +9", "本日维护应付 -2"], "集市日结")
-			"academy":
-				require_terms(summary, ["书院 +5", "本日维护应付 -4"], "书院日结")
+		if str(result.summary) != "居民争执：幸福度 -8":
+			fail("%s结算后应只显示意外事件：%s" % [game.BUILDINGS[type].name, result.summary])
 
 
 func run_one_day(game, type: String) -> Dictionary:
 	prepare_empty_layout(game, 20, 60, 60, 500)
 	if type != "":
-		game.add_building(type, Vector2i(8, 8), true)
+		game.add_building(type, Vector2i(4, 6) if type == "farm" else Vector2i(6, 6), true)
+		if game.building_has_connected_road(game.buildings[0]):
+			fail("%s文案日结基线意外接通道路" % game.BUILDINGS[type].name)
 	var before := {"wood": int(game.wood), "food": int(game.food), "coins": int(game.coins)}
 	game.next_day()
 	return {
@@ -240,13 +253,16 @@ func run_one_day(game, type: String) -> Dictionary:
 
 func prepare_single_building(game, type: String, residents: int, start_wood: int, start_food: int, start_coins: int) -> void:
 	prepare_empty_layout(game, residents, start_wood, start_food, start_coins)
-	game.add_building(type, Vector2i(8, 8), true)
+	game.add_building(type, Vector2i(4, 6) if type == "farm" else Vector2i(6, 6), true)
 	game.assign_workers()
 
 
 func prepare_empty_layout(game, residents: int, start_wood: int, start_food: int, start_coins: int) -> void:
 	for child in game.building_root.get_children():
 		child.free()
+	for child in game.road_root.get_children():
+		child.free()
+	game.roads.clear()
 	game.buildings.clear()
 	game.occupied.clear()
 	game.next_id = 1
@@ -279,25 +295,6 @@ func check_control_fits(control: Control, label: String) -> void:
 		fail("%s内容被裁切：需要%s，实际%s" % [label, minimum, control.size])
 
 
-func preserve_save_file() -> void:
-	original_save_exists = FileAccess.file_exists(SAVE_PATH)
-	if not original_save_exists:
-		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file:
-		original_save_text = file.get_as_text()
-
-
-func restore_save_file() -> void:
-	if original_save_exists:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if file:
-			file.store_string(original_save_text)
-		return
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-
-
 func fail(message: String) -> void:
 	failures.append(message)
 	push_error("BUILDING_COPY_ACCEPTANCE_FAILED: " + message)
@@ -305,7 +302,7 @@ func fail(message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("BUILDING_COPY_ACCEPTANCE_OK: 8 definitions, exact tooltips, live status, daily settlement parity, 1366x768 layout")
+		print("BUILDING_COPY_ACCEPTANCE_OK: 9 definitions, exact tooltips, live status, daily settlement parity, 1366x768 layout")
 		quit(0)
 	else:
 		print("BUILDING_COPY_ACCEPTANCE_FAILED: %d issue(s)" % failures.size())

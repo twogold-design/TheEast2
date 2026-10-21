@@ -1,13 +1,69 @@
 extends Node
 
 const RealisticKit = preload("res://godot/RealisticAssets.gd")
+const AnimalKit = preload("res://godot/AnimalAssets.gd")
+const RiverWaterKit = preload("res://godot/RiverWater.gd")
+const RiverBoatKit = preload("res://godot/RiverBoat.gd")
+const OuterGrassShader = preload("res://godot/shaders/outer_grass.gdshader")
+const DetailedMountainKit = preload("res://godot/DetailedMountainAssets.gd")
+const BackgroundMusicKit = preload("res://godot/BackgroundMusic.gd")
+
+# The goal panel keeps its plain-text value for tooltips and automated checks,
+# while rendering each individual requirement inside its compact group row.
+# A completed item turns green independently, without progress counters.
+class GoalChecklist extends VBoxContainer:
+	var text: String = ""
+
+	func set_content(plain_text: String, lines: Array) -> void:
+		text = plain_text
+		for child in get_children():
+			remove_child(child)
+			child.free()
+		for item in lines:
+			if typeof(item) != TYPE_DICTIONARY:
+				continue
+			var segments: Array = item.get("segments", [])
+			if not segments.is_empty():
+				var grouped_line := RichTextLabel.new()
+				grouped_line.bbcode_enabled = true
+				grouped_line.fit_content = true
+				grouped_line.scroll_active = false
+				grouped_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				grouped_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				grouped_line.add_theme_font_size_override("normal_font_size", 15)
+				grouped_line.add_theme_color_override("default_color", Color("2f3433"))
+				var parts: Array[String] = []
+				for segment in segments:
+					var segment_text := str(segment.get("text", "")).replace("[", "[lb]")
+					parts.append("[color=#2f8f5b]✓ %s[/color]" % segment_text if bool(segment.get("completed", false)) else segment_text)
+				var prefix := str(item.get("prefix", "")).replace("[", "[lb]")
+				grouped_line.text = "• " + prefix + " · ".join(parts)
+				grouped_line.set_meta("goal_segments", segments.duplicate(true))
+				grouped_line.set_meta("goal_prefix", str(item.get("prefix", "")))
+				add_child(grouped_line)
+				continue
+			var line := Label.new()
+			var value := str(item.get("text", ""))
+			var is_requirement := bool(item.get("requirement", false))
+			var completed := bool(item.get("completed", false))
+			line.text = ("✓ " if completed and is_requirement else "• " if is_requirement else "") + value
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			line.add_theme_font_size_override("font_size", 15)
+			line.add_theme_color_override("font_color", Color("2f8f5b") if completed and is_requirement else Color("2f3433"))
+			add_child(line)
+		add_theme_constant_override("separation", 2)
 
 const GRID_SIZE := 48
-const TILE_SIZE := 2.0
+# Keep building meshes at their authored size while giving each logical cell a
+# little breathing room.  The 2.2 m pitch leaves a narrow courtyard gap between
+# adjacent houses and keeps the grid readable at the planning camera distance.
+const TILE_SIZE := 2.2
+const ROAD_WIDTH := 1.0
 # A natural, non-editable apron surrounds the logical 48x48 map.  Gameplay,
 # region and save coordinates continue to use GRID_SIZE; only the rendered land
 # extends into this margin so the planning camera does not expose a hard edge.
-const NATURAL_BUFFER_CELLS := 12
+const NATURAL_BUFFER_CELLS := 36
 const RENDER_GRID_SIZE := GRID_SIZE + NATURAL_BUFFER_CELLS * 2
 # Orthographic size controls planning-camera zoom.  The previous 118-unit
 # ceiling exposed the square terrain boundary and made the buildings too small
@@ -16,7 +72,8 @@ const RENDER_GRID_SIZE := GRID_SIZE + NATURAL_BUFFER_CELLS * 2
 const CAMERA_INITIAL_SIZE := 30.0
 const CAMERA_MIN_SIZE := 18.0
 const CAMERA_MAX_SIZE := 48.0
-const CAMERA_EDGE_SAFETY_MARGIN := 3.0
+const CAMERA_EDGE_SAFETY_MARGIN := 5.0
+const CAMERA_EDGE_BROWSE_CELLS := 4
 const CAMERA_MIN_PITCH_DEGREES := 30.0
 const CAMERA_MAX_PITCH_DEGREES := 70.0
 const EDITOR_SAVE_PATH := "res://saves/savegame.json"
@@ -34,12 +91,21 @@ const BASIC_TRADE_COIN_CAP := 4
 const ROAD_WOOD_COST := 1
 const ROAD_TRANSPORT_BONUS := 1
 const ROAD_TRANSPORT_COIN_CAP := 6
-const ROAD_ELIGIBLE_BUILDING_TYPES := ["farm", "lumber", "workshop", "market", "academy"]
+const ROAD_ELIGIBLE_BUILDING_TYPES := ["farm", "fishpond", "lumber", "workshop", "market", "academy"]
+# Regional markets occupy a small open courtyard instead of a single house
+# tile.  The anchor is the north-west cell; the visual is centered across all
+# four cells and every occupied cell remains selectable for inspection.
+const BUILDING_FOOTPRINTS := {"market": Vector2i(2, 2), "warehouse": Vector2i(2, 2), "fishpond": Vector2i(3, 2), "farm": Vector2i(2, 2), "workshop": Vector2i(2, 2), "clinic": Vector2i(2, 2)}
 const VILLAGE_ROAD_X := 10
 const VILLAGE_ROAD_MIN_Z := 4
 const VILLAGE_ROAD_MAX_Z := 15
 const NPC_SCHEDULE_SECONDS := 72.0
 const NPC_MOVE_SPEED := 1.10
+const ANIMAL_MOVE_SPEED := 0.62
+const ANIMAL_PHYSICS_STEP := 1.0 / 60.0
+const ANIMAL_MAX_COUNT := 12
+const ANIMAL_SPECIES := ["chicken", "duck", "goose", "dog"]
+const CITIZEN_KINDS := ["农户", "匠人", "书生", "商贩", "舟夫", "孩童", "白衣女居民", "紫衣女居民"]
 const NPC_PHYSICS_STEP := 1.0 / 60.0
 const NPC_TURN_SPEED := PI
 const NPC_WALK_STRIDE_METERS := 0.72
@@ -63,7 +129,7 @@ const CITIZEN_SCHEDULE := [
 
 const REGION_DEFINITIONS := [
 	{"id": "river_core", "name": "河湾故地", "short_name": "故地", "area": 400, "summary": "开局营地与基础生产"},
-	{"id": "north_terrace", "name": "北坡梯田", "short_name": "北坡", "area": 200, "summary": "河岸耕地、粮食扩张与集市商贸"},
+	{"id": "north_terrace", "name": "北坡梯田", "short_name": "北坡", "area": 200, "summary": "河岸耕地、鱼塘养殖与集市商贸"},
 	{"id": "east_woodland", "name": "东麓林场", "short_name": "东麓", "area": 200, "summary": "林业用地与仓储扩张"},
 	{"id": "highland", "name": "云岫高台", "short_name": "高台", "area": 100, "summary": "工坊高地、医馆与聚落中心"},
 	{"id": "east_plain", "name": "沧波东原", "short_name": "东原", "area": 432, "summary": "大型居住、书院、粮食与仓储区"},
@@ -83,16 +149,14 @@ const REGION_UNLOCK_COSTS := [
 
 const REGION_REQUIREMENTS := [
 	{},
-	{"population": 8, "housing": 8, "happiness": 0, "stable_days": 1, "buildings": {"farm": 1}},
-	# The first gate teaches the basic farm in the starting settlement.  Every
-	# later gate also asks for one visible investment in the region opened by the
-	# previous gate, so stacking buildings in the first plot cannot unlock the
-	# whole map by itself.
-	{"population": 14, "housing": 16, "happiness": 60, "stable_days": 2, "buildings": {"farm": 2, "lumber": 2, "warehouse": 1, "market": 1}, "local_buildings": {"farm": 1, "market": 1}},
-	{"population": 20, "housing": 24, "happiness": 68, "stable_days": 3, "buildings": {"farm": 2, "lumber": 2, "warehouse": 2, "workshop": 1}, "local_buildings": {"lumber": 1}},
-	{"population": 28, "housing": 32, "happiness": 72, "stable_days": 4, "buildings": {"farm": 4, "lumber": 3, "warehouse": 2, "workshop": 1, "clinic": 1}, "local_buildings": {"workshop": 1, "clinic": 1}},
-	{"population": 36, "housing": 40, "happiness": 76, "stable_days": 5, "buildings": {"farm": 5, "lumber": 4, "warehouse": 3, "workshop": 2, "academy": 1}, "local_buildings": {"warehouse": 1, "academy": 1}},
-	{"population": 45, "housing": 48, "happiness": 80, "stable_days": 6, "buildings": {"farm": 6, "lumber": 5, "warehouse": 4, "workshop": 3}, "local_buildings": {"workshop": 1}},
+	# Stock targets leave a reserve after expansion costs. Players choose their
+	# own building mix and location; only these five visible values gate a region.
+	{"wood": 90, "food": 60, "coins": 45, "population": 8, "happiness": 55},
+	{"wood": 160, "food": 110, "coins": 85, "population": 14, "happiness": 60},
+	{"wood": 225, "food": 150, "coins": 130, "population": 20, "happiness": 68},
+	{"wood": 300, "food": 200, "coins": 190, "population": 28, "happiness": 72},
+	{"wood": 390, "food": 260, "coins": 260, "population": 36, "happiness": 76},
+	{"wood": 480, "food": 330, "coins": 350, "population": 45, "happiness": 80},
 ]
 
 const REGION_UNLOCK_REWARDS := [
@@ -107,7 +171,7 @@ const REGION_UNLOCK_REWARDS := [
 
 const REGION_UNLOCK_FEEDBACK := [
 	"",
-	"北坡梯田已开放：新的河岸耕地可供规划，集市建筑已解锁。",
+	"北坡梯田已开放：新的河岸耕地可供规划，集市与鱼塘已解锁。",
 	"东麓林场已开放：林间空地与新伐木带可用。",
 	"云岫高台已开放：高台新城与工坊区可用，医馆建筑已解锁。",
 	"沧波东原已开放：大片平原可建设住宅、粮田和仓储，书院建筑已解锁。",
@@ -128,7 +192,7 @@ const INITIAL_BUILDING_TYPES := ["house", "farm", "lumber", "workshop", "warehou
 
 const BUILDINGS := {
 	"house": {
-		"name": "茅舍", "cost": 12, "coin_cost": 4,
+		"name": "民居", "cost": 12, "coin_cost": 4,
 		"workers": 0, "maintenance": 0, "staffing": "passive",
 		"inputs": {"food": 1}, "outputs": {}, "effects": {"housing": 4},
 		"unlock_level": 0, "category": "basic", "color": Color("c98963")
@@ -147,7 +211,7 @@ const BUILDINGS := {
 	},
 	"warehouse": {
 		"name": "仓库", "cost": 30, "coin_cost": 10,
-		"workers": 0, "maintenance": 1, "staffing": "passive",
+		"workers": 0, "maintenance": 1, "staffing": "passive", "requires_road": true,
 		"inputs": {}, "outputs": {}, "effects": {"wood_capacity": 75, "food_capacity": 75},
 		"unlock_level": 0, "category": "basic", "color": Color("7f6b52")
 	},
@@ -163,6 +227,12 @@ const BUILDINGS := {
 		"workers": 2, "maintenance": 2, "staffing": "full",
 		"inputs": {"food": 3}, "outputs": {"coins": 9}, "effects": {},
 		"unlock_level": 1, "category": "industry", "color": Color("b35c48")
+	},
+	"fishpond": {
+		"name": "鱼塘", "cost": 40, "coin_cost": 16,
+		"workers": 2, "maintenance": 2, "staffing": "proportional",
+		"inputs": {}, "outputs": {"food": 14}, "effects": {},
+		"unlock_level": 1, "category": "industry", "color": Color("548d8a")
 	},
 	"clinic": {
 		"name": "医馆", "cost": 52, "coin_cost": 24,
@@ -190,16 +260,22 @@ var stable_days := 0
 var maintenance_debt := 0
 var map_region_level := 0
 var selected_type := ""
+var selected_rotation_quarters := 0
 var ended := ""
+var failure_reason := ""
 var next_id := 1
 var buildings: Array[Dictionary] = []
 var occupied := {}
 var roads := {}
+var scenery_trees_by_cell := {}
+var scenery_rocks_by_cell := {}
+var legacy_cleared_tree_roads := {}
 
 var world: Node3D
 var building_root: Node3D
 var road_root: Node3D
 var citizen_root: Node3D
+var animal_root: Node3D
 var region_visual_root: Node3D
 var camera: Camera3D
 var ghost: Node3D
@@ -210,6 +286,7 @@ var goal_label: Label
 var message_label: Label
 var inspector: PanelContainer
 var inspector_title: Label
+var inspector_status: Label
 var inspector_body: Label
 var inspector_toggle_button: Button
 var inspector_demolish_button: Button
@@ -217,7 +294,7 @@ var build_buttons := {}
 var road_button: Button
 var region_panel: PanelContainer
 var region_title: Label
-var region_body: Label
+var region_body
 var region_unlock_button: Button
 var region_panel_toggle: Button
 var region_panel_collapsed := false
@@ -231,6 +308,11 @@ var settings_button: Button
 var settings_overlay: Control
 var settings_panel: PanelContainer
 var settings_action_buttons := {}
+var background_music: Node
+var music_volume_slider: HSlider
+var music_volume_label: Label
+var music_mute_button: Button
+var help_dialog: AcceptDialog
 var confirmation_dialog: ConfirmationDialog
 var pending_confirm_action := ""
 var selected_building_id := -1
@@ -244,12 +326,15 @@ var drag_moved := false
 var camera_target := Vector3.ZERO
 var citizen_time := 0.0
 var citizen_schedule_time := 0.0
+var citizen_variant_bag: Array = []
+var animal_species_bag: Array = []
 var auto_day_elapsed := 0.0
 var time_paused := false
 var time_speed := 1.0
 var day_settling := false
 
 func _ready() -> void:
+	create_background_music()
 	create_world()
 	create_ui()
 	reset_game(false)
@@ -257,6 +342,17 @@ func _ready() -> void:
 		load_game(false)
 	get_viewport().size_changed.connect(update_camera_projection)
 	update_camera_projection()
+
+func audio_settings_path() -> String:
+	return ProjectSettings.globalize_path("res://saves/audio_settings.cfg") if OS.has_feature("editor") else "user://audio_settings.cfg"
+
+func create_background_music() -> void:
+	if is_instance_valid(background_music):
+		return
+	background_music = BackgroundMusicKit.new()
+	background_music.name = "BackgroundMusic"
+	background_music.config_path = audio_settings_path()
+	add_child(background_music)
 
 func create_world() -> void:
 	world = Node3D.new()
@@ -271,6 +367,11 @@ func create_world() -> void:
 	citizen_root = Node3D.new()
 	citizen_root.name = "Citizens"
 	world.add_child(citizen_root)
+	# Decorative livestock and village dogs live in their own layer so the
+	# population count and resident schedule remain strictly about people.
+	animal_root = Node3D.new()
+	animal_root.name = "VillageAnimals"
+	world.add_child(animal_root)
 	region_visual_root = Node3D.new()
 	region_visual_root.name = "RegionVisuals"
 	world.add_child(region_visual_root)
@@ -317,6 +418,7 @@ func create_world() -> void:
 	camera.look_at(camera_target)
 
 	create_terrain()
+	create_river_life()
 	create_grid_lines()
 	create_scenery()
 	create_region_visuals()
@@ -349,6 +451,12 @@ func create_terrain() -> void:
 			var y10 := outer_terrain_height_for_vertex(x + 1, z)
 			var y11 := outer_terrain_height_for_vertex(x + 1, z + 1)
 			var y01 := outer_terrain_height_for_vertex(x, z + 1)
+			if is_water_cell(cell):
+				# The channel remains level through the natural map buffer.
+				y00 = 0.15
+				y10 = 0.15
+				y11 = 0.15
+				y01 = 0.15
 			var first_vertex := vertices.size()
 			vertices.append_array(PackedVector3Array([
 				Vector3(x0, y00, z0), Vector3(x1, y10, z0),
@@ -378,15 +486,16 @@ func create_terrain() -> void:
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var terrain_mesh := ArrayMesh.new()
 	terrain_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var terrain_material := StandardMaterial3D.new()
-	terrain_material.vertex_color_use_as_albedo = true
-	terrain_material.roughness = 0.94
+	var terrain_material := ShaderMaterial.new()
+	terrain_material.shader = OuterGrassShader
+	terrain_material.set_shader_parameter("playable_half_extent", extent)
 	terrain_mesh.surface_set_material(0, terrain_material)
 	var terrain := MeshInstance3D.new()
 	terrain.name = "ContinuousTerrain"
 	terrain.mesh = terrain_mesh
 	terrain.set_meta("playable_grid_size", GRID_SIZE)
 	terrain.set_meta("natural_buffer_cells", NATURAL_BUFFER_CELLS)
+	terrain.set_meta("outer_surface", "continuous_world_grass")
 	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(terrain)
 
@@ -400,14 +509,49 @@ func create_grid_lines() -> void:
 	var extent := GRID_SIZE * TILE_SIZE * 0.5
 	for i in range(GRID_SIZE + 1):
 		var p := -extent + i * TILE_SIZE
-		immediate.surface_add_vertex(Vector3(p, 0.18, -extent))
-		immediate.surface_add_vertex(Vector3(p, 0.18, extent))
-		immediate.surface_add_vertex(Vector3(-extent, 0.18, p))
-		immediate.surface_add_vertex(Vector3(extent, 0.18, p))
+		for j in range(GRID_SIZE):
+			var q := -extent + j * TILE_SIZE
+			# Omit edges touching water, including the mid-channel divider.
+			# Land keeps its build grid; no line is painted onto the river.
+			if not is_water_cell(Vector2i(i - 1, j)) and not is_water_cell(Vector2i(i, j)):
+				immediate.surface_add_vertex(Vector3(p, 0.18, q))
+				immediate.surface_add_vertex(Vector3(p, 0.18, q + TILE_SIZE))
+			if not is_water_cell(Vector2i(j, i - 1)) and not is_water_cell(Vector2i(j, i)):
+				immediate.surface_add_vertex(Vector3(q, 0.18, p))
+				immediate.surface_add_vertex(Vector3(q + TILE_SIZE, 0.18, p))
 	immediate.surface_end()
 	var lines := MeshInstance3D.new()
+	lines.name = "LandGridLines"
 	lines.mesh = immediate
 	world.add_child(lines)
+
+func create_river_life() -> void:
+	var rivers := Node3D.new()
+	rivers.name = "RiverLife"
+	world.add_child(rivers)
+	var main_water := RiverWaterKit.create_surface(Vector2(2.0 * TILE_SIZE, RENDER_GRID_SIZE * TILE_SIZE))
+	main_water.name = "MainRiverSurface"
+	main_water.position = Vector3(grid_to_world(Vector2i(2, 0)).x + TILE_SIZE * 0.5, 0.175, 0.0)
+	rivers.add_child(main_water)
+	var branch_length := (24 + NATURAL_BUFFER_CELLS) * TILE_SIZE
+	var branch_water := RiverWaterKit.create_surface(Vector2(2.0 * TILE_SIZE, branch_length))
+	branch_water.name = "EastRiverSurface"
+	branch_water.position = Vector3(grid_to_world(Vector2i(32, 0)).x + TILE_SIZE * 0.5, 0.175, -branch_length * 0.5)
+	rivers.add_child(branch_water)
+	# Three small boats keep to separate stretches. Each turn fits inside the
+	# channel, and the route ends leave clearance from the low stone bridges.
+	var routes := [
+		{"cell": Vector2i(2, 4), "length": 7.0, "phase": 0.12},
+		{"cell": Vector2i(2, 16), "length": 13.0, "phase": 0.34},
+		{"cell": Vector2i(32, 18), "length": 12.0, "phase": 0.58},
+	]
+	for i in range(routes.size()):
+		var boat := RiverBoatKit.new()
+		boat.name = "RiverBoat_%d" % i
+		var center := grid_to_world(routes[i].cell) + Vector3(TILE_SIZE * 0.5, 0.175, 0)
+		boat.configure(center, routes[i].length, 0.65, 0.38, routes[i].phase)
+		boat.set_meta("decorative", true)
+		rivers.add_child(boat)
 
 func terrain_color_for_cell(_cell: Vector2i, region: int) -> Color:
 	if region == 1:
@@ -437,19 +581,10 @@ func outer_terrain_height_for_vertex(grid_x: float, grid_z: float) -> float:
 	var rolling := (sin(grid_x * 0.57 + grid_z * 0.21) + cos(grid_z * 0.43 - grid_x * 0.18)) * 0.16 * fade
 	return 0.15 + pow(fade, 1.55) * 1.85 + rolling
 
-func outer_terrain_color_for_cell(cell: Vector2i) -> Color:
-	var base := Color("526f55")
-	if cell.y < 0:
-		base = Color("536b58")
-	elif cell.y >= GRID_SIZE:
-		base = Color("68775a")
-	elif cell.x < 0:
-		base = Color("58765b")
-	elif cell.x >= GRID_SIZE:
-		base = Color("60735a")
-	var variation := sin(float(cell.x) * 1.71 + float(cell.y) * 0.63) * 0.035
-	variation += cos(float(cell.y) * 1.27 - float(cell.x) * 0.41) * 0.025
-	return base.lightened(variation) if variation >= 0.0 else base.darkened(-variation)
+func outer_terrain_color_for_cell(_cell: Vector2i) -> Color:
+	# Keep a uniform undercoat at every tile; the material supplies continuous
+	# grass variation in world coordinates instead of one flat color per cell.
+	return Color("5a724d")
 
 func region_level_for_cell(cell: Vector2i) -> int:
 	if cell.x < 0 or cell.x >= GRID_SIZE or cell.y < 0 or cell.y >= GRID_SIZE:
@@ -501,7 +636,7 @@ func update_region_visuals() -> void:
 		for z in range(GRID_SIZE):
 			for x in range(GRID_SIZE):
 				var cell := Vector2i(x, z)
-				if region_level_for_cell(cell) != level:
+				if region_level_for_cell(cell) != level or is_water_cell(cell):
 					continue
 				locked_cells.append(cell)
 		var veil_mesh := BoxMesh.new()
@@ -534,19 +669,61 @@ func create_scenery() -> void:
 	var road_end := grid_to_world(Vector2i(10, 15))
 	var road := mesh_box(Vector3(1.1, 0.06, road_start.distance_to(road_end) + TILE_SIZE), road_color)
 	road.name = "VillageRoad"
-	road.position = (road_start + road_end) * 0.5 + Vector3(0, 0.19, 0)
+	# Keep the authored street at the same deck height as player roads.  The
+	# street is a single continuous mesh, so matching its top plane avoids a
+	# raised lip/z-fighting line when a player road meets its edge.
+	road.position = (road_start + road_end) * 0.5 + Vector3(0, 0.225, 0)
 	world.add_child(road)
 	var bridge := RealisticKit.create_bridge()
 	bridge.name = "RiverBridge"
+	bridge.scale.x = TILE_SIZE / 2.0
 	bridge.position = Vector3(grid_to_world(Vector2i(2, 9)).x + TILE_SIZE * 0.5, 0.34, grid_to_world(Vector2i(2, 9)).z)
 	bridge.set_meta("npc_bridge_id", "main_river")
 	world.add_child(bridge)
 	var east_bridge := RealisticKit.create_bridge()
 	east_bridge.name = "EastBranchBridge"
+	east_bridge.scale.x = TILE_SIZE / 2.0
 	east_bridge.position = Vector3(grid_to_world(Vector2i(32, 12)).x + TILE_SIZE * 0.5, 0.34, grid_to_world(Vector2i(32, 12)).z)
 	east_bridge.set_meta("npc_bridge_id", "east_branch")
 	world.add_child(east_bridge)
-	var tree_cells := [
+	var tree_cells := authored_tree_cells()
+	for index in range(tree_cells.size()):
+		var cell: Vector2i = tree_cells[index]
+		var offset := Vector3(((index * 37) % 9 - 4) * 0.09, 0, ((index * 23) % 7 - 3) * 0.10)
+		create_tree(grid_to_world(cell) + offset, index)
+	for index in range(7):
+		var rock := RealisticKit.create_rock(index)
+		var rock_cell := Vector2i(0 if index % 2 == 0 else 19, 2 + index * 2)
+		rock.position = grid_to_world(rock_cell) + Vector3(0, 0.16, 0)
+		rock.rotation.y = index * 0.73
+		rock.set_meta("rock_cell", rock_cell)
+		rock.set_meta("road_clearable", true)
+		if not scenery_rocks_by_cell.has(rock_cell):
+			scenery_rocks_by_cell[rock_cell] = []
+		scenery_rocks_by_cell[rock_cell].append(rock)
+		rock.visible = not roads.has(rock_cell)
+		world.add_child(rock)
+	for z in [5, 8, 11, 14]:
+		var lantern := RealisticKit.create_lantern()
+		lantern.position = grid_to_world(Vector2i(10, z)) + Vector3(0.72, 0.2, 0)
+		lantern.rotation.y = PI if z % 2 == 0 else 0.0
+		world.add_child(lantern)
+	for i in range(18):
+		var hill_height := 4.0 + (i % 2) * 1.0
+		var hill_position := Vector3(-62.0 + i * 7.25, 0.0, -63.0 + (i % 4) * 1.35)
+		var hill_grid := Vector2(hill_position.x / TILE_SIZE + GRID_SIZE * 0.5 - 0.5, hill_position.z / TILE_SIZE + GRID_SIZE * 0.5 - 0.5)
+		# Leave both river outlets clear of the broad bases of the old hills.
+		if is_outer_river_corridor(hill_grid, 2.3):
+			continue
+		hill_position.y = mountain_ground_height(hill_position.x, hill_position.z)
+		var hill := DetailedMountainKit.create_mountain(hill_position, Vector2(3.1 + (i % 3) * 0.26, 2.65 + (i % 2) * 0.20), hill_height, i, mountain_ground_height)
+		hill.name = "BoundaryHill_%02d" % i
+		world.add_child(hill)
+
+func authored_tree_cells() -> Array[Vector2i]:
+	# Placement and save validation use the same authored tree cells even when
+	# validation is called before scenery nodes have been instantiated.
+	return [
 		Vector2i(16, 2), Vector2i(18, 1), Vector2i(17, 4), Vector2i(19, 5),
 		Vector2i(16, 7), Vector2i(18, 8), Vector2i(17, 10), Vector2i(19, 11),
 		Vector2i(16, 13), Vector2i(18, 14), Vector2i(17, 17), Vector2i(19, 18),
@@ -556,27 +733,6 @@ func create_scenery() -> void:
 		Vector2i(45, 3), Vector2i(46, 8), Vector2i(44, 15), Vector2i(47, 22),
 		Vector2i(33, 29), Vector2i(45, 32), Vector2i(34, 41), Vector2i(43, 46)
 	]
-	for index in range(tree_cells.size()):
-		var cell: Vector2i = tree_cells[index]
-		var offset := Vector3(((index * 37) % 9 - 4) * 0.09, 0, ((index * 23) % 7 - 3) * 0.10)
-		create_tree(grid_to_world(cell) + offset, index)
-	for index in range(7):
-		var rock := RealisticKit.create_rock(index)
-		rock.position = grid_to_world(Vector2i(0 if index % 2 == 0 else 19, 2 + index * 2)) + Vector3(0, 0.16, 0)
-		rock.rotation.y = index * 0.73
-		world.add_child(rock)
-	for z in [5, 8, 11, 14]:
-		var lantern := RealisticKit.create_lantern()
-		lantern.position = grid_to_world(Vector2i(10, z)) + Vector3(0.72, 0.2, 0)
-		lantern.rotation.y = PI if z % 2 == 0 else 0.0
-		world.add_child(lantern)
-	for i in range(18):
-		var hill_height := 4.0 + (i % 2) * 1.0
-		var hill := mesh_cylinder(0.15, 1.65 + (i % 3) * 0.35, hill_height, Color("536b5c"), 6)
-		hill.name = "BoundaryHill_%02d" % i
-		hill.position = Vector3(-62.0 + i * 7.25, hill_height * 0.5 + 1.15, -63.0 + (i % 4) * 1.35)
-		hill.scale = Vector3(1.25 + (i % 3) * 0.12, 1.0, 0.82 + (i % 2) * 0.10)
-		world.add_child(hill)
 
 func create_outer_natural_buffer() -> void:
 	var outer_root := Node3D.new()
@@ -585,82 +741,99 @@ func create_outer_natural_buffer() -> void:
 	outer_root.set_meta("buffer_cells", NATURAL_BUFFER_CELLS)
 	outer_root.set_meta("playable_grid_size", GRID_SIZE)
 	world.add_child(outer_root)
+	# Three staggered belts populate the whole expanded apron, including its
+	# corners. Density stays sparse enough for the richer shared tree meshes;
+	# hills and broken stone groups fill the spaces between woodland clusters.
+	for band in range(3):
+		var band_depth := 4.0 + band * 11.0
+		var band_span := GRID_SIZE + (band_depth + 3.0) * 2.0
+		var tree_count := ceili(band_span / 5.4)
+		for side in range(4):
+			for index in range(tree_count):
+				var variation := posmod(index * 13 + side * 17 + band * 7, 19)
+				var along := -band_depth - 2.0 + (index + 0.35) * band_span / tree_count + sin(index * 1.73 + side) * 1.25
+				var depth := band_depth + variation * 0.34
+				var grid_position := outer_side_grid_position(side, along, depth)
+				if is_outer_river_corridor(grid_position, 2.3):
+					continue
+				var tree := RealisticKit.create_tree(index + side + band)
+				if tree == null:
+					continue
+				tree.name = "BufferTree_%d_%d_%02d" % [band, side, index]
+				tree.position = outer_scenery_position(grid_position.x, grid_position.y)
+				tree.rotation.y = fposmod(index * 1.19 + side * 0.71 + band, TAU)
+				var scale_value := 0.72 + (variation % 7) * 0.075
+				tree.scale *= Vector3(scale_value, scale_value * (0.94 + (index % 3) * 0.04), scale_value)
+				tree.set_meta("non_editable_scenery", true)
+				tree.set_meta("buffer_band", band)
+				outer_root.add_child(tree)
+			var rock_count := ceili(band_span / 13.0)
+			for index in range(rock_count):
+				var along := -band_depth - 1.0 + (index + 0.62) * band_span / rock_count
+				var depth := band_depth + 1.8 + posmod(index * 5 + side * 3, 9) * 0.52
+				var grid_position := outer_side_grid_position(side, along, depth)
+				if is_outer_river_corridor(grid_position, 2.5):
+					continue
+				var rock := RealisticKit.create_rock(index + side)
+				if rock == null:
+					continue
+				rock.name = "BufferRock_%d_%d_%02d" % [band, side, index]
+				rock.position = outer_scenery_position(grid_position.x, grid_position.y)
+				rock.rotation.y = fposmod(index * 0.83 + side * 1.37, TAU)
+				var scale_value := 0.76 + posmod(index * 3 + side, 5) * 0.15
+				rock.scale *= Vector3(scale_value * 1.22, scale_value, scale_value * 0.87)
+				rock.set_meta("non_editable_scenery", true)
+				rock.set_meta("buffer_band", band)
+				outer_root.add_child(rock)
+	# Low irregular ridges span both the middle and distant belts, rather than
+	# leaving the newly exposed ground empty behind the previous perimeter.
+	for band in range(2):
+		var depth_base := 17.0 if band == 0 else float(NATURAL_BUFFER_CELLS) - 5.0
+		var span := GRID_SIZE + depth_base * 2.0
+		var count := ceili(span / (16.0 if band == 0 else 12.0))
+		for side in range(4):
+			for index in range(count):
+				var along := -depth_base + (index + 0.5) * span / count
+				var depth := depth_base + sin(index * 1.91 + side * 0.8) * 1.4
+				var grid_position := outer_side_grid_position(side, along, depth)
+				if is_outer_river_corridor(grid_position, 3.2):
+					continue
+				var height := 3.2 + posmod(index * 5 + side + band, 5) * 0.62
+				var bottom_radius := 3.2 + posmod(index + side * 2, 4) * 0.42
+				var ridge := DetailedMountainKit.create_mountain(outer_scenery_position(grid_position.x, grid_position.y), Vector2(bottom_radius, bottom_radius * 0.83), height, index + side * 17 + band * 31, mountain_ground_height)
+				ridge.name = "NaturalRidge_%d_%d_%02d" % [band, side, index]
+				ridge.set_meta("non_editable_scenery", true)
+				outer_root.add_child(ridge)
 
-	# Four staggered woodland belts.  Each side uses a different depth sequence,
-	# scale and rotation, so the perimeter reads as natural clusters rather than
-	# four repeated rows.  The old river keeps a clear outlet through the north
-	# and south belts.
-	for side in range(4):
-		for index in range(17):
-			var along := -8.0 + index * 3.9 + ((index * 5 + side * 3) % 4) * 0.31
-			var depth := 3.0 + ((index * 7 + side * 5) % 8) * 0.82
-			if side < 2 and along > -0.5 and along < 6.0:
-				continue
-			var grid_position := Vector2.ZERO
-			match side:
-				0: grid_position = Vector2(along, -depth)
-				1: grid_position = Vector2(along, GRID_SIZE - 1 + depth)
-				2: grid_position = Vector2(-depth, along)
-				_: grid_position = Vector2(GRID_SIZE - 1 + depth, along)
-			var tree := RealisticKit.create_tree(index + side)
-			if tree == null:
-				continue
-			tree.name = "BufferTree_%d_%02d" % [side, index]
-			tree.position = outer_scenery_position(grid_position.x, grid_position.y)
-			tree.rotation.y = fposmod(index * 1.19 + side * 0.71, TAU)
-			var scale_value := 0.78 + ((index * 11 + side * 2) % 7) * 0.055
-			tree.scale *= Vector3(scale_value, scale_value * (0.96 + (index % 3) * 0.035), scale_value)
-			tree.set_meta("non_editable_scenery", true)
-			outer_root.add_child(tree)
+func mountain_ground_height(world_x: float, world_z: float) -> float:
+	# Match the actual two triangles of ContinuousTerrain, not an analytic
+	# center-height approximation that can leave wide mountain feet hovering.
+	var grid_x := world_x / TILE_SIZE + GRID_SIZE * 0.5
+	var grid_z := world_z / TILE_SIZE + GRID_SIZE * 0.5
+	var cell_x := floori(grid_x)
+	var cell_z := floori(grid_z)
+	var u := grid_x - cell_x
+	var v := grid_z - cell_z
+	var y00 := outer_terrain_height_for_vertex(cell_x, cell_z)
+	var y10 := outer_terrain_height_for_vertex(cell_x + 1, cell_z)
+	var y11 := outer_terrain_height_for_vertex(cell_x + 1, cell_z + 1)
+	var y01 := outer_terrain_height_for_vertex(cell_x, cell_z + 1)
+	if u >= v:
+		return y00 * (1.0 - u) + y10 * (u - v) + y11 * v
+	return y00 * (1.0 - v) + y11 * u + y01 * (v - u)
 
-	# Broken stone clusters make the woodland silhouette less uniform and fill
-	# the gaps between tree groups without adding anything to the build grid.
-	for side in range(4):
-		for index in range(7):
-			var along := -5.5 + index * 9.3 + ((side + index * 3) % 5) * 0.43
-			var depth := 2.4 + ((index * 5 + side * 2) % 9) * 0.83
-			if side < 2 and along > -0.5 and along < 6.0:
-				continue
-			var grid_position := Vector2.ZERO
-			match side:
-				0: grid_position = Vector2(along, -depth)
-				1: grid_position = Vector2(along, GRID_SIZE - 1 + depth)
-				2: grid_position = Vector2(-depth, along)
-				_: grid_position = Vector2(GRID_SIZE - 1 + depth, along)
-			var rock := RealisticKit.create_rock(index + side)
-			if rock == null:
-				continue
-			rock.name = "BufferRock_%d_%02d" % [side, index]
-			rock.position = outer_scenery_position(grid_position.x, grid_position.y)
-			rock.rotation.y = fposmod(index * 0.83 + side * 1.37, TAU)
-			var rock_scale := 0.72 + ((index * 3 + side) % 5) * 0.12
-			rock.scale *= Vector3(rock_scale * 1.18, rock_scale, rock_scale * 0.86)
-			rock.set_meta("non_editable_scenery", true)
-			outer_root.add_child(rock)
+func outer_side_grid_position(side: int, along: float, depth: float) -> Vector2:
+	match side:
+		0: return Vector2(along, -depth)
+		1: return Vector2(along, GRID_SIZE - 1 + depth)
+		2: return Vector2(-depth, along)
+		_: return Vector2(GRID_SIZE - 1 + depth, along)
 
-	# An irregular, low ridge at the far perimeter masks the remaining terrain
-	# cut line.  Heights and offsets deliberately differ by side and segment.
-	for side in range(4):
-		for index in range(7):
-			var along := -7.5 + index * 10.4 + ((index * 2 + side) % 3) * 0.74
-			var depth := 10.0 + ((index * 3 + side * 2) % 3) * 0.58
-			var grid_position := Vector2.ZERO
-			match side:
-				0: grid_position = Vector2(along, -depth)
-				1: grid_position = Vector2(along, GRID_SIZE - 1 + depth)
-				2: grid_position = Vector2(-depth, along)
-				_: grid_position = Vector2(GRID_SIZE - 1 + depth, along)
-			var height := 3.2 + ((index * 5 + side) % 5) * 0.62
-			var bottom_radius := 2.0 + ((index + side * 2) % 4) * 0.36
-			var ridge_color := Color("4f6654") if (index + side) % 2 == 0 else Color("596d58")
-			var ridge := mesh_cylinder(0.18, bottom_radius, height, ridge_color, 7)
-			ridge.name = "NaturalRidge_%d_%02d" % [side, index]
-			var surface_position := outer_scenery_position(grid_position.x, grid_position.y)
-			ridge.position = surface_position + Vector3(0, height * 0.5 - 0.06, 0)
-			ridge.rotation.y = fposmod(index * 0.67 + side * 0.48, TAU)
-			ridge.scale.z = 0.72 + ((index * 7 + side) % 4) * 0.11
-			ridge.set_meta("non_editable_scenery", true)
-			outer_root.add_child(ridge)
+func is_outer_river_corridor(grid_position: Vector2, padding: float) -> bool:
+	# Main river crosses both map edges; the eastern branch exits only north.
+	if absf(grid_position.x - 2.5) < 1.0 + padding:
+		return true
+	return grid_position.y < 24.0 and absf(grid_position.x - 32.5) < 1.0 + padding
 
 func outer_scenery_position(grid_x: float, grid_z: float) -> Vector3:
 	var half := GRID_SIZE * 0.5
@@ -672,16 +845,28 @@ func outer_scenery_position(grid_x: float, grid_z: float) -> Vector3:
 
 func create_tree(pos: Vector3, variant := 0) -> void:
 	var tree := RealisticKit.create_tree(variant)
+	if tree == null:
+		return
+	var forest_cell := world_to_grid(pos)
+	tree.name = "SceneryTree_%d_%d_%02d" % [forest_cell.x, forest_cell.y, variant]
 	tree.position = pos
 	tree.rotation.y = variant * 0.61
+	tree.set_meta("forest_cell", forest_cell)
+	tree.set_meta("road_clearable", false)
+	tree.visible = not (roads.has(forest_cell) and legacy_cleared_tree_roads.has(forest_cell))
+	if not scenery_trees_by_cell.has(forest_cell):
+		scenery_trees_by_cell[forest_cell] = []
+	var trees_in_cell: Array = scenery_trees_by_cell[forest_cell]
+	trees_in_cell.append(tree)
 	world.add_child(tree)
 
-func create_citizen(index: int) -> Node3D:
+func create_citizen(index: int, forced_variant := -1) -> Node3D:
 	# Keep the carrier node on the ground and apply the small walk bob only to
 	# the visible model. This keeps the actor's full movement speed measurable
 	# and constant in world space.
 	var citizen := Node3D.new()
-	var visual := RealisticKit.create_citizen(index)
+	var variant := citizen_variant_for_index(index) if forced_variant < 0 else posmod(forced_variant, CITIZEN_KINDS.size())
+	var visual := RealisticKit.create_citizen_variant(index, variant)
 	citizen.name = "Citizen_%03d" % index
 	if visual:
 		visual.name = "Visual"
@@ -698,6 +883,7 @@ func create_citizen(index: int) -> Node3D:
 	citizen.set_meta("base_position", base)
 	citizen.set_meta("phase", float(index) * 1.71)
 	citizen.set_meta("citizen_index", index)
+	citizen.set_meta("citizen_kind", CITIZEN_KINDS[variant])
 	citizen.set_meta("home_position", base)
 	citizen.set_meta("schedule_state", "居家")
 	citizen.set_meta("schedule_activity", "起床")
@@ -713,6 +899,278 @@ func create_citizen(index: int) -> Node3D:
 	citizen.set_meta("walk_animation_active", false)
 	citizen.set_meta("ground_height", base.y)
 	return citizen
+
+func citizen_kind_for_index(index: int) -> String:
+	return CITIZEN_KINDS[citizen_variant_for_index(index)]
+
+func citizen_variant_for_index(index: int) -> int:
+	if citizen_variant_bag.is_empty():
+		prepare_village_life_variants()
+	return int(citizen_variant_bag[posmod(index, citizen_variant_bag.size())])
+
+func prepare_village_life_variants() -> void:
+	# Draw once per new village, then preserve identities across daily updates.
+	# Six of every ten residents retain the original straw-hat appearance. The
+	# Other styles rotate through the remaining slots across a full village.
+	var other_variants := [1, 2, 3, 4, 5, 6, 7]
+	other_variants.shuffle()
+	citizen_variant_bag.clear()
+	for group in range(5):
+		var accents: Array = []
+		for offset in range(4):
+			accents.append(other_variants[posmod(group + offset, other_variants.size())])
+		accents.shuffle()
+		if group == 0:
+			# The four-person opening always shows two original villagers alongside
+			# two different variants, while their order still changes with each game.
+			var opening: Array = [0, 0, accents[0], accents[1]]
+			opening.shuffle()
+			citizen_variant_bag.append_array(opening)
+			var remainder: Array = [0, 0, 0, 0, accents[2], accents[3]]
+			remainder.shuffle()
+			citizen_variant_bag.append_array(remainder)
+		else:
+			var residents: Array = [0, 0, 0, 0, 0, 0]
+			residents.append_array(accents)
+			residents.shuffle()
+			citizen_variant_bag.append_array(residents)
+	animal_species_bag = ANIMAL_SPECIES.duplicate()
+	animal_species_bag.shuffle()
+
+func animal_species_for_index(index: int) -> String:
+	if animal_species_bag.is_empty():
+		prepare_village_life_variants()
+	return str(animal_species_bag[posmod(index, animal_species_bag.size())])
+
+func animal_spawn_cell(index: int) -> Vector2i:
+	var candidates := [
+		Vector2i(7, 11), Vector2i(11, 11), Vector2i(13, 12), Vector2i(7, 14),
+		Vector2i(11, 14), Vector2i(14, 15), Vector2i(6, 12), Vector2i(15, 11),
+		Vector2i(9, 14), Vector2i(13, 9), Vector2i(6, 15), Vector2i(16, 13)
+	]
+	candidates.shuffle()
+	var start := posmod(index, candidates.size())
+	for offset in range(candidates.size()):
+		var cell: Vector2i = candidates[posmod(start + offset, candidates.size())]
+		if animal_cell_available(cell):
+			return cell
+	for z in range(GRID_SIZE):
+		for x in range(GRID_SIZE):
+			var cell := Vector2i(x, z)
+			if animal_cell_available(cell):
+				return cell
+	return Vector2i(-1, -1)
+
+func animal_cell_available(cell: Vector2i) -> bool:
+	if not is_playable_cell(cell) or region_level_for_cell(cell) > map_region_level or is_water_cell(cell) or is_reserved_forest(cell) or occupied.has(cell):
+		return false
+	# Scattered trees also occur outside reserved forest belts. Construction
+	# must not relocate an animal into one of those apparently empty cells.
+	return not has_scenery_tree(cell) or (roads.has(cell) and legacy_cleared_tree_roads.has(cell))
+
+func animal_route_for_index(index: int, start_cell: Vector2i) -> Array[Vector3]:
+	# Short village-yard loops keep the animals close to the settlement. Every
+	# target is a grid centre so water and locked regions still use the same safe
+	# navigation code as residents.
+	var offsets := [
+		Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(-1, 1),
+		Vector2i(-1, 0), Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1)
+	]
+	var result: Array[Vector3] = []
+	var phase := posmod(index * 3, offsets.size())
+	for step in range(4):
+		var offset: Vector2i = offsets[posmod(phase + step * 2, offsets.size())]
+		var cell := start_cell + offset
+		if not animal_cell_available(cell):
+			cell = start_cell
+		result.append(grid_to_world(cell) + Vector3(0, 0.18, 0))
+	return result
+
+func create_animal(index: int) -> Node3D:
+	var species := animal_species_for_index(index)
+	var animal := RealisticKit.create_animal(species, index)
+	if animal == null:
+		animal = Node3D.new()
+	animal.name = "Animal_%s_%03d" % [species, index]
+	animal.scale *= 0.48
+	var spawn_cell := animal_spawn_cell(index)
+	if spawn_cell.x < 0:
+		animal.free()
+		return null
+	var spawn := grid_to_world(spawn_cell) + Vector3(0, 0.18, 0)
+	animal.position = spawn
+	animal.set_meta("animal_index", index)
+	animal.set_meta("animal_species", species)
+	animal.set_meta("animal_anchor_cell", spawn_cell)
+	animal.set_meta("animal_route", animal_route_for_index(index, spawn_cell))
+	animal.set_meta("animal_route_index", 0)
+	animal.set_meta("animal_navigation_path", [])
+	animal.set_meta("animal_navigation_index", 0)
+	animal.set_meta("animal_target", spawn)
+	animal.set_meta("animal_distance", 0.0)
+	animal.set_meta("animal_ground_height", spawn.y)
+	animal_set_target(animal)
+	return animal
+
+func update_animals(preserve_existing := true) -> void:
+	if animal_root == null:
+		return
+	var desired_count := mini(ANIMAL_MAX_COUNT, 4 + map_region_level)
+	var existing := {}
+	if not preserve_existing:
+		for child in animal_root.get_children():
+			child.queue_free()
+	for child in animal_root.get_children():
+		if not child is Node3D or child.is_queued_for_deletion():
+			continue
+		var index := int(child.get_meta("animal_index", -1))
+		if index < 0 or index >= desired_count or existing.has(index):
+			child.queue_free()
+			continue
+		existing[index] = child
+	for index in range(desired_count):
+		if not existing.has(index):
+			var animal := create_animal(index)
+			if animal == null:
+				continue
+			animal_root.add_child(animal)
+			animal.reset_physics_interpolation()
+
+func animal_set_target(animal: Node3D) -> void:
+	var route: Array = animal.get_meta("animal_route", [])
+	if route.is_empty():
+		return
+	var route_index := posmod(int(animal.get_meta("animal_route_index", 0)), route.size())
+	for attempt in range(route.size()):
+		var next_index := posmod(route_index + attempt, route.size())
+		var target: Vector3 = route[next_index]
+		if not animal_cell_available(world_to_grid(target)):
+			continue
+		var navigation := citizen_navigation_path(animal.position, target)
+		if navigation.is_empty():
+			continue
+		var safe_path := true
+		for waypoint in navigation:
+			var waypoint_cell := world_to_grid(waypoint)
+			if not animal_cell_available(waypoint_cell) and not is_npc_bridge_cell(waypoint_cell):
+				safe_path = false
+				break
+		if not safe_path:
+			continue
+		# Layout changes can happen halfway along an edge. Return through the
+		# current clear cell's centre before turning, never diagonally across a
+		# neighboring pond, courtyard wall or another occupied corner.
+		var centre := grid_to_world(world_to_grid(animal.position)) + Vector3(0, 0.18, 0)
+		if Vector2(animal.position.x - centre.x, animal.position.z - centre.z).length() > 0.001:
+			navigation.push_front(centre)
+		animal.set_meta("animal_route_index", next_index)
+		animal.set_meta("animal_navigation_path", navigation)
+		animal.set_meta("animal_navigation_index", 0)
+		animal.set_meta("animal_target", navigation[0])
+		return
+	# A completely enclosed yard has no safe destination. Keep this bounded;
+	# the next layout refresh can restore a route without recursion or a warp.
+	animal.set_meta("animal_navigation_path", [])
+	animal.set_meta("animal_navigation_index", 0)
+	animal.set_meta("animal_target", animal.position)
+
+func animal_advance_target(animal: Node3D) -> void:
+	var navigation: Array = animal.get_meta("animal_navigation_path", [])
+	var next_navigation := int(animal.get_meta("animal_navigation_index", 0)) + 1
+	if next_navigation < navigation.size():
+		animal.set_meta("animal_navigation_index", next_navigation)
+		animal.set_meta("animal_target", navigation[next_navigation])
+		return
+	var route: Array = animal.get_meta("animal_route", [])
+	if route.is_empty():
+		return
+	animal.set_meta("animal_route_index", posmod(int(animal.get_meta("animal_route_index", 0)) + 1, route.size()))
+	animal_set_target(animal)
+
+func move_animals(delta: float) -> void:
+	if animal_root == null:
+		return
+	var movement_delta := maxf(delta, 0.0)
+	for child in animal_root.get_children():
+		if not child is Node3D or child.is_queued_for_deletion() or not child.visible:
+			continue
+		var animal := child as Node3D
+		var travel_budget := ANIMAL_MOVE_SPEED * movement_delta
+		var current_planar := Vector3(animal.position.x, 0, animal.position.z)
+		var traveled := 0.0
+		var transitions := 0
+		var last_direction := Vector3.ZERO
+		while travel_budget > 0.00001 and transitions < 16:
+			var target: Vector3 = animal.get_meta("animal_target", animal.position)
+			var target_planar := Vector3(target.x, 0, target.z)
+			var remaining := target_planar - current_planar
+			if remaining.length() <= 0.001:
+				animal.position = Vector3(current_planar.x, animal.position.y, current_planar.z)
+				animal_advance_target(animal)
+				transitions += 1
+				continue
+			var direction := remaining.normalized()
+			var travel := minf(travel_budget, remaining.length())
+			current_planar += direction * travel
+			travel_budget -= travel
+			traveled += travel
+			last_direction = direction
+			if travel >= remaining.length() - 0.00001:
+				animal.position = Vector3(current_planar.x, animal.position.y, current_planar.z)
+				animal_advance_target(animal)
+				transitions += 1
+				continue
+			break
+		if traveled > 0.0:
+			# Match the current path segment immediately. Turning slowly while
+			# already traveling along the next grid edge makes the animal slide
+			# sideways; physics interpolation handles the rendered frame blend.
+			animal.rotation.y = atan2(last_direction.x, last_direction.z)
+		var ground_height := citizen_surface_height(current_planar)
+		animal.position = Vector3(current_planar.x, ground_height, current_planar.z)
+		var distance := float(animal.get_meta("animal_distance", 0.0)) + traveled
+		animal.set_meta("animal_distance", distance)
+		animal.set_meta("animal_last_travel_distance", traveled)
+		AnimalKit.animate_walk(animal, distance)
+
+func refresh_animal_routes() -> void:
+	if animal_root == null:
+		return
+	for child in animal_root.get_children():
+		if not child is Node3D or child.is_queued_for_deletion():
+			continue
+		var index := int(child.get_meta("animal_index", 0))
+		var current_cell := world_to_grid(child.position)
+		if not animal_cell_available(current_cell) and not is_npc_bridge_cell(current_cell):
+			# Construction can cover the animal's present tile. Resolve that one
+			# placement-time overlap before rendering the building; walking out
+			# would visibly cross the new pond or its enclosing wall.
+			var nearest := Vector2i(-1, -1)
+			var nearest_distance := INF
+			for z in range(GRID_SIZE):
+				for x in range(GRID_SIZE):
+					var candidate := Vector2i(x, z)
+					if not animal_cell_available(candidate):
+						continue
+					var distance := grid_to_world(candidate).distance_squared_to(child.position)
+					if distance < nearest_distance:
+						nearest_distance = distance
+						nearest = candidate
+			if nearest.x < 0:
+				child.visible = false
+				child.set_meta("animal_navigation_path", [])
+				child.set_meta("animal_route", [])
+				child.set_meta("animal_target", child.position)
+				continue
+			current_cell = nearest
+			child.position = grid_to_world(current_cell) + Vector3(0, 0.18, 0)
+			child.set_meta("animal_ground_height", 0.18)
+			child.reset_physics_interpolation()
+		child.visible = true
+		child.set_meta("animal_anchor_cell", current_cell)
+		child.set_meta("animal_route", animal_route_for_index(index, current_cell))
+		child.set_meta("animal_route_index", 0)
+		animal_set_target(child)
 
 func update_citizens(preserve_existing := true) -> void:
 	var desired_count := mini(population, 50)
@@ -740,6 +1198,7 @@ func update_citizens(preserve_existing := true) -> void:
 			citizen.reset_physics_interpolation()
 			existing[index] = citizen
 	update_citizen_schedules()
+	update_animals(preserve_existing)
 
 func _process(delta: float) -> void:
 	# Large render-frame gaps must not jump the walk cycle forward in one burst.
@@ -754,11 +1213,12 @@ func _physics_process(delta: float) -> void:
 	# Use one fixed presentation step even if the renderer stalls and Godot
 	# reports a larger catch-up delta. This prevents a single visible sprint.
 	move_citizens(NPC_PHYSICS_STEP)
+	move_animals(ANIMAL_PHYSICS_STEP)
 
 func citizen_role_for_index(index: int) -> String:
 	# Jobs only choose a resident's presentation destination and activity label.
 	# Movement remains on the shared real-time route at NPC_MOVE_SPEED.
-	var roles := ["farm", "lumber", "workshop", "market", "clinic", "academy"]
+	var roles := ["farm", "fishpond", "lumber", "workshop", "market", "clinic", "academy"]
 	for offset in range(roles.size()):
 		var role: String = roles[posmod(index + offset, roles.size())]
 		if building_count(role) > 0:
@@ -773,11 +1233,16 @@ func citizen_home_position(index: int) -> Vector3:
 	if houses.is_empty():
 		return grid_to_world(Vector2i(8 + index % 4, 8 + floori(index / 4.0))) + Vector3(0, 0.18, 0)
 	var record: Dictionary = houses[index % houses.size()]
-	var door: Node = record.node.find_child("Door", true, false)
-	if door is Node3D:
-		# Stop just beyond the eave instead of placing the carrier inside the wall.
-		return citizen_root.to_local((door as Node3D).global_position) + Vector3(0, 0.02, 0.26)
-	return grid_to_world(record.cell) + Vector3(0, 0.18, 1.16)
+	return citizen_building_entrance(record)
+
+func citizen_building_entrance(record: Dictionary) -> Vector3:
+	var model: Node3D = record.node
+	var front := model.global_basis.z.normalized()
+	var door := model.find_child("Door", true, false) as Node3D
+	if door:
+		# Both the real doorway and its approach follow the placed orientation.
+		return citizen_root.to_local(door.global_position + front * 0.26 + Vector3.UP * 0.02)
+	return citizen_root.to_local(model.global_position + front * (record_base_footprint(record).y * TILE_SIZE * 0.5 + 0.1) + Vector3.UP * 0.18)
 
 func citizen_work_position(role: String, index: int) -> Vector3:
 	var matches: Array[Dictionary] = []
@@ -786,10 +1251,7 @@ func citizen_work_position(role: String, index: int) -> Vector3:
 			matches.append(record)
 	if not matches.is_empty():
 		var record: Dictionary = matches[index % matches.size()]
-		var door: Node = record.node.find_child("Door", true, false)
-		if door is Node3D:
-			return citizen_root.to_local((door as Node3D).global_position) + Vector3(0, 0.02, 0.26)
-		return grid_to_world(record.cell) + Vector3(0, 0.18, 1.16)
+		return citizen_building_entrance(record)
 	# Without a real workplace, stay near home instead of walking toward a
 	# distant locked-area fallback point.
 	return citizen_home_position(index) + Vector3(float(index % 3 - 1) * 0.65, 0.0, 1.0)
@@ -803,7 +1265,7 @@ func citizen_schedule_target(state: String, role: String, index: int, home: Vect
 		"用餐":
 			for record in buildings:
 				if str(record.type) == "warehouse":
-					return grid_to_world(record.cell) + Vector3(0, 0.18, 1.16)
+					return citizen_building_entrance(record)
 			return grid_to_world(Vector2i(10, 10)) + Vector3(0, 0.18, 0)
 		"散步":
 			return grid_to_world(Vector2i(10, 7 + index % 8)) + Vector3(0, 0.18, 0)
@@ -840,7 +1302,7 @@ func citizen_navigation_cell_walkable(cell: Vector2i, start: Vector2i, goal: Vec
 		return false
 	if is_water_cell(cell):
 		return is_npc_bridge_cell(cell)
-	if cell != start and cell != goal and is_reserved_forest(cell):
+	if has_scenery_tree(cell) and not (roads.has(cell) and legacy_cleared_tree_roads.has(cell)):
 		return false
 	if cell != start and cell != goal and occupied.has(cell):
 		return false
@@ -1013,6 +1475,7 @@ func schedule_activity_text(state: String, role: String) -> String:
 	if state == "工作":
 		return {
 			"farm": "耕作",
+			"fishpond": "养鱼",
 			"lumber": "伐木",
 			"workshop": "制作",
 			"market": "经商",
@@ -1022,6 +1485,7 @@ func schedule_activity_text(state: String, role: String) -> String:
 	if state == "通勤":
 		return {
 			"farm": "前往农田",
+			"fishpond": "前往鱼塘",
 			"lumber": "前往林场",
 			"workshop": "前往工坊",
 			"market": "前往集市",
@@ -1038,18 +1502,20 @@ func schedule_activity_text(state: String, role: String) -> String:
 
 func citizen_surface_height(planar_position: Vector3) -> float:
 	var surface_height := 0.18
+	var bridge_half_length := TILE_SIZE
+	var bridge_ramp_width := 0.75 * TILE_SIZE / 2.0
 	for bridge in NPC_BRIDGES:
 		var centre := grid_to_world(Vector2i(int(bridge.water_min_x), int(bridge.row)))
 		centre.x += TILE_SIZE * 0.5
 		if absf(planar_position.z - centre.z) > 0.66:
 			continue
 		var distance_from_centre := absf(planar_position.x - centre.x)
-		if distance_from_centre <= 2.0:
+		if distance_from_centre <= bridge_half_length:
 			# Follow the shallow crown of the bridge deck and keep feet above planks.
-			var crown := 1.0 - distance_from_centre / 2.0
+			var crown := 1.0 - distance_from_centre / bridge_half_length
 			surface_height = maxf(surface_height, 0.60 + crown * 0.10)
-		elif distance_from_centre < 2.75:
-			var ramp_weight := 1.0 - (distance_from_centre - 2.0) / 0.75
+		elif distance_from_centre < bridge_half_length + bridge_ramp_width:
+			var ramp_weight := 1.0 - (distance_from_centre - bridge_half_length) / bridge_ramp_width
 			surface_height = maxf(surface_height, lerpf(0.18, 0.60, ramp_weight))
 	return surface_height
 
@@ -1273,7 +1739,7 @@ func create_ui() -> void:
 	top_row.add_child(goal_label)
 	settings_button = make_compact_button("设置", toggle_settings_menu, Vector2(72, 40))
 	settings_button.toggle_mode = true
-	settings_button.tooltip_text = "存档与游戏操作"
+	settings_button.tooltip_text = "音乐、存档、游戏操作与帮助"
 	top_row.add_child(settings_button)
 
 	bottom_panel = PanelContainer.new()
@@ -1292,7 +1758,7 @@ func create_ui() -> void:
 	category_row.add_theme_constant_override("separation", 6)
 	build_panel_box.add_child(category_row)
 	for category in ["basic", "industry", "civic"]:
-		var category_name: String = str({"basic": "开局", "industry": "产业", "civic": "民生"}[category])
+		var category_name: String = str({"basic": "基础", "industry": "产业", "civic": "民生"}[category])
 		var category_button := make_compact_button(category_name, select_build_category.bind(category), Vector2(92, 31), Color("e9dcc0"))
 		category_button.toggle_mode = true
 		category_button.tooltip_text = "查看%s建筑" % category_name
@@ -1347,6 +1813,10 @@ func create_ui() -> void:
 	inspector_title.add_theme_font_size_override("font_size", 20)
 	inspector_title.add_theme_color_override("font_color", Color("6b4731"))
 	inspect_box.add_child(inspector_title)
+	inspector_status = Label.new()
+	inspector_status.name = "OperationStatus"
+	inspector_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	inspect_box.add_child(inspector_status)
 	inspector_body = Label.new()
 	inspector_body.add_theme_color_override("font_color", Color("2f3433"))
 	inspector_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1381,12 +1851,9 @@ func create_ui() -> void:
 	region_panel_toggle = make_compact_button(">", toggle_region_panel, Vector2(38, 34))
 	region_panel_toggle.tooltip_text = "收起目标栏"
 	region_header.add_child(region_panel_toggle)
-	region_body = Label.new()
-	region_body.add_theme_font_size_override("font_size", 15)
-	region_body.add_theme_color_override("font_color", Color("2f3433"))
-	region_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	region_body = GoalChecklist.new()
 	region_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	region_body.tooltip_text = "本章目标在开拓下一地区前保持不变。"
+	region_body.tooltip_text = "本章目标在开拓下一地区前保持不变；达成的目标会以绿色勾选显示。"
 	region_box.add_child(region_body)
 	region_unlock_button = make_action_button("条件尚未满足", unlock_next_region, Color("d6a74a"))
 	region_unlock_button.custom_minimum_size = Vector2(0, 42)
@@ -1407,18 +1874,6 @@ func create_ui() -> void:
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_panel.add_child(message_label)
 
-	var help := Label.new()
-	help.text = "左键建造/查看/选中 · 右键短按取消摆放 · 中键拖动平移 · 右键拖动旋转 · 滚轮缩放"
-	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	help.offset_left = 20
-	help.offset_top = -176
-	help.offset_right = 930
-	help.offset_bottom = -153
-	help.add_theme_color_override("font_color", Color("2f3433"))
-	help.add_theme_color_override("font_outline_color", Color(0.95, 0.90, 0.79, 0.92))
-	help.add_theme_constant_override("outline_size", 4)
-	layer.add_child(help)
-
 	settings_overlay = Control.new()
 	settings_overlay.name = "SettingsOverlay"
 	settings_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1433,7 +1888,7 @@ func create_ui() -> void:
 	settings_panel.offset_left = -278
 	settings_panel.offset_right = -14
 	settings_panel.offset_top = 82
-	settings_panel.offset_bottom = 332
+	settings_panel.offset_bottom = 425
 	settings_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	settings_panel.add_theme_stylebox_override("panel", panel_style(Color(0.95, 0.90, 0.79, 0.99)))
 	settings_overlay.add_child(settings_panel)
@@ -1452,12 +1907,22 @@ func create_ui() -> void:
 	var close_button := make_compact_button("×", close_settings_menu, Vector2(36, 32))
 	close_button.tooltip_text = "关闭设置"
 	settings_header.add_child(close_button)
+	create_music_settings(settings_box)
 	settings_action_buttons["view"] = make_settings_action_button("查看地图 / 取消摆放", view_from_settings)
+	settings_action_buttons["help"] = make_settings_action_button("帮助", show_help_from_settings)
 	settings_action_buttons["save"] = make_settings_action_button("保存当前进度", save_from_settings)
 	settings_action_buttons["load"] = make_settings_action_button("读取最近存档", request_load_from_settings)
 	settings_action_buttons["reset"] = make_settings_action_button("重新开始本局", request_reset_from_settings, Color("f0d1b8"))
-	for action in ["view", "save", "load", "reset"]:
+	for action in ["help", "view", "save", "load", "reset"]:
 		settings_box.add_child(settings_action_buttons[action])
+
+	help_dialog = AcceptDialog.new()
+	help_dialog.name = "HelpDialog"
+	help_dialog.title = "操作帮助"
+	help_dialog.min_size = Vector2i(450, 270)
+	help_dialog.dialog_text = "左键点击：放置建筑/道路，或选中已有建筑/道路\nR：将待建建筑旋转90°\n右键短按：取消当前摆放\n中键拖动：平移地图\n右键拖动：旋转视角\n滚轮：缩放视角\nEsc：取消摆放，或关闭当前面板\n移除：选中后，在详情中点击“删除建筑”/“拆除道路”"
+	help_dialog.get_ok_button().text = "关闭"
+	layer.add_child(help_dialog)
 
 	confirmation_dialog = ConfirmationDialog.new()
 	confirmation_dialog.min_size = Vector2i(420, 170)
@@ -1465,6 +1930,54 @@ func create_ui() -> void:
 	confirmation_dialog.get_cancel_button().text = "取消"
 	confirmation_dialog.confirmed.connect(confirm_pending_action)
 	layer.add_child(confirmation_dialog)
+
+func create_music_settings(settings_box: VBoxContainer) -> void:
+	create_background_music()
+	var row := HBoxContainer.new()
+	row.name = "MusicSettings"
+	row.add_theme_constant_override("separation", 6)
+	settings_box.add_child(row)
+	var label := Label.new()
+	label.text = "音乐"
+	label.add_theme_color_override("font_color", Color("6b4731"))
+	row.add_child(label)
+	music_volume_slider = HSlider.new()
+	music_volume_slider.name = "MusicVolume"
+	music_volume_slider.min_value = 0
+	music_volume_slider.max_value = 100
+	music_volume_slider.step = 1
+	music_volume_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	music_volume_slider.custom_minimum_size.x = 70
+	music_volume_slider.value = roundf(background_music.volume * 100.0)
+	music_volume_slider.tooltip_text = "背景音乐音量"
+	music_volume_slider.value_changed.connect(_on_music_volume_changed)
+	row.add_child(music_volume_slider)
+	music_volume_label = Label.new()
+	music_volume_label.custom_minimum_size.x = 37
+	music_volume_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	music_volume_label.add_theme_font_size_override("font_size", 14)
+	music_volume_label.add_theme_color_override("font_color", Color("6b4731"))
+	row.add_child(music_volume_label)
+	music_mute_button = make_compact_button("静音", _on_music_mute_pressed, Vector2(54, 32))
+	music_mute_button.toggle_mode = true
+	row.add_child(music_mute_button)
+	update_music_settings()
+
+func _on_music_volume_changed(value: float) -> void:
+	background_music.set_music_volume(value / 100.0)
+	update_music_settings()
+
+func _on_music_mute_pressed() -> void:
+	background_music.set_muted(not background_music.muted)
+	update_music_settings()
+
+func update_music_settings() -> void:
+	if not music_volume_label or not music_mute_button:
+		return
+	music_volume_label.text = "%d%%" % roundi(background_music.volume * 100.0)
+	music_mute_button.set_pressed_no_signal(background_music.muted)
+	music_mute_button.text = "恢复" if background_music.muted else "静音"
+	music_mute_button.tooltip_text = "恢复音乐" if background_music.muted else "音乐静音"
 
 func make_action_button(text: String, callback: Callable, color := Color("f5e8cb")) -> Button:
 	var button := Button.new()
@@ -1511,6 +2024,10 @@ func view_from_settings() -> void:
 	close_settings_menu()
 	cancel_building()
 	show_message("已进入查看模式：点击建筑可查看详情")
+
+func show_help_from_settings() -> void:
+	close_settings_menu()
+	help_dialog.popup_centered(Vector2i(450, 270))
 
 func save_from_settings() -> void:
 	close_settings_menu()
@@ -1675,7 +2192,7 @@ func proportional_output_text(type: String) -> String:
 		output_parts.append("%s %s（在岗 %s 人）" % [resource_label(resource), "/".join(amounts), "/".join(staffing)])
 	return "、".join(output_parts)
 
-func building_effect_lines(type: String) -> Array[String]:
+func building_effect_lines(type: String, include_road := true) -> Array[String]:
 	var definition: Dictionary = BUILDINGS[type]
 	var workers := int(definition.workers)
 	var staffing := str(definition.get("staffing", "passive"))
@@ -1714,6 +2231,8 @@ func building_effect_lines(type: String) -> Array[String]:
 	var maintenance_text := "无"
 	if maintenance > 0:
 		maintenance_text = "铜钱 -%d/日（%s）" % [maintenance, "启用即收" if workers > 0 else "固定收取"]
+		if bool(definition.get("requires_road", false)):
+			maintenance_text = "铜钱 -%d/日（未接通也收取）" % maintenance
 	lines.append("维护：%s" % maintenance_text)
 	var fixed_parts: Array[String] = []
 	var housing := building_effect(type, "housing")
@@ -1721,9 +2240,11 @@ func building_effect_lines(type: String) -> Array[String]:
 	var food_storage := building_effect(type, "food_capacity")
 	if housing > 0:
 		fixed_parts.append("住房容量 +%d" % housing)
-	if wood_storage > 0:
+	if type == "warehouse":
+		lines.append("接通主路：木材/粮食容量各 +%d" % wood_storage)
+	elif wood_storage > 0:
 		fixed_parts.append("木材容量 +%d" % wood_storage)
-	if food_storage > 0:
+	if food_storage > 0 and type != "warehouse":
 		fixed_parts.append("粮食容量 +%d" % food_storage)
 	if not fixed_parts.is_empty():
 		lines.append("固定效果：%s" % "、".join(fixed_parts))
@@ -1732,17 +2253,30 @@ func building_effect_lines(type: String) -> Array[String]:
 		lines.append("运行效果：日结幸福度目标 +%d（%s合计上限 +%d）" % [
 			happiness_gain, definition.name, int(definition.get("effect_cap", happiness_gain))
 		])
-	if type in ROAD_ELIGIBLE_BUILDING_TYPES:
+	if include_road and type in ROAD_ELIGIBLE_BUILDING_TYPES:
 		lines.append("道路运输：相邻道路接通村庄主路且本日正常运行时，铜钱 +%d（全城上限 +%d）" % [
 			ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP
 		])
 	return lines
 
-func building_effect_text(type: String) -> String:
-	return "\n".join(building_effect_lines(type))
+func building_effect_text(type: String, include_road := true) -> String:
+	return "\n".join(building_effect_lines(type, include_road))
 
 func building_tooltip_text(type: String) -> String:
-	return building_effect_text(type)
+	var footprint_hint := ""
+	if type == "market":
+		footprint_hint = "占地：2×2 格（开放集市）\n"
+	elif type == "warehouse":
+		footprint_hint = "占地：2×2 格（开放仓院）\n"
+	elif type == "fishpond":
+		footprint_hint = "占地：3×2 格（人工鱼塘，可建于陆地）\n"
+	elif type == "farm":
+		footprint_hint = "占地：2×2 格（河岸农田）\n"
+	elif type == "workshop":
+		footprint_hint = "占地：2×2 格（开放工坊）\n"
+	elif type == "clinic":
+		footprint_hint = "占地：2×2 格（诊堂药院）\n"
+	return footprint_hint + building_effect_text(type)
 
 func update_build_menu() -> void:
 	for category in build_category_buttons:
@@ -1789,6 +2323,8 @@ func select_building(type: String) -> void:
 		show_message("已取消摆放，进入查看模式")
 		return
 	selected_type = type
+	selected_rotation_quarters = 0
+	clear_ghost()
 	road_tool_selected = false
 	selected_building_id = -1
 	selected_road_cell = Vector2i(-1, -1)
@@ -1798,9 +2334,19 @@ func select_building(type: String) -> void:
 
 func cancel_building() -> void:
 	selected_type = ""
+	selected_rotation_quarters = 0
 	road_tool_selected = false
 	clear_ghost()
 	update_ui()
+
+func rotate_selected_building() -> void:
+	if selected_type == "" or road_tool_selected or ended != "":
+		return
+	selected_rotation_quarters = posmod(selected_rotation_quarters + 1, 4)
+	var previous_cell := hover_cell
+	clear_ghost()
+	if previous_cell != Vector2i(-1, -1):
+		update_ghost(previous_cell)
 
 func is_reserved_forest(cell: Vector2i) -> bool:
 	return (
@@ -1816,6 +2362,14 @@ func is_water_cell(cell: Vector2i) -> bool:
 
 func is_farm_cell(cell: Vector2i) -> bool:
 	return cell.x == 1 or cell.x == 4 or (cell.y < 24 and (cell.x == 31 or cell.x == 34))
+
+func is_farm_lot(anchor: Vector2i, footprint := Vector2i.ZERO) -> bool:
+	# The plot may extend inland from either bank. Only one of its
+	# cells needs to touch the river; normal placement still rejects water.
+	for cell in building_footprint_cells("farm", anchor, footprint):
+		if is_farm_cell(cell):
+			return true
+	return false
 
 func is_lumber_cell(cell: Vector2i) -> bool:
 	return (
@@ -1861,8 +2415,8 @@ func can_place_road(cell: Vector2i) -> String:
 		return "这里已有道路"
 	if is_fixed_road_infrastructure(cell):
 		return "这里已有村庄主路或桥梁"
-	if is_reserved_forest(cell):
-		return "保留林地不能铺路"
+	if has_scenery_tree(cell):
+		return "树木占用此格，请从林间空地绕行"
 	if wood < ROAD_WOOD_COST:
 		return "木材不足（铺路需要 %d）" % ROAD_WOOD_COST
 	return ""
@@ -1899,7 +2453,7 @@ func create_road_model(cell: Vector2i, preview := false, preview_valid := true) 
 		var preview_tile := mesh_box(Vector3(TILE_SIZE - 0.18, 0.045, TILE_SIZE - 0.18), color, color.a)
 		root.add_child(preview_tile)
 		return root
-	var centre := mesh_box(Vector3(0.88, 0.055, 0.88), color)
+	var centre := mesh_box(Vector3(ROAD_WIDTH, 0.055, ROAD_WIDTH), color)
 	centre.name = "RoadCentre"
 	root.add_child(centre)
 	var directions := [
@@ -1912,16 +2466,49 @@ func create_road_model(cell: Vector2i, preview := false, preview_valid := true) 
 		if road_visual_connects(entry.cell):
 			var arm_size: Vector3 = entry.size
 			var arm_offset: Vector3 = entry.offset
+			# The road centre is 1.0 m wide.  Recompute connector arms from the
+			# actual cell pitch so roads remain continuous after the grid spacing is
+			# widened, while the building meshes themselves stay unchanged.
+			var is_horizontal := absf(entry.offset.x) > 0.1
+			var direction_sign := signf(entry.offset.x if is_horizontal else entry.offset.z)
+			var centre_half := ROAD_WIDTH * 0.5
 			if is_village_main_road_cell(entry.cell):
-				# The authored main street is 1.1 m wide inside the adjacent
-				# cell. Extend only this joining arm by the remaining 0.45 m;
-				# ordinary player-road and bridge joins keep their normal shape.
-				if entry.cell.x != cell.x:
-					arm_size.x = 1.02
-					arm_offset.x = signf(float(entry.cell.x - cell.x)) * 0.95
+				# A side connection meets the 1.1 m-wide continuous main street.
+				# Endpoint connections meet the street's boundary halfway between
+				# cell centres, so they use the same short edge-to-edge arm as a
+				# bridge approach.
+				if is_horizontal:
+					var arm_length := TILE_SIZE - centre_half - 0.55
+					arm_size.x = arm_length
+					arm_offset.x = direction_sign * (centre_half + arm_length * 0.5)
 				else:
-					arm_size.z = 1.02
-					arm_offset.z = signf(float(entry.cell.y - cell.y)) * 0.95
+					var arm_length := TILE_SIZE * 0.5 - centre_half
+					arm_size.z = arm_length
+					arm_offset.z = direction_sign * (centre_half + arm_length * 0.5)
+			elif is_npc_bridge_cell(entry.cell):
+				# The bridge deck starts at the bank boundary.  Stop the road arm
+				# exactly at that edge instead of extending into the bridge mesh.
+				if is_horizontal:
+					var arm_length := TILE_SIZE * 0.5 - centre_half
+					arm_size.x = arm_length
+					arm_offset.x = direction_sign * (centre_half + arm_length * 0.5)
+				else:
+					var arm_length := TILE_SIZE * 0.5 - centre_half
+					arm_size.z = arm_length
+					arm_offset.z = direction_sign * (centre_half + arm_length * 0.5)
+			else:
+				# Each adjacent road cell owns half of the gap between centres.  With
+				# the widened 2.2 m pitch and 1.0 m road width this is a 0.60 m arm
+				# centred at 0.80 m,
+				# so neighbouring arms meet at the midpoint without overlapping.
+				var arm_length := (TILE_SIZE - centre_half * 2.0) * 0.5
+				var arm_centre := centre_half + arm_length * 0.5
+				if is_horizontal:
+					arm_size.x = arm_length
+					arm_offset.x = direction_sign * arm_centre
+				else:
+					arm_size.z = arm_length
+					arm_offset.z = direction_sign * arm_centre
 			var arm := mesh_box(arm_size, color)
 			arm.position = arm_offset
 			root.add_child(arm)
@@ -1949,25 +2536,78 @@ func refresh_road_and_neighbors(cell: Vector2i) -> void:
 	for neighbor in cardinal_cells(cell):
 		refresh_road_model(neighbor)
 
-func add_road(cell: Vector2i, free := false) -> void:
+func has_scenery_tree(cell: Vector2i) -> bool:
+	if not scenery_trees_by_cell.is_empty():
+		return scenery_trees_by_cell.has(cell) and not scenery_trees_by_cell[cell].is_empty()
+	return authored_tree_cells().has(cell)
+
+func update_forest_cell_for_roads(cell: Vector2i) -> void:
+	var trees_in_cell: Array = scenery_trees_by_cell.get(cell, [])
+	for tree in trees_in_cell:
+		if is_instance_valid(tree):
+			tree.visible = not (roads.has(cell) and legacy_cleared_tree_roads.has(cell))
+	for rock in scenery_rocks_by_cell.get(cell, []):
+		if is_instance_valid(rock):
+			rock.visible = not roads.has(cell)
+
+func update_road_scenery() -> void:
+	# Only trees authored by create_scenery carry forest_cell metadata and are
+	# indexed here. OuterNaturalBuffer vegetation stays permanently decorative.
+	for cell in scenery_trees_by_cell:
+		update_forest_cell_for_roads(cell)
+	for cell in scenery_rocks_by_cell:
+		update_forest_cell_for_roads(cell)
+
+func add_road(cell: Vector2i, free := false, legacy_tree_clearance := false) -> void:
+	if ended != "":
+		return
 	if roads.has(cell):
 		return
+	# Only validated migration can preserve a historically cleared tree. Even
+	# free placement cannot turn a new road into a tree-removal operation.
+	if has_scenery_tree(cell):
+		if not legacy_tree_clearance:
+			return
+		legacy_cleared_tree_roads[cell] = true
 	roads[cell] = null
 	if not free:
 		wood -= ROAD_WOOD_COST
 	refresh_road_and_neighbors(cell)
+	update_forest_cell_for_roads(cell)
+	if citizen_root and citizen_root.get_child_count() > 0:
+		update_citizen_schedules()
+	refresh_road_dependent_buildings()
 
 func remove_road(cell: Vector2i, refund := true) -> void:
+	if ended != "":
+		return
 	if not roads.has(cell):
 		return
 	var node = roads[cell]
 	if node != null and is_instance_valid(node):
 		node.queue_free()
 	roads.erase(cell)
+	legacy_cleared_tree_roads.erase(cell)
 	if refund:
-		wood = mini(wood_capacity(), wood + ROAD_WOOD_COST)
+		# Demolition returns owned material even if lost warehouse access has
+		# temporarily left the existing stock above its current capacity.
+		wood += ROAD_WOOD_COST
 	for neighbor in cardinal_cells(cell):
 		refresh_road_model(neighbor)
+	update_forest_cell_for_roads(cell)
+	if citizen_root and citizen_root.get_child_count() > 0:
+		update_citizen_schedules()
+	refresh_road_dependent_buildings()
+
+func refresh_road_dependent_buildings() -> void:
+	# Capacity itself is derived from the live network. Refresh its UI and
+	# warning markers immediately when a single road segment changes.
+	if is_instance_valid(status_label):
+		update_ui()
+	else:
+		update_building_status_markers()
+	if is_instance_valid(inspector) and inspector.visible and selected_building_id >= 0:
+		show_inspector(selected_building_id)
 
 func is_road_connected(cell: Vector2i) -> bool:
 	if not road_segment_connects(cell):
@@ -1987,14 +2627,67 @@ func is_road_connected(cell: Vector2i) -> bool:
 	return false
 
 func building_has_connected_road(record: Dictionary) -> bool:
-	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
+	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES and not bool(BUILDINGS[record.type].get("requires_road", false)):
 		return false
-	for neighbor in cardinal_cells(record.cell):
-		if road_segment_connects(neighbor) and is_road_connected(neighbor):
+	for boundary in building_boundary_cells(record):
+		if road_segment_connects(boundary) and is_road_connected(boundary):
 			return true
 	return false
 
+func building_footprint_cells(type: String, anchor: Vector2i, footprint := Vector2i.ZERO) -> Array[Vector2i]:
+	if footprint == Vector2i.ZERO:
+		footprint = BUILDING_FOOTPRINTS.get(type, Vector2i.ONE)
+	var cells: Array[Vector2i] = []
+	for dz in range(footprint.y):
+		for dx in range(footprint.x):
+			cells.append(anchor + Vector2i(dx, dz))
+	return cells
+
+func record_footprint(record: Dictionary) -> Vector2i:
+	return record.get("footprint", BUILDING_FOOTPRINTS.get(str(record.type), Vector2i.ONE))
+
+func rotated_footprint(base: Vector2i, rotation_quarters: int) -> Vector2i:
+	return Vector2i(base.y, base.x) if posmod(rotation_quarters, 2) == 1 else base
+
+func record_base_footprint(record: Dictionary) -> Vector2i:
+	return record.get("base_footprint", rotated_footprint(record_footprint(record), int(record.get("rotation_quarters", 0))))
+
+func saved_base_footprint(record: Dictionary) -> Vector2i:
+	# Older saves stored single-cell warehouses without an explicit footprint.
+	# Keep those lots compact instead of expanding into neighboring property.
+	if str(record.type) == "warehouse":
+		return Vector2i.ONE * int(record.get("warehouse_footprint", 1))
+	if str(record.type) == "farm":
+		var farm_cells := int(record.get("farm_footprint", 1))
+		return Vector2i(2, 2) if farm_cells == 4 else Vector2i(farm_cells, 1)
+	if str(record.type) in ["workshop", "clinic"]:
+		return Vector2i.ONE * int(record.get(str(record.type) + "_footprint", 1))
+	return BUILDING_FOOTPRINTS.get(str(record.type), Vector2i.ONE)
+
+func saved_building_footprint(record: Dictionary) -> Vector2i:
+	return rotated_footprint(saved_base_footprint(record), int(record.get("rotation_quarters", 0)))
+
+func building_boundary_cells(record: Dictionary) -> Array[Vector2i]:
+	var inside := {}
+	var result: Array[Vector2i] = []
+	for footprint_cell in building_footprint_cells(str(record.type), record.cell, record_footprint(record)):
+		inside[footprint_cell] = true
+	for footprint_cell in inside:
+		for neighbor in cardinal_cells(footprint_cell):
+			if not inside.has(neighbor) and neighbor not in result:
+				result.append(neighbor)
+	return result
+
+func building_model_position(type: String, anchor: Vector2i, footprint := Vector2i.ZERO) -> Vector3:
+	if footprint == Vector2i.ZERO:
+		footprint = BUILDING_FOOTPRINTS.get(type, Vector2i.ONE)
+	return grid_to_world(anchor) + Vector3((footprint.x - 1) * TILE_SIZE * 0.5, 0, (footprint.y - 1) * TILE_SIZE * 0.5)
+
 func road_bonus_for_building(record: Dictionary) -> int:
+	# Warehouses require road access for storage, but never earn production
+	# transport income merely because their road requirement is satisfied.
+	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
+		return 0
 	if not bool(record.get("enabled", true)) or not bool(record.get("last_running", false)):
 		return 0
 	var required_workers := int(BUILDINGS[record.type].workers)
@@ -2010,34 +2703,42 @@ func daily_road_transport_income() -> int:
 		income += road_bonus_for_building(record)
 	return mini(ROAD_TRANSPORT_COIN_CAP, income)
 
-func can_place(type: String, cell: Vector2i) -> String:
+func can_place(type: String, cell: Vector2i, rotation_quarters := 0) -> String:
 	if not BUILDINGS.has(type):
 		return "未知建筑类型"
 	if not building_is_unlocked(type):
 		return "%s尚未解锁" % BUILDINGS[type].name
-	if cell.x < 0 or cell.x >= GRID_SIZE or cell.y < 0 or cell.y >= GRID_SIZE:
-		return "超出地图边界"
+	var footprint := rotated_footprint(BUILDING_FOOTPRINTS.get(type, Vector2i.ONE), rotation_quarters)
+	var footprint_cells := building_footprint_cells(type, cell, footprint)
+	for footprint_cell in footprint_cells:
+		if footprint_cell.x < 0 or footprint_cell.x >= GRID_SIZE or footprint_cell.y < 0 or footprint_cell.y >= GRID_SIZE:
+			return "超出地图边界"
 	var region_level := region_level_for_cell(cell)
 	if region_level > map_region_level:
 		return region_lock_message(region_level)
-	if is_water_cell(cell):
-		return "河道上不能建造"
-	if is_village_main_road_cell(cell):
-		return "村庄主路上不能建造"
-	if is_npc_bridge_access_cell(cell):
-		return "桥头需留出通行空间"
-	if is_reserved_forest(cell):
-		return "保留林地不能建造，请在林缘布置伐木场"
-	if occupied.has(cell):
-		return "这里已有建筑"
-	if roads.has(cell):
-		return "这里已有道路，请先拆除道路"
+	for footprint_cell in footprint_cells:
+		if region_level_for_cell(footprint_cell) > map_region_level:
+			return region_lock_message(region_level_for_cell(footprint_cell))
+		if is_water_cell(footprint_cell):
+			return "河道上不能建造"
+		if is_village_main_road_cell(footprint_cell):
+			return "村庄主路上不能建造"
+		if is_npc_bridge_access_cell(footprint_cell):
+			return "桥头需留出通行空间"
+		if is_reserved_forest(footprint_cell):
+			return "保留林地不能建造，请在林缘布置伐木场"
+		if has_scenery_tree(footprint_cell):
+			return "建筑占地有树木，请避开树木所在格"
+		if occupied.has(footprint_cell):
+			return "建筑占地被占用"
+		if roads.has(footprint_cell):
+			return "建筑占地已有道路，请先拆除道路"
 	var definition: Dictionary = BUILDINGS[type]
 	if wood < int(definition.cost):
 		return "木材不足（需要 %d）" % definition.cost
 	if coins < int(definition.coin_cost):
 		return "铜钱不足（需要 %d）" % definition.coin_cost
-	if type == "farm" and not is_farm_cell(cell):
+	if type == "farm" and not is_farm_lot(cell, footprint):
 		return "农田只能建在河岸；东原支流与旧河道两侧均可耕种"
 	if type == "lumber" and not is_lumber_cell(cell):
 		return "伐木场需要建在东麓、东原或北关的林缘"
@@ -2049,33 +2750,9 @@ func can_unlock_next_region() -> String:
 	if map_region_level >= REGION_DEFINITIONS.size() - 1:
 		return "河谷全境已开放"
 	var next_level := map_region_level + 1
-	var requirement: Dictionary = REGION_REQUIREMENTS[next_level]
-	if population < int(requirement.population):
-		return "人口还需达到 %d" % requirement.population
-	if housing_capacity() < int(requirement.housing):
-		return "住房容量还需达到 %d" % requirement.housing
-	var required_buildings: Dictionary = requirement.buildings
-	for type in required_buildings:
-		var missing := int(required_buildings[type]) - building_count(str(type))
-		if missing > 0:
-			return "%s还需 %d 座" % [BUILDINGS[type].name, missing]
-	if happiness < int(requirement.happiness):
-		return "幸福度还需达到 %d" % requirement.happiness
-	if stable_days < int(requirement.stable_days):
-		return "聚落还需稳定运转 %d 日" % (int(requirement.stable_days) - stable_days)
-	for item in required_local_buildings_for_level(next_level):
-		var local_current := building_count_in_region(str(item.type), next_level - 1)
-		if local_current < int(item.target):
-			return "%s还需在%s建造 %d 座" % [
-				item.name, REGION_DEFINITIONS[next_level - 1].short_name, int(item.target) - local_current
-			]
-	var cost: Dictionary = REGION_UNLOCK_COSTS[next_level]
-	if wood < int(cost.wood):
-		return "开拓储备木材还需 %d" % cost.wood
-	if food < int(cost.food):
-		return "开拓储备粮食还需 %d" % cost.food
-	if coins < int(cost.coins):
-		return "开拓储备铜钱还需 %d" % cost.coins
+	for item in chapter_numeric_goals(next_level):
+		if not bool(item.completed):
+			return "%s还需达到 %d" % [item.name, item.target]
 	return ""
 
 func unlock_next_region() -> void:
@@ -2094,6 +2771,7 @@ func unlock_next_region() -> void:
 	coins -= int(cost.coins)
 	map_region_level = next_level
 	var reward_message := apply_region_reward(next_level)
+	check_failure_conditions()
 	clear_ghost()
 	update_region_visuals()
 	show_message("%s\n%s" % [REGION_UNLOCK_FEEDBACK[next_level], reward_message])
@@ -2123,9 +2801,28 @@ func apply_region_reward(level: int) -> String:
 		parts.append("幸福度 +%d" % happiness_reward)
 	return "开拓奖励：%s" % "；".join(parts)
 
-func add_building(type: String, cell: Vector2i, free := false, forced_id := -1, forced_enabled := true) -> void:
-	var model := create_building_model(type)
-	model.position = grid_to_world(cell)
+func add_building(type: String, cell: Vector2i, free := false, forced_id := -1, forced_enabled := true, footprint := Vector2i.ZERO, rotation_quarters := 0) -> void:
+	if ended != "":
+		return
+	if footprint == Vector2i.ZERO:
+		footprint = BUILDING_FOOTPRINTS.get(type, Vector2i.ONE)
+	var base_footprint := footprint
+	rotation_quarters = posmod(rotation_quarters, 4)
+	footprint = rotated_footprint(base_footprint, rotation_quarters)
+	var model: Node3D
+	if type in ["workshop", "clinic"] and base_footprint == Vector2i.ONE:
+		model = RealisticKit.create_building(type, false, true, true)
+	elif type == "farm" and base_footprint == Vector2i.ONE:
+		model = RealisticKit.create_asset("building.farm", false)
+	elif type == "farm" and base_footprint == Vector2i(2, 1):
+		model = RealisticKit.create_building(type, false, true, false, base_footprint)
+	else:
+		model = create_building_model(type)
+	if type == "warehouse" and footprint == Vector2i.ONE:
+		model.scale *= Vector3(0.5, 0.75, 0.5)
+		model.set_meta("legacy_compact", true)
+	model.position = building_model_position(type, cell, footprint)
+	model.rotation.y = rotation_quarters * PI * 0.5
 	var building_id := forced_id if forced_id >= 0 else next_id
 	if forced_id < 0:
 		next_id += 1
@@ -2134,38 +2831,52 @@ func add_building(type: String, cell: Vector2i, free := false, forced_id := -1, 
 	model.set_meta("building_id", building_id)
 	building_root.add_child(model)
 	var record := {
-		"id": building_id, "type": type, "cell": cell, "node": model,
+		"id": building_id, "type": type, "cell": cell, "node": model, "footprint": footprint,
+		"base_footprint": base_footprint, "rotation_quarters": rotation_quarters,
 		"enabled": forced_enabled, "assigned_workers": 0, "last_running": false
 	}
 	buildings.append(record)
-	occupied[cell] = building_id
+	for footprint_cell in building_footprint_cells(type, cell, footprint):
+		occupied[footprint_cell] = building_id
 	if not free:
 		wood -= int(BUILDINGS[type].cost)
 		coins -= int(BUILDINGS[type].coin_cost)
 	assign_workers()
 	if citizen_root and citizen_root.get_child_count() > 0:
 		update_citizen_schedules()
+	refresh_animal_routes()
+	update_building_status_markers()
+	if not free:
+		check_failure_conditions()
 
 func remove_building_by_id(building_id: int, refund := true) -> void:
+	if ended != "":
+		return
 	for index in range(buildings.size()):
 		var record: Dictionary = buildings[index]
 		if int(record.id) == building_id:
 			if refund:
 				wood += int(BUILDINGS[record.type].cost) / 2
 				coins += int(BUILDINGS[record.type].coin_cost) / 2
-			occupied.erase(record.cell)
+			for footprint_cell in building_footprint_cells(str(record.type), record.cell, record_footprint(record)):
+				occupied.erase(footprint_cell)
 			record.node.queue_free()
 			buildings.remove_at(index)
-			wood = mini(wood, wood_capacity())
-			food = mini(food, food_capacity())
+			# Capacity can fall when demolishing a warehouse. Existing stock and
+			# recovered building material remain owned; only new intake is limited.
 			break
 	selected_building_id = -1
 	inspector.visible = false
 	assign_workers()
 	if citizen_root and citizen_root.get_child_count() > 0:
 		update_citizen_schedules()
+	refresh_animal_routes()
+	update_building_status_markers()
+	check_failure_conditions()
 
 func demolish_selected() -> void:
+	if ended != "":
+		return
 	if roads.has(selected_road_cell):
 		var removed_cell := selected_road_cell
 		remove_road(removed_cell, true)
@@ -2204,7 +2915,7 @@ func workforce_plan() -> Dictionary:
 				demand += required
 	# Essential food and raw materials receive workers first, followed by
 	# manufacturing, commerce and the later civic services.
-	for priority_type in ["farm", "lumber", "workshop", "market", "clinic", "academy"]:
+	for priority_type in ["farm", "fishpond", "lumber", "workshop", "market", "clinic", "academy"]:
 		for record in buildings:
 			if str(record.type) != priority_type or not bool(record.get("enabled", true)):
 				continue
@@ -2223,6 +2934,8 @@ func assign_workers() -> Dictionary:
 	return plan
 
 func set_building_enabled(building_id: int, enabled: bool) -> void:
+	if ended != "":
+		return
 	for record in buildings:
 		if int(record.id) != building_id:
 			continue
@@ -2249,6 +2962,10 @@ func toggle_selected_building() -> void:
 func next_day() -> void:
 	if ended != "" or day_settling:
 		return
+	# Check a complete incoming state, never intermediate daily transactions.
+	if check_failure_conditions():
+		update_ui()
+		return
 	day_settling = true
 	auto_day_elapsed = 0.0
 	var plan := assign_workers()
@@ -2260,32 +2977,22 @@ func next_day() -> void:
 			continue
 		var definition: Dictionary = BUILDINGS[record.type]
 		var required_workers := int(definition.workers)
-		if record.type == "farm" or record.type == "lumber":
+		if str(definition.get("staffing", "")) == "proportional":
 			var assigned := int(record.get("assigned_workers", 0))
 			var produced_wood := int(floor(building_output(str(record.type), "wood") * assigned / float(required_workers)))
 			var produced_food := int(floor(building_output(str(record.type), "food") * assigned / float(required_workers)))
 			record.last_running = assigned > 0
 			wood_gain += produced_wood
 			food_gain += produced_food
-	var wood_before_gathering := wood
-	var food_before_gathering := food
-	wood = mini(wood_capacity(), wood + wood_gain)
-	food = mini(food_capacity(), food + food_gain)
-	var wood_stored := wood - wood_before_gathering
-	var food_stored := food - food_before_gathering
-	var wood_overflow := wood_gain - wood_stored
-	var food_overflow := food_gain - food_stored
+	wood = storage_after_intake(wood, wood_gain, wood_capacity())
+	food = storage_after_intake(food, food_gain, food_capacity())
 
 	var house_food_upkeep := building_count("house") * building_input("house", "food")
 	var ration := ceili(population / 2.0)
 	var daily_food_need := house_food_upkeep + ration
 	var shortage := food < daily_food_need
-	var life_food_used := mini(food, daily_food_need)
 	food = maxi(0, food - daily_food_need)
 
-	var workshop_income := 0
-	var workshop_wood_used := 0
-	var workshop_food_used := 0
 	var running_workshops := 0
 	for record in buildings:
 		if record.type != "workshop" or not bool(record.get("enabled", true)):
@@ -2298,17 +3005,11 @@ func next_day() -> void:
 			wood -= wood_input
 			food -= food_input
 			coins += coin_output
-			workshop_wood_used += wood_input
-			workshop_food_used += food_input
-			workshop_income += coin_output
 			running_workshops += 1
 			record.last_running = true
 
-	var market_income := 0
-	var market_food_used := 0
 	var running_clinics := 0
 	var running_academies := 0
-	var academy_income := 0
 	for record in buildings:
 		if not bool(record.get("enabled", true)):
 			continue
@@ -2325,25 +3026,19 @@ func next_day() -> void:
 				continue
 			food -= market_food_input
 			coins += market_coin_output
-			market_food_used += market_food_input
-			market_income += market_coin_output
 		elif service_type == "clinic":
 			running_clinics += 1
 		elif service_type == "academy":
 			var academy_coin_output := building_output("academy", "coins")
 			coins += academy_coin_output
-			academy_income += academy_coin_output
 			running_academies += 1
 		record.last_running = true
 	var road_transport_income := daily_road_transport_income()
 	coins += road_transport_income
 
 	var population_tax := int(floor(population / 2.0))
-	# Every settlement can recover from an empty purse through a small household
-	# levy. Keeping farms and lumber yards staffed also creates local barter and
-	# cartage income before the market unlocks. This income is deliberately
-	# capped below a workshop's 10-coin recipe, so active industry remains the
-	# faster route instead of waiting on the calendar.
+	# Household levy and basic trade provide income before markets unlock.
+	# Failure is evaluated after the complete day's income and maintenance.
 	population_tax = maxi(1, population_tax)
 	var basic_trade_income := daily_basic_trade_income()
 	coins += population_tax
@@ -2361,10 +3056,9 @@ func next_day() -> void:
 		coins = 0
 	var maintenance_paid := maintenance_debt == 0
 
-	var population_message := ""
+	var starvation_departures := mini(1, population) if shortage else 0
 	if shortage:
-		population = maxi(1, population - 1)
-		population_message = "粮食短缺，1 名居民离开"
+		population -= starvation_departures
 	else:
 		var empty_beds := housing_capacity() - population
 		var migration_ration := ceili(population / 2.0)
@@ -2377,9 +3071,6 @@ func next_day() -> void:
 			var arrivals := 2 if happiness >= 75 and food >= 4 * migration_ration else 1
 			arrivals = mini(mini(arrivals, empty_beds), 50 - population)
 			population += arrivals
-			population_message = "%d 名新居民迁入河谷" % arrivals
-		else:
-			population_message = migration_block_reason()
 
 	day += 1
 	var happiness_before_event := happiness
@@ -2419,81 +3110,32 @@ func next_day() -> void:
 	happiness_target = clampi(happiness_target, 0, 100)
 	var happiness_change := clampi(happiness_target - happiness, -6, 3)
 	happiness = clampi(happiness + happiness_change, 0, 100)
+	# Resolve departures using today's final happiness. Food shortage and low
+	# morale overlap, so apply only the larger loss instead of adding both.
+	var morale_departures := 2 if happiness < 20 else (1 if happiness < 40 else 0)
+	population = maxi(0, population - maxi(0, morale_departures - starvation_departures))
 
 	if not shortage and maintenance_paid and staffing_ratio >= 0.70:
 		stable_days += 1
 	else:
 		stable_days = 0
 	low_happiness_days = low_happiness_days + 1 if happiness < 20 else 0
-	if (
+	if check_failure_conditions():
+		pass
+	elif (
 		map_region_level >= REGION_DEFINITIONS.size() - 1
 		and population >= VICTORY_POPULATION
 		and wood >= VICTORY_WOOD
 		and food >= VICTORY_FOOD
 		and coins >= VICTORY_COINS
 		and happiness >= VICTORY_HAPPINESS
-		and stable_days >= VICTORY_STABLE_DAYS
 	):
 		end_game("win")
-	elif low_happiness_days >= 3:
-		end_game("lose")
-	var summary := daily_settlement_text(
-		population_message, wood_stored, wood_overflow, workshop_wood_used,
-		food_stored, food_overflow, life_food_used, workshop_food_used, market_food_used,
-		population_tax, basic_trade_income,
-		workshop_income, market_income, academy_income, maintenance_bill,
-		road_transport_income
-	)
-	if maintenance_debt > 0:
-		summary += "；欠款 %d" % maintenance_debt
-	show_message(summary + ("\n" + event_message if event_message != "" else ""))
+	show_message(event_message)
 	update_citizens()
 	update_ui()
 	save_game(false)
 	day_settling = false
-
-func append_daily_flow(parts: Array[String], label: String, amount: int, positive: bool) -> void:
-	if amount > 0:
-		parts.append("%s %s%d" % [label, "+" if positive else "-", amount])
-
-func daily_settlement_text(
-	population_message: String, wood_stored: int, wood_overflow: int, workshop_wood_used: int,
-	food_stored: int, food_overflow: int, life_food_used: int, workshop_food_used: int, market_food_used: int,
-	population_tax: int, basic_trade_income: int, workshop_income: int,
-	market_income: int, academy_income: int, maintenance_bill: int,
-	road_transport_income := 0
-) -> String:
-	var wood_parts: Array[String] = []
-	append_daily_flow(wood_parts, "伐木入库", wood_stored, true)
-	if wood_overflow > 0:
-		wood_parts.append("溢出未入库 %d" % wood_overflow)
-	append_daily_flow(wood_parts, "工坊", workshop_wood_used, false)
-	if wood_parts.is_empty():
-		wood_parts.append("无变化")
-	var food_parts: Array[String] = []
-	append_daily_flow(food_parts, "农田入库", food_stored, true)
-	if food_overflow > 0:
-		food_parts.append("溢出未入库 %d" % food_overflow)
-	append_daily_flow(food_parts, "生活", life_food_used, false)
-	append_daily_flow(food_parts, "工坊", workshop_food_used, false)
-	append_daily_flow(food_parts, "集市", market_food_used, false)
-	if food_parts.is_empty():
-		food_parts.append("无变化")
-	var coin_parts: Array[String] = []
-	append_daily_flow(coin_parts, "人口税", population_tax, true)
-	append_daily_flow(coin_parts, "民生交易", basic_trade_income, true)
-	append_daily_flow(coin_parts, "工坊", workshop_income, true)
-	append_daily_flow(coin_parts, "集市", market_income, true)
-	append_daily_flow(coin_parts, "书院", academy_income, true)
-	append_daily_flow(coin_parts, "本日维护应付", maintenance_bill, false)
-	if coin_parts.is_empty():
-		coin_parts.append("无变化")
-	var result := "%s\n日结｜木材：%s｜粮食：%s\n铜钱｜%s" % [
-		population_message, " · ".join(wood_parts), " · ".join(food_parts), " · ".join(coin_parts)
-	]
-	if road_transport_income > 0:
-		result += "\n道路运输｜铜钱 +%d（联网且正常运行，全城上限 +%d）" % [road_transport_income, ROAD_TRANSPORT_COIN_CAP]
-	return result
 
 func daily_basic_trade_income() -> int:
 	var income := 0
@@ -2510,16 +3152,19 @@ func trigger_event(event_index: int) -> String:
 	match event_index:
 		0:
 			var extra_food := projected_gathering_output("farm")
-			food = mini(food_capacity(), food + extra_food)
+			food = storage_after_intake(food, extra_food, food_capacity())
 			return "丰收：农田产出翻倍，本日额外获得粮食"
 		1:
 			wood = maxi(0, wood - staffed_building_count("lumber") * 2)
 			return "雨季：伐木场产出受影响"
 		2:
+			if wood >= wood_capacity():
+				return "商旅经过：木材仓储已满，未进行交易"
 			if food >= 10:
 				food -= 10
-				wood = mini(wood_capacity(), wood + 25)
-				return "商旅抵达：支付 10 粮食换取 25 木材"
+				var traded_wood := mini(25, wood_capacity() - wood)
+				wood = storage_after_intake(wood, traded_wood, wood_capacity())
+				return "商旅抵达：支付 10 粮食，木材入库 %d" % traded_wood
 			else:
 				return "商旅经过，但库存不足以交易"
 		3:
@@ -2543,7 +3188,7 @@ func projected_gathering_output(type: String) -> int:
 		var required := int(definition.workers)
 		if required <= 0:
 			continue
-		var base_output := building_output(type, "food") if type == "farm" else building_output(type, "wood")
+		var base_output := building_output(type, "food") if type in ["farm", "fishpond"] else building_output(type, "wood")
 		total += int(floor(base_output * int(record.get("assigned_workers", 0)) / float(required)))
 	return total
 
@@ -2590,20 +3235,35 @@ func housing_capacity() -> int:
 	return building_count("house") * building_effect("house", "housing")
 
 func wood_capacity() -> int:
-	return 100 + building_count("warehouse") * building_effect("warehouse", "wood_capacity")
+	return 100 + connected_warehouse_count() * building_effect("warehouse", "wood_capacity")
 
 func food_capacity() -> int:
-	return 100 + building_count("warehouse") * building_effect("warehouse", "food_capacity")
+	return 100 + connected_warehouse_count() * building_effect("warehouse", "food_capacity")
+
+func connected_warehouse_count() -> int:
+	var count := 0
+	for record in buildings:
+		if str(record.type) == "warehouse" and building_has_connected_road(record):
+			count += 1
+	return count
+
+func storage_after_intake(current: int, gained: int, capacity: int) -> int:
+	# Never clamp owned stock down to a newly reduced capacity. While overfull,
+	# production/rewards wait for free space; consumption continues normally.
+	return current + mini(maxi(0, gained), maxi(0, capacity - current))
 
 func update_ui() -> void:
 	var plan := assign_workers()
+	update_building_status_markers(plan)
 	status_label.text = "第 %d 日 · %s\n木材 %d/%d · 粮食 %d/%d · 铜钱 %d · 人口 %d/%d · 幸福度 %d" % [
 		day, time_status_text(), wood, wood_capacity(), food, food_capacity(), coins, population, housing_capacity(), happiness
 	]
 	status_label.tooltip_text = "木材容量 %d · 粮食容量 %d · 住房 %d · 有效劳力 %d · 启用岗位 %d · 稳定 %d 日 · 维护欠款 %d" % [
 		wood_capacity(), food_capacity(), housing_capacity(), plan.available, plan.demand, stable_days, maintenance_debt
 	]
-	goal_label.tooltip_text = "章节目标固定不变；开拓下一地区后切换。"
+	status_label.tooltip_text += "\n日结幸福度低于 40：离开 1 人；低于 20：离开 2 人。缺粮与低幸福取较大流失人数。\n人口或铜钱归零即失败；幸福度连续 3 日低于 20 也会失败。"
+	status_label.tooltip_text += "\n仓库接通主路才增加容量；超出容量的存量保留，腾出空间后恢复入库。"
+	goal_label.tooltip_text = "章节目标在开拓下一地区后切换；达成的目标会以绿色勾选显示。"
 	if map_region_level >= REGION_DEFINITIONS.size() - 1:
 		goal_label.text = "%s · %s\n目标：%s" % [CAMPAIGN_CHAPTERS[6], CAMPAIGN_STAGE_NAMES[6], final_current_task_text()]
 	else:
@@ -2612,7 +3272,8 @@ func update_ui() -> void:
 	if region_panel and region_title and region_body and region_unlock_button:
 		if map_region_level >= REGION_DEFINITIONS.size() - 1:
 			region_title.text = "%s · %s" % [CAMPAIGN_CHAPTERS[6], CAMPAIGN_STAGE_NAMES[6]]
-			region_body.text = "建设：东境全域\n用途：建成完整而稳定的新城\n\n固定目标：\n%s" % final_goal_requirements_text()
+			var final_body_text := "建设：东境全域\n用途：建成完整而稳定的新城\n\n目标：\n%s" % final_goal_requirements_text()
+			region_body.set_content(final_body_text, final_goal_display_lines())
 			region_unlock_button.text = "全域已开放"
 			region_unlock_button.disabled = true
 			region_unlock_button.tooltip_text = "完成终章目标即可复兴东境"
@@ -2621,9 +3282,10 @@ func update_ui() -> void:
 			var next_region: Dictionary = REGION_DEFINITIONS[next_level]
 			var reason := can_unlock_next_region()
 			region_title.text = "%s · %s" % [CAMPAIGN_CHAPTERS[map_region_level], CAMPAIGN_STAGE_NAMES[map_region_level]]
-			region_body.text = "开拓：%s · %d格\n用途：%s\n\n固定目标：\n%s" % [
+			var chapter_body_text := "开拓：%s · %d格\n用途：%s\n\n目标：\n%s" % [
 				next_region.name, next_region.area, next_region.summary, chapter_goal_requirements_text(next_level)
 			]
+			region_body.set_content(chapter_body_text, chapter_goal_display_lines(next_level))
 			region_unlock_button.text = "开拓%s" % next_region.short_name
 			region_unlock_button.disabled = ended != "" or reason != ""
 			region_unlock_button.tooltip_text = reason if reason != "" else "条件齐备，可以开拓%s" % next_region.name
@@ -2646,33 +3308,15 @@ func next_stage_preview(level: int) -> String:
 func required_population_for_level(level: int) -> int:
 	return int(REGION_REQUIREMENTS[level].population) if level >= 1 and level < REGION_REQUIREMENTS.size() else 0
 
-func required_buildings_for_level(level: int) -> Array[Dictionary]:
+func chapter_numeric_goals(level: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if level < 1 or level >= REGION_REQUIREMENTS.size():
 		return result
-	var hints := {
-		"farm": "靠近河岸", "lumber": "林缘", "warehouse": "提升容量", "workshop": "加工增收",
-		"market": "粮食贸易", "clinic": "稳定民心", "academy": "教化与税收"
-	}
-	for type in REGION_REQUIREMENTS[level].buildings:
-		result.append({"type": str(type), "target": int(REGION_REQUIREMENTS[level].buildings[type]), "name": BUILDINGS[type].name, "hint": hints.get(type, "")})
-	return result
-
-func required_local_buildings_for_level(level: int) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if level < 1 or level >= REGION_REQUIREMENTS.size():
-		return result
-	var local_requirements: Dictionary = REGION_REQUIREMENTS[level].get("local_buildings", {})
-	var hints := {
-		"farm": "靠近河岸", "lumber": "林缘", "warehouse": "提升容量", "workshop": "加工增收",
-		"market": "粮食贸易", "clinic": "稳定民心", "academy": "教化与税收"
-	}
-	for type in local_requirements:
-		result.append({
-			"type": str(type), "target": int(local_requirements[type]),
-			"name": BUILDINGS[type].name, "hint": hints.get(type, ""),
-			"region": REGION_DEFINITIONS[level - 1].short_name
-		})
+	var requirement: Dictionary = REGION_REQUIREMENTS[level]
+	var names := {"population": "人口", "happiness": "幸福度", "wood": "木材", "food": "粮食", "coins": "铜钱"}
+	for key in ["population", "happiness", "wood", "food", "coins"]:
+		var target := int(requirement[key])
+		result.append({"key": key, "name": names[key], "target": target, "text": "%s %d" % [names[key], target], "completed": int(get(key)) >= target})
 	return result
 
 func current_task_text(level: int) -> String:
@@ -2681,48 +3325,73 @@ func current_task_text(level: int) -> String:
 	# never replace the player's declared objective midway through a chapter.
 	match level:
 		1: return "建好河湾聚落，开拓北坡"
-		2: return "发展北坡农商，开拓东麓"
-		3: return "完善东麓林业，开拓高台"
-		4: return "建设高台工坊，开拓东原"
-		5: return "扩建东原城镇，开拓北关"
-		6: return "发展北关产业，开拓新都"
+		2: return "壮大聚落储备，开拓东麓"
+		3: return "积累物资民心，开拓高台"
+		4: return "繁荣河谷聚落，开拓东原"
+		5: return "扩充人口储备，开拓北关"
+		6: return "汇聚人口物资，开拓新都"
 	return "推进东境复兴"
 
 func chapter_goal_requirements_text(level: int) -> String:
-	if level < 1 or level >= REGION_REQUIREMENTS.size():
+	var goals := chapter_numeric_goals(level)
+	if goals.is_empty():
 		return "• 推进东境复兴"
-	var requirement: Dictionary = REGION_REQUIREMENTS[level]
-	var lines: Array[String] = []
-	var settlement_terms: Array[String] = [
-		"人口 %d" % int(requirement.population),
-		"住房 %d" % int(requirement.housing),
+	var settlement_terms: Array[String] = []
+	var stock_terms: Array[String] = []
+	for item in goals:
+		if str(item.key) in ["population", "happiness"]:
+			settlement_terms.append(str(item.text))
+		else:
+			stock_terms.append(str(item.text))
+	return "• 聚落：%s\n• 储备：%s" % [" · ".join(settlement_terms), " · ".join(stock_terms)]
+
+func chapter_goal_display_lines(level: int) -> Array:
+	if level < 1 or level >= REGION_REQUIREMENTS.size():
+		return [{"text": "推进东境复兴", "requirement": true, "completed": false}]
+	var next_region: Dictionary = REGION_DEFINITIONS[level]
+	var lines: Array = [
+		{"text": "开拓：%s · %d格" % [next_region.name, next_region.area]},
+		{"text": "用途：%s" % next_region.summary},
+		{"text": "目标："},
 	]
-	if int(requirement.happiness) > 0:
-		settlement_terms.append("幸福 %d" % int(requirement.happiness))
-	lines.append("• 聚落：%s" % " · ".join(settlement_terms))
-
-	var building_terms: Array[String] = []
-	for type in requirement.buildings:
-		building_terms.append("%s %d" % [BUILDINGS[type].name, int(requirement.buildings[type])])
-	if not building_terms.is_empty():
-		lines.append("• 建设：%s" % " · ".join(building_terms))
-
-	var local_terms: Array[String] = []
-	for type in requirement.get("local_buildings", {}):
-		local_terms.append("%s %d" % [BUILDINGS[type].name, int(requirement.local_buildings[type])])
-	if not local_terms.is_empty():
-		lines.append("• %s：%s" % [REGION_DEFINITIONS[level - 1].short_name, " · ".join(local_terms)])
-
-	lines.append("• 稳定运转 %d 日" % int(requirement.stable_days))
-	return "\n".join(lines)
+	var goals := chapter_numeric_goals(level)
+	for group in [["population", "happiness"], ["wood", "food", "coins"]]:
+		var terms: Array[String] = []
+		var segments: Array = []
+		var complete := true
+		for item in goals:
+			if str(item.key) not in group:
+				continue
+			terms.append(str(item.text))
+			segments.append({"text": item.text, "completed": item.completed})
+			complete = complete and bool(item.completed)
+		var prefix := "聚落：" if "population" in group else "储备："
+		lines.append({"text": prefix + " · ".join(terms), "requirement": true, "completed": complete, "prefix": prefix, "segments": segments})
+	return lines
 
 func final_current_task_text() -> String:
 	return "建设天际新都，复兴东境"
 
 func final_goal_requirements_text() -> String:
-	return "• 聚落：人口 %d · 幸福 %d\n• 储备：木材 %d · 粮食 %d · 铜钱 %d\n• 稳定运转 %d 日" % [
+	return "• 聚落：人口 %d · 幸福度 %d\n• 储备：木材 %d · 粮食 %d · 铜钱 %d" % [
 		VICTORY_POPULATION, VICTORY_HAPPINESS,
-		VICTORY_WOOD, VICTORY_FOOD, VICTORY_COINS, VICTORY_STABLE_DAYS,
+		VICTORY_WOOD, VICTORY_FOOD, VICTORY_COINS,
+	]
+
+func final_goal_display_lines() -> Array:
+	return [
+		{"text": "建设：东境全域"},
+		{"text": "用途：建成完整而稳定的新城"},
+		{"text": "目标："},
+		{"text": "聚落：人口 %d · 幸福度 %d" % [VICTORY_POPULATION, VICTORY_HAPPINESS], "requirement": true, "completed": population >= VICTORY_POPULATION and happiness >= VICTORY_HAPPINESS, "prefix": "聚落：", "segments": [
+			{"text": "人口 %d" % VICTORY_POPULATION, "completed": population >= VICTORY_POPULATION},
+			{"text": "幸福度 %d" % VICTORY_HAPPINESS, "completed": happiness >= VICTORY_HAPPINESS},
+		]},
+		{"text": "储备：木材 %d · 粮食 %d · 铜钱 %d" % [VICTORY_WOOD, VICTORY_FOOD, VICTORY_COINS], "requirement": true, "completed": wood >= VICTORY_WOOD and food >= VICTORY_FOOD and coins >= VICTORY_COINS, "prefix": "储备：", "segments": [
+			{"text": "木材 %d" % VICTORY_WOOD, "completed": wood >= VICTORY_WOOD},
+			{"text": "粮食 %d" % VICTORY_FOOD, "completed": food >= VICTORY_FOOD},
+			{"text": "铜钱 %d" % VICTORY_COINS, "completed": coins >= VICTORY_COINS},
+		]},
 	]
 
 func show_inspector(building_id: int) -> void:
@@ -2733,11 +3402,12 @@ func show_inspector(building_id: int) -> void:
 			selected_road_cell = Vector2i(-1, -1)
 			var definition: Dictionary = BUILDINGS[record.type]
 			inspector_title.text = definition.name
-			var cell: Vector2i = record.cell
 			var status := building_operation_text(record)
+			var operation := building_operation_state(record)
+			set_inspector_status(status, str(operation.code) in ["running", "passive"])
 			var road_status := building_road_status_text(record)
-			inspector_body.text = "%s\n%s%s\n\n位置：%d，%d\n拆除返还：%d 木材 · %d 铜钱" % [
-				building_effect_text(str(record.type)), status, "\n" + road_status if road_status != "" else "", cell.x + 1, cell.y + 1,
+			inspector_body.text = "%s%s\n\n拆除返还：%d 木材 · %d 铜钱" % [
+				building_effect_text(str(record.type), false), "\n" + road_status if road_status != "" else "",
 				int(definition.cost) / 2, int(definition.coin_cost) / 2
 			]
 			inspector_toggle_button.visible = int(definition.workers) > 0
@@ -2746,12 +3416,16 @@ func show_inspector(building_id: int) -> void:
 			inspector.visible = true
 			return
 
+func set_inspector_status(text: String, normal: bool) -> void:
+	inspector_status.text = text
+	inspector_status.add_theme_color_override("font_color", Color("39764b") if normal else Color("a63d32"))
+
 func building_road_status_text(record: Dictionary) -> String:
 	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
 		return ""
 	if building_has_connected_road(record):
-		return "道路：已接通村庄主路｜正常运行时铜钱 +%d/日" % ROAD_TRANSPORT_BONUS
-	return "道路：未接通村庄主路｜相邻联网后，正常运行时铜钱 +%d/日" % ROAD_TRANSPORT_BONUS
+		return "道路：已接通村庄主路｜正常运行时铜钱 +%d/日（全城上限 +%d）" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
+	return "道路：未接通村庄主路｜接通并正常运行后铜钱 +%d/日（全城上限 +%d）" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
 
 func show_road_inspector(cell: Vector2i) -> void:
 	if not roads.has(cell):
@@ -2759,23 +3433,107 @@ func show_road_inspector(cell: Vector2i) -> void:
 	selected_building_id = -1
 	selected_road_cell = cell
 	inspector_title.text = "道路"
-	inspector_body.text = "铺设：木材 -%d/格\n作用：连接村庄主路与生产建筑\n收益：相邻且正常运行的农田、伐木场、工坊、集市或书院，铜钱 +%d/日（全城上限 +%d）\n\n状态：%s\n位置：%d，%d\n拆除返还：木材 %d" % [
+	var connected := is_road_connected(cell)
+	set_inspector_status("状态：已接通村庄主路" if connected else "状态：尚未接通村庄主路", connected)
+	inspector_body.text = "铺设：木材 -%d/格\n作用：连接村庄主路与生产建筑\n收益：相邻且正常运行的农田、鱼塘、伐木场、工坊、集市或书院，铜钱 +%d/日（全城上限 +%d）\n\n拆除返还：木材 %d" % [
 		ROAD_WOOD_COST, ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP,
-		"已接通村庄主路" if is_road_connected(cell) else "尚未接通村庄主路",
-		cell.x + 1, cell.y + 1, ROAD_WOOD_COST,
+		ROAD_WOOD_COST,
 	]
 	inspector_toggle_button.visible = false
 	inspector_demolish_button.text = "拆除道路（返还木材 %d）" % ROAD_WOOD_COST
 	inspector.visible = true
 
-func building_operation_text(record: Dictionary) -> String:
+func building_operation_state(record: Dictionary, plan: Dictionary = {}) -> Dictionary:
 	var definition: Dictionary = BUILDINGS[record.type]
 	var required := int(definition.workers)
+	var result := {"code": "running", "required": required, "assigned": 0, "missing": []}
+	if bool(definition.get("requires_road", false)) and not building_has_connected_road(record):
+		result.code = "road"
+		return result
+	if required <= 0:
+		result.code = "passive"
+		return result
+	if not bool(record.get("enabled", true)):
+		result.code = "paused"
+		return result
+	if plan.is_empty():
+		plan = workforce_plan()
+	result.assigned = int(plan.by_id.get(int(record.id), 0))
+	var proportional := str(definition.get("staffing", "passive")) == "proportional"
+	if int(result.assigned) == 0 or (not proportional and int(result.assigned) < required):
+		result.code = "workers"
+		return result
+	if proportional:
+		return result
+	# This is current readiness, not a promise of next-day output: gathering,
+	# household food and earlier recipes can change stock before settlement.
+	var inputs: Dictionary = definition.get("inputs", {})
+	for resource in ["wood", "food"]:
+		var needed := int(inputs.get(resource, 0))
+		var available := wood if resource == "wood" else food
+		if needed > available:
+			result.missing.append("%s需 %d（现有 %d）" % [resource_label(resource), needed, available])
+	if not result.missing.is_empty():
+		result.code = "materials"
+	return result
+
+func get_building_status_marker(building_id: int) -> Label3D:
+	for record in buildings:
+		if int(record.id) == building_id:
+			return record.node.get_node_or_null("OperationStatus") as Label3D
+	return null
+
+func update_building_status_markers(plan: Dictionary = {}) -> void:
+	if plan.is_empty():
+		plan = workforce_plan()
+	for record in buildings:
+		if int(BUILDINGS[record.type].workers) <= 0 and not bool(BUILDINGS[record.type].get("requires_road", false)):
+			continue
+		var model: Node3D = record.node
+		if not is_instance_valid(model) or model.is_queued_for_deletion():
+			continue
+		var marker := model.get_node_or_null("OperationStatus") as Label3D
+		if marker == null:
+			marker = Label3D.new()
+			marker.name = "OperationStatus"
+			marker.font_size = 64
+			marker.pixel_size = 0.012
+			marker.outline_size = 6
+			marker.outline_modulate = Color("f3e8cb")
+			marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			marker.shaded = false
+			marker.no_depth_test = true
+			var highest := 0.0
+			for node in model.find_children("*", "MeshInstance3D", true, false):
+				var mesh_node := node as MeshInstance3D
+				if mesh_node.mesh == null or not mesh_node.is_visible_in_tree():
+					continue
+				var relative := model.global_transform.affine_inverse() * mesh_node.global_transform
+				var bounds: AABB = relative * mesh_node.mesh.get_aabb()
+				highest = maxf(highest, bounds.end.y)
+			marker.position = Vector3(0, highest + 0.40, 0)
+			model.add_child(marker)
+		var state := building_operation_state(record, plan)
+		var code := str(state.code)
+		marker.visible = code in ["paused", "workers", "materials", "road"]
+		marker.text = {"paused": "Ⅱ", "workers": "!", "materials": "!", "road": "!"}.get(code, "")
+		marker.modulate = {"paused": Color("725a43"), "workers": Color("a76a24"), "materials": Color("a54f35"), "road": Color("a63d32")}.get(code, Color("725a43"))
+		marker.set_meta("operation_state", code)
+		marker.set_meta("building_id", int(record.id))
+
+func building_operation_text(record: Dictionary) -> String:
+	var definition: Dictionary = BUILDINGS[record.type]
+	var state := building_operation_state(record)
+	var required := int(state.required)
+	if str(state.code) == "road":
+		return "状态：未接通主路｜仓储停用"
+	if bool(definition.get("requires_road", false)):
+		return "状态：已接通主路｜仓储生效"
 	if required <= 0:
 		return "状态：持续生效"
 	if not bool(record.get("enabled", true)):
 		return "状态：已暂停｜不占岗位｜不收维护费"
-	var assigned := int(record.get("assigned_workers", 0))
+	var assigned := int(state.assigned)
 	var type := str(record.type)
 	if str(definition.get("staffing", "passive")) == "proportional":
 		if assigned <= 0:
@@ -2784,24 +3542,18 @@ func building_operation_text(record: Dictionary) -> String:
 		var outputs: Dictionary = definition.get("outputs", {})
 		for resource in outputs:
 			actual_outputs[resource] = int(floor(int(outputs[resource]) * assigned / float(required)))
-		return "状态：生产中｜在岗 %d/%d｜本日预计：%s；参与民生交易" % [
-			assigned, required, resource_change_text(actual_outputs, 1)
+		return "状态：生产中｜在岗 %d/%d｜本日预计：%s%s" % [
+			assigned, required, resource_change_text(actual_outputs, 1), "；参与民生交易" if int(definition.get("trade_coins", 0)) > 0 else ""
 		]
 	if assigned < required:
 		return "状态：缺工｜在岗 %d/%d｜本日不运行" % [assigned, required]
-	var inputs: Dictionary = definition.get("inputs", {})
-	var missing: Array[String] = []
-	for resource in ["wood", "food"]:
-		var needed := int(inputs.get(resource, 0))
-		var available := wood if resource == "wood" else food
-		if needed > available:
-			missing.append("%s需 %d（现有 %d）" % [resource_label(resource), needed, available])
+	var missing: Array = state.missing
 	if not missing.is_empty():
 		return "状态：当前库存不足单次配方｜在岗 %d/%d｜%s" % [assigned, required, "、".join(missing)]
 	if type == "workshop":
-		return "状态：当前库存够单次配方｜在岗 %d/%d｜结算时按库存依序处理" % [assigned, required]
+		return "状态：当前库存够单次配方｜在岗 %d/%d｜结算时按库存依序处理（先口粮、后加工）" % [assigned, required]
 	if type == "market":
-		return "状态：当前库存够单次交易｜在岗 %d/%d｜结算时按库存依序处理" % [assigned, required]
+		return "状态：当前库存够单次交易｜在岗 %d/%d｜结算时按库存依序处理（口粮、工坊优先）" % [assigned, required]
 	if type == "clinic":
 		return "状态：应诊中｜在岗 %d/%d｜幸福度目标 +%d" % [assigned, required, building_effect(type, "happiness_target")]
 	if type == "academy":
@@ -2810,9 +3562,41 @@ func building_operation_text(record: Dictionary) -> String:
 		]
 	return "状态：运行中｜在岗 %d/%d" % [assigned, required]
 
-func end_game(result: String) -> void:
+func current_failure_reason() -> String:
+	if population <= 0 and coins <= 0:
+		return "人口已归零，铜钱已耗尽，聚落无法继续经营。"
+	if population <= 0:
+		return "人口已归零，聚落无人留守，经营失败。"
+	if coins <= 0:
+		return "铜钱已耗尽，聚落无法继续经营。"
+	if low_happiness_days >= 3:
+		return "幸福度连续 3 日低于 20，居民失去信心，经营失败。"
+	return ""
+
+func check_failure_conditions() -> bool:
+	if ended != "":
+		return ended == "lose"
+	var reason := current_failure_reason()
+	if reason.is_empty():
+		return false
+	end_game("lose", reason)
+	return true
+
+func end_game(result: String, reason := "") -> void:
+	if ended != "":
+		return
 	ended = result
+	failure_reason = reason if result == "lose" else ""
+	if result == "lose" and failure_reason.is_empty():
+		failure_reason = current_failure_reason()
+		if failure_reason.is_empty():
+			failure_reason = "本次经营已经结束，请重新规划聚落。"
+	time_paused = true
+	clear_ghost()
+	if settings_overlay:
+		settings_overlay.visible = false
 	end_layer = CanvasLayer.new()
+	end_layer.name = "GameResult"
 	end_layer.layer = 10
 	add_child(end_layer)
 	var shade := ColorRect.new()
@@ -2831,18 +3615,24 @@ func end_game(result: String) -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_child(box)
 	var title := Label.new()
-	title.text = "东境全域复兴！" if result == "win" else "聚落陷入困境"
+	title.name = "ResultTitle"
+	title.text = "东境全域复兴！" if result == "win" else "经营失败"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color("6b4731"))
 	box.add_child(title)
 	var detail := Label.new()
-	detail.text = "七境相连，粮木充足，百姓安居。昔日河湾已经成为一座繁盛新城。" if result == "win" else "粮食耗尽或民心持续低落，请调整规划。"
+	detail.name = "ResultDetail"
+	detail.add_theme_color_override("font_color", Color("6b4731"))
+	detail.custom_minimum_size.x = 400
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.text = "七境相连，粮木充足，百姓安居。昔日河湾已经成为一座繁盛新城。" if result == "win" else failure_reason
 	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(detail)
 	box.add_child(make_action_button("重新开始", reset_game.bind(true), Color("d6a74a")))
 
 func reset_game(confirm_reset := true) -> void:
+	prepare_village_life_variants()
 	if end_layer and is_instance_valid(end_layer):
 		end_layer.queue_free()
 		end_layer = null
@@ -2862,6 +3652,7 @@ func reset_game(confirm_reset := true) -> void:
 	map_region_level = 0
 	selected_type = ""
 	ended = ""
+	failure_reason = ""
 	auto_day_elapsed = 0.0
 	citizen_schedule_time = 0.0
 	time_paused = false
@@ -2871,7 +3662,11 @@ func reset_game(confirm_reset := true) -> void:
 	buildings.clear()
 	occupied.clear()
 	roads.clear()
+	legacy_cleared_tree_roads.clear()
+	update_road_scenery()
 	for child in citizen_root.get_children():
+		child.queue_free()
+	for child in animal_root.get_children():
 		child.queue_free()
 	selected_building_id = -1
 	selected_road_cell = Vector2i(-1, -1)
@@ -2894,16 +3689,25 @@ func save_game(show_feedback := true) -> void:
 		var cell: Vector2i = record.cell
 		building_data.append({
 			"id": record.id, "type": record.type, "x": cell.x, "z": cell.y,
-			"enabled": bool(record.get("enabled", true))
+			"enabled": bool(record.get("enabled", true)), "rotation_quarters": int(record.get("rotation_quarters", 0))
 		})
+		if str(record.type) == "warehouse":
+			building_data[-1]["warehouse_footprint"] = record_base_footprint(record).x
+		elif str(record.type) == "farm":
+			var farm_base := record_base_footprint(record)
+			building_data[-1]["farm_footprint"] = farm_base.x * farm_base.y
+		elif str(record.type) in ["workshop", "clinic"]:
+			building_data[-1][str(record.type) + "_footprint"] = record_base_footprint(record).x
 	var road_data: Array[Dictionary] = []
 	for cell in roads:
 		road_data.append({"x": cell.x, "z": cell.y})
+		if legacy_cleared_tree_roads.has(cell):
+			road_data[-1]["legacy_cleared_tree"] = true
 	var data := {
-		"version": SAVE_VERSION, "map_region_level": map_region_level, "day": day, "wood": wood, "food": food, "coins": coins,
+		"version": SAVE_VERSION, "road_rules_version": 2, "map_region_level": map_region_level, "day": day, "wood": wood, "food": food, "coins": coins,
 		"population": population, "happiness": happiness, "low_happiness_days": low_happiness_days,
 		"stable_days": stable_days, "maintenance_debt": maintenance_debt,
-		"next_id": next_id, "ended": ended, "buildings": building_data, "roads": road_data
+		"next_id": next_id, "ended": ended, "failure_reason": failure_reason, "buildings": building_data, "roads": road_data
 	}
 	var file := FileAccess.open(target_path, FileAccess.WRITE)
 	if file:
@@ -2932,6 +3736,9 @@ func load_game(show_feedback := true) -> void:
 		if show_feedback:
 			show_message("存档无效：%s；当前进度未改变" % validation_error)
 		return
+	if is_instance_valid(end_layer):
+		end_layer.queue_free()
+		end_layer = null
 	for child in building_root.get_children():
 		child.queue_free()
 	for child in road_root.get_children():
@@ -2939,6 +3746,8 @@ func load_game(show_feedback := true) -> void:
 	buildings.clear()
 	occupied.clear()
 	roads.clear()
+	legacy_cleared_tree_roads.clear()
+	update_road_scenery()
 	day = int(parsed.get("day", 1))
 	wood = int(parsed.get("wood", 100))
 	food = int(parsed.get("food", 40))
@@ -2953,6 +3762,7 @@ func load_game(show_feedback := true) -> void:
 	map_region_level = loaded_region_level
 	next_id = int(parsed.get("next_id", 1))
 	ended = ""
+	failure_reason = ""
 	auto_day_elapsed = 0.0
 	citizen_schedule_time = 0.0
 	time_paused = false
@@ -2962,11 +3772,13 @@ func load_game(show_feedback := true) -> void:
 		if BUILDINGS.has(type):
 			add_building(
 				type, Vector2i(int(record.get("x", 0)), int(record.get("z", 0))), true,
-				int(record.get("id", -1)), bool(record.get("enabled", true))
+				int(record.get("id", -1)), bool(record.get("enabled", true)), saved_base_footprint(record), int(record.get("rotation_quarters", 0))
 			)
 	if loaded_version >= 4:
 		for road_record in parsed.get("roads", []):
-			add_road(Vector2i(int(road_record.get("x", 0)), int(road_record.get("z", 0))), true)
+			var road_cell := Vector2i(int(road_record.get("x", 0)), int(road_record.get("z", 0)))
+			var legacy_tree: bool = has_scenery_tree(road_cell) and (not parsed.has("road_rules_version") or bool(road_record.get("legacy_cleared_tree", false)))
+			add_road(road_cell, true, legacy_tree)
 	selected_type = ""
 	road_tool_selected = false
 	selected_building_id = -1
@@ -2975,7 +3787,12 @@ func load_game(show_feedback := true) -> void:
 	clear_ghost()
 	update_region_visuals()
 	update_citizens(false)
-	if show_feedback:
+	# Rebuild first so temporary construction state cannot trigger defeat.
+	if not check_failure_conditions():
+		var saved_result := str(parsed.get("ended", ""))
+		if saved_result in ["win", "lose"]:
+			end_game(saved_result, str(parsed.get("failure_reason", "")))
+	if show_feedback and ended == "":
 		show_message("存档读取完成，时间继续自动流逝")
 	update_ui()
 
@@ -3004,7 +3821,7 @@ func validate_save_data(data: Dictionary) -> String:
 	var saved_maintenance_debt := int(data.get("maintenance_debt", 0))
 	if saved_day < 1 or saved_day > 1000000:
 		return "日期超出范围"
-	if saved_population < 1 or saved_population > 50:
+	if saved_population < 0 or saved_population > 50:
 		return "人口超出范围"
 	if saved_happiness < 0 or saved_happiness > 100:
 		return "幸福度超出范围"
@@ -3031,7 +3848,6 @@ func validate_save_data(data: Dictionary) -> String:
 		return "建筑数量超出地图容量"
 	var used_cells := {}
 	var used_ids := {}
-	var warehouse_count := 0
 	var max_id := 0
 	for raw_record in raw_buildings:
 		if typeof(raw_record) != TYPE_DICTIONARY:
@@ -3052,6 +3868,26 @@ func validate_save_data(data: Dictionary) -> String:
 			return "建筑编号重复或超出范围"
 		if not BUILDINGS.has(type):
 			return "包含未知建筑类型"
+		if record.has("rotation_quarters"):
+			if not is_json_number(record.rotation_quarters) or float(record.rotation_quarters) not in [0.0, 1.0, 2.0, 3.0]:
+				return "建筑旋转角度必须为0、90、180或270度"
+		if record.has("warehouse_footprint"):
+			if type != "warehouse" or not is_json_number(record.warehouse_footprint):
+				return "仓库占地无效"
+			if float(record.warehouse_footprint) not in [1.0, 2.0]:
+				return "仓库占地必须为1×1或2×2"
+		if record.has("farm_footprint"):
+			if type != "farm" or not is_json_number(record.farm_footprint):
+				return "农田占地无效"
+			if float(record.farm_footprint) not in [1.0, 2.0, 4.0]:
+				return "农田占地必须为1×1、2×1或2×2"
+		for compact_type in ["workshop", "clinic"]:
+			var footprint_field: String = compact_type + "_footprint"
+			if record.has(footprint_field):
+				if type != compact_type or not is_json_number(record[footprint_field]):
+					return "%s占地无效" % BUILDINGS[compact_type].name
+				if float(record[footprint_field]) not in [1.0, 2.0]:
+					return "%s占地必须为1×1或2×2" % BUILDINGS[compact_type].name
 		if saved_region_level < int(BUILDINGS[type].get("unlock_level", 0)):
 			return "%s早于区域解锁出现" % BUILDINGS[type].name
 		if cell.x < 0 or cell.x >= GRID_SIZE or cell.y < 0 or cell.y >= GRID_SIZE:
@@ -3060,18 +3896,28 @@ func validate_save_data(data: Dictionary) -> String:
 			return "建筑位于尚未开放的区域"
 		if is_water_cell(cell) or is_reserved_forest(cell):
 			return "建筑位于河道或保留林地"
-		if type == "farm" and not is_farm_cell(cell):
+		if type == "farm" and not is_farm_lot(cell, saved_building_footprint(record)):
 			return "农田未位于河岸"
 		if type == "lumber" and not is_lumber_cell(cell):
 			return "伐木场未位于林缘"
-		if used_cells.has(cell):
-			return "多个建筑占用同一格"
+		var footprint := saved_building_footprint(record)
+		for footprint_cell in building_footprint_cells(type, cell, footprint):
+			if footprint_cell.x < 0 or footprint_cell.x >= GRID_SIZE or footprint_cell.y < 0 or footprint_cell.y >= GRID_SIZE:
+				return "建筑占地超出地图"
+			if region_level_for_cell(footprint_cell) > saved_region_level:
+				return "建筑占地位于尚未开放的区域"
+			if is_water_cell(footprint_cell) or is_reserved_forest(footprint_cell):
+				return "建筑占地位于河道或保留林地"
+			if footprint != Vector2i.ONE and (is_village_main_road_cell(footprint_cell) or is_npc_bridge_access_cell(footprint_cell)):
+				return "%s占地阻挡主路或桥头" % BUILDINGS[type].name
+			if used_cells.has(footprint_cell):
+				return "多个建筑占用同一格"
+			used_cells[footprint_cell] = true
 		used_ids[building_id] = true
-		used_cells[cell] = true
 		max_id = maxi(max_id, building_id)
-		if type == "warehouse":
-			warehouse_count += 1
 	var used_road_cells := {}
+	if data.has("road_rules_version") and (not is_json_number(data.road_rules_version) or float(data.road_rules_version) != 2.0):
+		return "道路规则版本无效"
 	# Roads did not exist before v4. Ignore any injected field on older saves so
 	# migration is deterministic and cannot import unsupported infrastructure.
 	var raw_roads: Array = data.get("roads", []) if save_version >= 4 else []
@@ -3081,6 +3927,8 @@ func validate_save_data(data: Dictionary) -> String:
 		if typeof(raw_road) != TYPE_DICTIONARY:
 			return "道路记录类型错误"
 		var road_record: Dictionary = raw_road
+		if road_record.has("legacy_cleared_tree") and typeof(road_record.legacy_cleared_tree) != TYPE_BOOL:
+			return "历史道路清树标记无效"
 		if not road_record.has("x") or not is_json_number(road_record.x) or float(road_record.x) != floor(float(road_record.x)):
 			return "道路横坐标无效"
 		if not road_record.has("z") or not is_json_number(road_record.z) or float(road_record.z) != floor(float(road_record.z)):
@@ -3092,18 +3940,23 @@ func validate_save_data(data: Dictionary) -> String:
 			return "道路位于尚未开放的区域"
 		if is_water_cell(road_cell):
 			return "道路位于水面"
-		if is_reserved_forest(road_cell):
-			return "道路位于保留林地"
 		if is_fixed_road_infrastructure(road_cell):
 			return "道路与村庄主路或桥梁重叠"
+		if has_scenery_tree(road_cell) and data.has("road_rules_version") and not bool(road_record.get("legacy_cleared_tree", false)):
+			return "道路占用树木所在格"
+		if bool(road_record.get("legacy_cleared_tree", false)) and not has_scenery_tree(road_cell):
+			return "历史道路清树标记与场景不符"
 		if used_cells.has(road_cell):
 			return "道路与建筑占用同一格"
 		if used_road_cells.has(road_cell):
 			return "道路坐标重复"
 		used_road_cells[road_cell] = true
-	var saved_capacity := 100 + warehouse_count * 75
-	if saved_wood < 0 or saved_wood > saved_capacity or saved_food < 0 or saved_food > saved_capacity:
-		return "资源数量超出当前仓储容量"
+	# A disconnected/demolished warehouse may leave legitimate existing stock
+	# above today's capacity. Bound saves by the map's theoretical historical
+	# capacity (including legacy 1-cell warehouses), not today's road network.
+	var maximum_saved_stock := 100 + GRID_SIZE * GRID_SIZE * building_effect("warehouse", "wood_capacity")
+	if saved_wood < 0 or saved_wood > maximum_saved_stock or saved_food < 0 or saved_food > maximum_saved_stock:
+		return "资源数量超出地图理论仓储上限"
 	if saved_next_id <= max_id:
 		return "下一个建筑编号与现有建筑冲突"
 	return ""
@@ -3154,17 +4007,26 @@ func update_ghost(cell: Vector2i) -> void:
 		return
 	if road_tool_selected:
 		var road_valid := can_place_road(cell) == ""
+		# Trees remain visible and block placement. Only clearable map rocks are
+		# hidden by a valid preview; cancellation restores them.
+		if road_valid:
+			for rock in scenery_rocks_by_cell.get(cell, []):
+				if is_instance_valid(rock):
+					rock.visible = false
 		ghost = create_road_model(cell, true, road_valid)
 		ghost.position = grid_to_world(cell) + Vector3(0, 0.225, 0)
 		world.add_child(ghost)
 		return
 	ghost = create_building_model(selected_type, true)
-	ghost.position = grid_to_world(cell)
-	var valid := can_place(selected_type, cell) == ""
+	var footprint := rotated_footprint(BUILDING_FOOTPRINTS.get(selected_type, Vector2i.ONE), selected_rotation_quarters)
+	ghost.position = building_model_position(selected_type, cell, footprint)
+	ghost.rotation.y = selected_rotation_quarters * PI * 0.5
+	var valid := can_place(selected_type, cell, selected_rotation_quarters) == ""
 	RealisticKit.apply_preview_tint(ghost, valid)
 	world.add_child(ghost)
 
 func clear_ghost() -> void:
+	var previous_hover_cell := hover_cell
 	if ghost and is_instance_valid(ghost):
 		ghost.queue_free()
 	ghost = null
@@ -3172,6 +4034,8 @@ func clear_ghost() -> void:
 		locked_hover.queue_free()
 		locked_hover = null
 	hover_cell = Vector2i(-1, -1)
+	if previous_hover_cell != Vector2i(-1, -1):
+		update_forest_cell_for_roads(previous_hover_cell)
 
 func update_camera_projection() -> void:
 	if camera:
@@ -3203,12 +4067,15 @@ func camera_ground_axis_extents() -> Vector2:
 	)
 
 func camera_pan_bounds() -> Vector2:
-	var playable_extent := GRID_SIZE * TILE_SIZE * 0.5 - TILE_SIZE * 0.5
+	# Four unbuildable cells of overscan let edge lots sit inside the screen,
+	# rather than pinning them against it. The 36-cell scenic apron covers the
+	# worst 48-unit, 30-degree, 16:9 ground footprint even at these new limits.
+	var browse_extent := (GRID_SIZE * 0.5 + CAMERA_EDGE_BROWSE_CELLS) * TILE_SIZE
 	var rendered_extent := RENDER_GRID_SIZE * TILE_SIZE * 0.5
 	var footprint := camera_ground_axis_extents()
 	return Vector2(
-		minf(playable_extent, maxf(0.0, rendered_extent - CAMERA_EDGE_SAFETY_MARGIN - footprint.x)),
-		minf(playable_extent, maxf(0.0, rendered_extent - CAMERA_EDGE_SAFETY_MARGIN - footprint.y))
+		minf(browse_extent, maxf(0.0, rendered_extent - CAMERA_EDGE_SAFETY_MARGIN - footprint.x)),
+		minf(browse_extent, maxf(0.0, rendered_extent - CAMERA_EDGE_SAFETY_MARGIN - footprint.y))
 	)
 
 func clamp_camera_target_to_bounds() -> void:
@@ -3225,8 +4092,15 @@ func clamp_camera_target_to_bounds() -> void:
 	camera.reset_physics_interpolation()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R:
+		if not (settings_overlay and settings_overlay.visible) and not (help_dialog and help_dialog.visible):
+			rotate_selected_building()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_cancel"):
-		if confirmation_dialog and confirmation_dialog.visible:
+		if help_dialog and help_dialog.visible:
+			help_dialog.hide()
+		elif confirmation_dialog and confirmation_dialog.visible:
 			confirmation_dialog.hide()
 			pending_confirm_action = ""
 		elif settings_overlay and settings_overlay.visible:
@@ -3310,11 +4184,11 @@ func handle_world_click(mouse_position: Vector2) -> void:
 		save_game(false)
 		return
 	if selected_type != "":
-		var reason := can_place(selected_type, cell)
+		var reason := can_place(selected_type, cell, selected_rotation_quarters)
 		if reason != "":
 			show_message(reason)
 			return
-		add_building(selected_type, cell)
+		add_building(selected_type, cell, false, -1, true, Vector2i.ZERO, selected_rotation_quarters)
 		show_message("已建造%s" % BUILDINGS[selected_type].name)
 		clear_ghost()
 		update_ui()

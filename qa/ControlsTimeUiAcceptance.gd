@@ -260,7 +260,7 @@ func check_settings_menu(game) -> void:
 	for hidden_action in ["查看/取消", "保存", "读取", "重置", "重新开始"]:
 		if bottom_text.find(hidden_action) >= 0:
 			fail("低频操作仍常驻底栏：%s" % hidden_action)
-	for frequent_action in ["茅舍", "伐木场", "农田", "仓库", "小工坊", "1×", "2×", "4×"]:
+	for frequent_action in ["民居", "伐木场", "农田", "仓库", "小工坊", "1×", "2×", "4×"]:
 		if bottom_text.find(frequent_action) < 0:
 			fail("底栏缺少常用操作：%s" % frequent_action)
 	if bottom_text.find("暂停") < 0 and bottom_text.find("继续") < 0:

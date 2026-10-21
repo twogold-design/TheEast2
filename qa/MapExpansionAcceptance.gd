@@ -123,7 +123,7 @@ func check_late_region_rules(game) -> void:
 	var cost: Dictionary = game.REGION_UNLOCK_COSTS[5]
 	game.population = int(requirement.population)
 	game.happiness = int(requirement.happiness)
-	game.stable_days = int(requirement.stable_days)
+	game.stable_days = 0
 	game.wood = int(cost.wood)
 	game.food = int(cost.food)
 	game.coins = int(cost.coins)

@@ -1,8 +1,9 @@
 extends SceneTree
 
-## Verifies the visible resident scale against the actual imported house mesh.
-## The ratios intentionally use mesh bounds instead of registry metadata so a
-## re-exported GLB cannot silently invalidate the scale contract.
+## Asset-only fixture: Main is instantiated off-tree solely to create a citizen.
+## _ready never runs, so the fixture never loads or saves player progress.
+## Body/building proportions use actual visible meshes. Door metadata is checked
+## against the opening from interior floor to lintel, excluding steps and trim.
 
 const RealisticKit = preload("res://godot/RealisticAssets.gd")
 const MIN_CITIZEN_TO_HOUSE := 0.42
@@ -19,11 +20,11 @@ func run() -> void:
 	var house := RealisticKit.create_building("house", false, false)
 	var packed := load("res://godot/Main.tscn") as PackedScene
 	var game = packed.instantiate() if packed else null
-	var citizen: Node3D = game.create_citizen(0) if game else null
+	var citizen: Node3D = game.create_citizen(0, 0) if game else null
 	if game:
 		game.free()
 	if house == null or citizen == null:
-		fail("无法通过主场景加载真实茅舍或居民模型")
+		fail("无法通过主场景加载真实民居或居民模型")
 		finish()
 		return
 	# Measure the same carrier/Visual hierarchy used by the running game.  The
@@ -36,7 +37,7 @@ func run() -> void:
 	var house_bounds := visible_bounds(house)
 	var citizen_bounds := visible_bounds(citizen)
 	if house_bounds.size.y <= 0.0 or citizen_bounds.size.y <= 0.0:
-		fail("茅舍或居民模型没有可测量的可见网格")
+		fail("民居或居民模型没有可测量的可见网格")
 		finish()
 		return
 	var door_height := infer_house_door_height(house, house_bounds)
@@ -50,7 +51,7 @@ func run() -> void:
 		door_to_citizen,
 	])
 	if citizen_to_house < MIN_CITIZEN_TO_HOUSE or citizen_to_house > MAX_CITIZEN_TO_HOUSE:
-		fail("居民/茅舍高度比例 %.3f 超出 %.2f–%.2f" % [citizen_to_house, MIN_CITIZEN_TO_HOUSE, MAX_CITIZEN_TO_HOUSE])
+		fail("居民/民居高度比例 %.3f 超出 %.2f–%.2f" % [citizen_to_house, MIN_CITIZEN_TO_HOUSE, MAX_CITIZEN_TO_HOUSE])
 	if door_to_citizen < MIN_DOOR_TO_CITIZEN or door_to_citizen > MAX_DOOR_TO_CITIZEN:
 		fail("门/居民高度比例 %.3f 超出 %.2f–%.2f" % [door_to_citizen, MIN_DOOR_TO_CITIZEN, MAX_DOOR_TO_CITIZEN])
 	finish()
@@ -69,26 +70,20 @@ func visible_bounds(subject: Node3D) -> AABB:
 		has_bounds = true
 	return result
 
-func infer_house_door_height(house: Node3D, house_bounds: AABB) -> float:
-	# Imported models currently expose the entrance as a position marker only.
-	# Door lintel meshes have stable names in the realistic asset; if a future
-	# export renames them, use the documented 58% wall/roof split as a fallback.
-	var door_bounds := AABB()
-	var has_door_mesh := false
-	for child in house.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance := child as MeshInstance3D
-		var normalized := mesh_instance.name.to_lower()
-		if "door" not in normalized and "entrance" not in normalized:
-			continue
-		if mesh_instance.mesh == null or not mesh_instance.visible:
-			continue
-		var relative_transform := house.global_transform.affine_inverse() * mesh_instance.global_transform
-		var transformed := relative_transform * mesh_instance.mesh.get_aabb()
-		door_bounds = transformed if not has_door_mesh else door_bounds.merge(transformed)
-		has_door_mesh = true
-	if has_door_mesh and door_bounds.size.y > 0.30:
-		return door_bounds.size.y
-	return house_bounds.size.y * 0.58
+func infer_house_door_height(house: Node3D, _house_bounds: AABB) -> float:
+	var declared := float(house.get_meta("door_clear_height", 0.0))
+	var lintel := house.find_child("DoorLintel", true, false) as MeshInstance3D
+	var floor_mesh := house.find_child("InteriorFloor", true, false) as MeshInstance3D
+	if declared <= 0.0 or lintel == null or floor_mesh == null:
+		fail("民居缺少可验证的门洞净高、门梁或室内地板")
+		return 0.0
+	var to_house := house.global_transform.affine_inverse()
+	var lintel_bounds: AABB = (to_house * lintel.global_transform) * lintel.mesh.get_aabb()
+	var floor_bounds: AABB = (to_house * floor_mesh.global_transform) * floor_mesh.mesh.get_aabb()
+	var measured := lintel_bounds.position.y - floor_bounds.end.y
+	if absf(declared - measured) > 0.005:
+		fail("民居门洞净高声明 %.3fm 与实际开口 %.3fm 不符" % [declared, measured])
+	return declared
 
 func fail(message: String) -> void:
 	failures.append(message)

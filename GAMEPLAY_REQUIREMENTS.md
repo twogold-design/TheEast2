@@ -1,5 +1,7 @@
 # 《东境：孤鸿新生》玩法需求文档
 
+> **历史草案状态（2026-10-21）：** 下文部分目标、费用/奖励展示、住房/建筑数量门槛及结算顺序已过时，不能直接作为当前实现要求。以用户最新要求及 `godot/Main.gd` 为准。新版候选为 [江南路线策划需求](JIANGNAN_INSPIRED_GAMEPLAY_REQUIREMENTS.md) 与 [纪元路线玩法方案](ANNO_INSPIRED_GAMEPLAY_DESIGN.md)，二者并列评审，经济规则不得直接叠加；新版方案尚未实装。
+
 版本：1.0（玩法扩展草案）
 适用引擎：Godot 4.7.2
 项目目录：`M:\NewGames\TheEast`

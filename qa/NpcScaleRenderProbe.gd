@@ -17,11 +17,13 @@ func run() -> void:
 	var house := RealisticKit.create_building("house", false, false)
 	var packed := load("res://godot/Main.tscn") as PackedScene
 	var game = packed.instantiate() if packed else null
-	var citizen: Node3D = game.create_citizen(0) if game else null
+	# Keep the same straw-hat resident as the numeric acceptance fixture.
+	# Main remains off-tree here, so neither _ready nor save/load is invoked.
+	var citizen: Node3D = game.create_citizen(0, 0) if game else null
 	if game:
 		game.free()
 	if house == null or citizen == null:
-		push_error("NPC_SCALE_RENDER_FAILED: 无法通过主场景加载真实茅舍或居民模型")
+		push_error("NPC_SCALE_RENDER_FAILED: 无法通过主场景加载真实民居或居民模型")
 		quit(1)
 		return
 	house.position = Vector3(-0.55, 0.0, 0.0)
@@ -128,21 +130,10 @@ func visible_height(subject: Node3D) -> float:
 		has_bounds = true
 	return bounds.size.y
 
-func measure_door_height(house: Node3D, house_height: float) -> float:
-	var bounds := AABB()
-	var has_bounds := false
-	for child in house.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance := child as MeshInstance3D
-		var normalized := mesh_instance.name.to_lower()
-		if "door" not in normalized and "entrance" not in normalized:
-			continue
-		if mesh_instance.mesh == null or not mesh_instance.visible:
-			continue
-		var relative_transform := house.global_transform.affine_inverse() * mesh_instance.global_transform
-		var transformed := relative_transform * mesh_instance.mesh.get_aabb()
-		bounds = transformed if not has_bounds else bounds.merge(transformed)
-		has_bounds = true
-	return bounds.size.y if has_bounds and bounds.size.y > 0.30 else house_height * 0.58
+func measure_door_height(house: Node3D, _house_height: float) -> float:
+	# Use the clear opening already validated against lintel/floor geometry by
+	# NpcScaleAcceptance; decorative steps and door trim are not opening height.
+	return float(house.get_meta("door_clear_height", 0.0))
 
 func add_caption(citizen_height: float, door_height: float, house_height: float) -> void:
 	var layer := CanvasLayer.new()
@@ -163,7 +154,7 @@ func add_caption(citizen_height: float, door_height: float, house_height: float)
 	panel.add_theme_stylebox_override("panel", style)
 	layer.add_child(panel)
 	var label := Label.new()
-	label.text = "居民与茅舍比例验收\n红 居民 %.2f m　蓝 房门 %.2f m　黄 茅舍 %.2f m\n当前：居民/茅舍 %.1f%%　房门/居民 %.1f%%\n通过范围：42–62%%　　　　 92–116%%" % [
+	label.text = "居民与民居比例验收\n红 居民 %.2f m　蓝 门洞 %.2f m　黄 民居 %.2f m\n当前：居民/民居 %.1f%%　门洞/居民 %.1f%%\n通过范围：42–62%%　　　　 92–116%%" % [
 		citizen_height,
 		door_height,
 		house_height,

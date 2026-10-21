@@ -126,7 +126,8 @@ func check_goal_panel_at_1366(game) -> void:
 	var top_text := str(game.goal_label.text)
 	var panel_text := goal_panel_text(game)
 	require_terms(top_text, ["第一章", "安家河湾", "目标：", "开拓北坡"], "顶栏目标")
-	require_terms(panel_text, ["北坡梯田", "用途", "固定目标：", "聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"], "复兴目标面板")
+	require_terms(panel_text, ["北坡梯田", "用途", "目标：", "聚落", "人口 8", "住房 8", "农田 1"], "复兴目标面板")
+	assert_no_fixed_goal_copy(panel_text, "复兴目标面板")
 	assert_no_persistent_unlock_details(game, top_text, panel_text, 1, "第一章常驻目标")
 	if top_text.count("目标：") != 1:
 		fail("顶栏必须只显示一句章节目标：%s" % top_text)
@@ -169,8 +170,8 @@ func check_current_task_priority(game) -> void:
 	game.reset_game(false)
 	game.update_ui()
 	var fixed_top := str(game.goal_label.text)
-	var fixed_panel := goal_panel_text(game)
-	assert_current_task(game, ["目标：", "建好河湾聚落", "人口 8", "住房 8", "农田 1", "稳定运转 1 日"], "开局章节目标")
+	var fixed_panel := str(game.region_body.text)
+	assert_current_task(game, ["目标：", "建好河湾聚落", "人口 8", "住房 8", "农田 1"], "开局章节目标")
 
 	# Chapter UI must remain byte-for-byte stable as individual conditions are
 	# completed. Only opening the next region is allowed to replace it.
@@ -181,13 +182,14 @@ func check_current_task_priority(game) -> void:
 	game.wood = 100
 	game.food = 40
 	game.coins = 100
-	game.stable_days = int(game.REGION_REQUIREMENTS[1].stable_days)
+	game.stable_days = 0
 	game.day = 30
 	game.update_ui()
-	if str(game.goal_label.text) != fixed_top or goal_panel_text(game) != fixed_panel:
+	if str(game.goal_label.text) != fixed_top or str(game.region_body.text) != fixed_panel:
 		fail("同一章节内目标随完成条件发生变化：\n原顶栏：%s\n现顶栏：%s\n原目标栏：%s\n现目标栏：%s" % [
-			fixed_top, game.goal_label.text, fixed_panel, goal_panel_text(game),
+			fixed_top, game.goal_label.text, fixed_panel, game.region_body.text,
 		])
+	assert_completed_goal_is_green(game, "完成部分目标后")
 	assert_no_dynamic_goal_language(current_goal_text(game), "条件全部满足后的章节目标")
 
 func check_chapter_previews(game) -> void:
@@ -212,7 +214,7 @@ func check_chapter_previews(game) -> void:
 	game.map_region_level = 6
 	game.update_ui()
 	var final_text := current_goal_text(game)
-	require_terms(final_text, ["第七章", "东境复兴", "目标：", "人口 45", "木材 200", "粮食 200", "铜钱 150", "幸福 80", "稳定运转 7 日"], "终局目标")
+	require_terms(final_text, ["第七章", "东境复兴", "目标：", "人口 45", "木材 200", "粮食 200", "铜钱 150", "幸福 80"], "终局目标")
 	assert_no_unlock_copy(final_text, "终局常驻目标")
 	assert_no_goal_progress(final_text, "终局目标")
 	assert_no_dynamic_goal_language(final_text, "终局目标")
@@ -226,7 +228,7 @@ func check_first_unlock_reward_and_transition(game) -> void:
 	game.wood = 100
 	game.food = 40
 	game.coins = 100
-	game.stable_days = int(game.REGION_REQUIREMENTS[1].stable_days)
+	game.stable_days = 0
 	game.update_ui()
 	var wood_before := int(game.wood)
 	var food_before := int(game.food)
@@ -297,6 +299,8 @@ func collect_visible_text(node: Node, parts: Array[String]) -> void:
 		return
 	if node is Label:
 		parts.append(str((node as Label).text))
+	elif node is RichTextLabel:
+		parts.append((node as RichTextLabel).get_parsed_text())
 	elif node is Button:
 		parts.append(str((node as Button).text))
 	for child in node.get_children():
@@ -327,6 +331,27 @@ func assert_no_dynamic_goal_language(text_value: String, context: String) -> voi
 	for term in ["当前任务", "还需", "再建", "等待", "条件齐备", "目标达成"]:
 		if text_value.find(term) >= 0:
 			fail("%s仍包含动态下一步“%s”：%s" % [context, term, text_value])
+
+func assert_no_fixed_goal_copy(text_value: String, context: String) -> void:
+	if text_value.find("固定目标") >= 0:
+		fail("%s仍显示“固定目标”：%s" % [context, text_value])
+
+func assert_completed_goal_is_green(game, context: String) -> void:
+	var found_completed := false
+	var found_green := false
+	for child in game.region_body.get_children():
+		if child is RichTextLabel:
+			found_completed = found_completed or "✓ " in child.get_parsed_text()
+			found_green = found_green or "[color=#2f8f5b]✓ " in child.text
+		if child is Label and str(child.text).begins_with("✓ "):
+			found_completed = true
+			var color: Color = child.get_theme_color("font_color")
+			if color.g > color.r * 1.15 and color.g > color.b * 0.95:
+				found_green = true
+	if not found_completed:
+		fail("%s没有显示已完成目标勾选" % context)
+	if not found_green:
+		fail("%s已完成目标没有使用绿色" % context)
 
 func check_inside_viewport(control: Control, label: String) -> void:
 	var rect := control.get_global_rect()

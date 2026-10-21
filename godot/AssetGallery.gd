@@ -54,7 +54,7 @@ func create_floor() -> void:
 
 func create_assets() -> void:
 	var building_types := ["house", "lumber", "farm", "warehouse", "workshop"]
-	var labels := ["茅舍", "伐木场", "农田", "仓库", "小工坊"]
+	var labels := ["民居", "伐木场", "农田", "仓库", "小工坊"]
 	for index in range(building_types.size()):
 		var x := -6.0 + index * 3.0
 		var building := ArtKit.create_building(building_types[index])

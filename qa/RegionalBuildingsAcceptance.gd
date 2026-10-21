@@ -30,6 +30,12 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	game.time_paused = true
+	# Road infrastructure is persisted independently.  Clear it for this
+	# catalog test so a road from an earlier acceptance run cannot block the
+	# fixed building placement cells used below.
+	for child in game.road_root.get_children():
+		child.queue_free()
+	game.roads.clear()
 
 	check_definitions_and_unlocks(game)
 	check_opening_buildings(game)
@@ -48,6 +54,7 @@ func run() -> void:
 func check_definitions_and_unlocks(game) -> void:
 	var expected := {
 		"market": {"name": "集市", "unlock": 1, "workers": 2, "maintenance": 2},
+		"fishpond": {"name": "鱼塘", "unlock": 1, "workers": 2, "maintenance": 2},
 		"clinic": {"name": "医馆", "unlock": 3, "workers": 2, "maintenance": 3},
 		"academy": {"name": "书院", "unlock": 4, "workers": 3, "maintenance": 4},
 	}
@@ -68,24 +75,25 @@ func check_definitions_and_unlocks(game) -> void:
 			fail("%s维护费错误" % contract.name)
 
 	game.map_region_level = 0
-	if str(game.can_place("market", Vector2i(8, 8))).find("尚未解锁") < 0:
+	var regional_probe_cell := Vector2i(6, 8)
+	if str(game.can_place("market", regional_probe_cell)).find("尚未解锁") < 0:
 		fail("集市可在北坡开拓前摆放")
 	game.map_region_level = 1
 	game.wood = 1000
 	game.coins = 1000
-	if str(game.can_place("market", Vector2i(8, 8))) != "":
-		fail("北坡开拓后集市仍不可摆放：%s" % game.can_place("market", Vector2i(8, 8)))
+	if str(game.can_place("market", regional_probe_cell)) != "":
+		fail("北坡开拓后集市仍不可摆放：%s" % game.can_place("market", regional_probe_cell))
 	game.map_region_level = 2
-	if str(game.can_place("clinic", Vector2i(8, 8))).find("尚未解锁") < 0:
+	if str(game.can_place("clinic", regional_probe_cell)).find("尚未解锁") < 0:
 		fail("医馆可在高台开拓前摆放")
 	game.map_region_level = 3
-	if str(game.can_place("clinic", Vector2i(8, 8))) != "":
+	if str(game.can_place("clinic", regional_probe_cell)) != "":
 		fail("高台开拓后医馆仍不可摆放")
 	game.map_region_level = 3
-	if str(game.can_place("academy", Vector2i(8, 8))).find("尚未解锁") < 0:
+	if str(game.can_place("academy", regional_probe_cell)).find("尚未解锁") < 0:
 		fail("书院可在东原开拓前摆放")
 	game.map_region_level = 4
-	if str(game.can_place("academy", Vector2i(8, 8))) != "":
+	if str(game.can_place("academy", regional_probe_cell)) != "":
 		fail("东原开拓后书院仍不可摆放")
 
 
@@ -111,7 +119,7 @@ func check_opening_buildings(game) -> void:
 			continue
 		visible_opening.append(str(type))
 		if type not in expected:
-			fail("开局页混入后期建筑：%s" % type)
+			fail("基础页混入后期建筑：%s" % type)
 		if button.disabled:
 			fail("开局建筑按钮被锁定：%s" % type)
 		if not game.building_is_unlocked(str(type)):
@@ -121,14 +129,14 @@ func check_opening_buildings(game) -> void:
 			fail("开局建筑不能立即建造：%s（%s）" % [type, placement_reason])
 		check_inside_viewport(button, "开局%s按钮" % game.BUILDINGS[type].name)
 	if visible_opening.size() != expected.size():
-		fail("开局页应直接显示五类建筑，实际%s" % visible_opening)
+		fail("基础页应直接显示五类建筑，实际%s" % visible_opening)
 
 
 func check_catalog_progression(game) -> void:
 	var starter_types := ["house", "farm", "lumber", "workshop", "warehouse"]
-	var regional_unlocks := {"market": 1, "clinic": 3, "academy": 4}
+	var regional_unlocks := {"market": 1, "fishpond": 1, "clinic": 3, "academy": 4}
 	if game.BUILDINGS.size() != starter_types.size() + regional_unlocks.size():
-		fail("建筑图鉴应由5类开局建筑继续扩充为8类，实际%d类" % game.BUILDINGS.size())
+		fail("建筑图鉴应由5类基础建筑继续扩充为9类，实际%d类" % game.BUILDINGS.size())
 	for level in range(game.REGION_DEFINITIONS.size()):
 		game.map_region_level = level
 		var unlocked_count := 0
@@ -189,7 +197,7 @@ func check_composite_models(_game) -> void:
 			continue
 		if str(model.get_meta("building_type", "")) != type:
 			fail("%s模型未保留独立建筑类型" % type)
-		if str(model.get_meta("asset_source", "")) != "realistic":
+		if str(model.get_meta("asset_source", "")) != ("composed_market" if type == "market" else "realistic"):
 			fail("%s没有复用写实模型" % type)
 		if model.find_child(str(markers[type]), true, false) == null:
 			fail("%s缺少俯视识别构件%s" % [type, markers[type]])
@@ -197,7 +205,7 @@ func check_composite_models(_game) -> void:
 
 
 func check_market_operation(game) -> void:
-	prepare_layout(game, [{"type": "market", "cell": Vector2i(8, 8)}], 10, 50, 100)
+	prepare_layout(game, [{"type": "market", "cell": Vector2i(6, 6)}], 10, 50, 100)
 	game.next_day()
 	if int(game.food) != 42:
 		fail("集市每日应在居民口粮后整份消耗3粮，实际剩余%d" % game.food)
@@ -208,7 +216,7 @@ func check_market_operation(game) -> void:
 
 
 func check_clinic_operation(game) -> void:
-	prepare_layout(game, [{"type": "market", "cell": Vector2i(8, 8)}], 10, 80, 100)
+	prepare_layout(game, [{"type": "market", "cell": Vector2i(6, 6)}], 10, 80, 100)
 	game.happiness = 56
 	game.next_day()
 	var market_happiness := int(game.happiness)
@@ -235,8 +243,8 @@ func check_academy_operation(game) -> void:
 
 func check_pause_and_v4_roundtrip(game) -> void:
 	prepare_layout(game, [
-		{"type": "market", "cell": Vector2i(8, 8)},
-		{"type": "clinic", "cell": Vector2i(9, 8)},
+		{"type": "market", "cell": Vector2i(6, 6)},
+		{"type": "clinic", "cell": Vector2i(8, 8)},
 		{"type": "academy", "cell": Vector2i(10, 8)},
 	], 20, 100, 100)
 	game.set_building_enabled(int(game.buildings[0].id), false)
