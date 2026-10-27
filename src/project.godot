@@ -1,0 +1,36 @@
+; Engine configuration file.
+; Edit in Godot 4.7.2 or newer.
+
+config_version=5
+
+[application]
+
+config/name="东境：孤城新生"
+run/main_scene="res://godot/Main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1366
+window/size/viewport_height=768
+window/size/window_width_override=1366
+window/size/window_height_override=768
+window/stretch/mode="canvas_items"
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
+common/physics_interpolation=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.725, 0.843, 0.835, 1)
+
+
+[gui]
+
+theme/custom_font="res://godot/assets/fonts/EastUI.ttf"

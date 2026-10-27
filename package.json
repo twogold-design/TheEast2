@@ -1,19 +1,14 @@
 {
-  "name": "the-east-valley",
-  "version": "0.1.0",
+  "name": "the-east-web",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "description": "东境：孤城新生 Godot Web 版本",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "three": "^0.169.0"
+    "serve": "node serve.cjs",
+    "test:web": "node qa/web_smoke.cjs",
+    "test:file": "node qa/web_smoke.cjs --file"
   },
   "devDependencies": {
-    "@types/three": "^0.169.0",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "playwright": "1.64.1"
   }
 }
