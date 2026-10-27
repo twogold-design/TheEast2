@@ -1,0 +1,387 @@
+{
+  "scope": "30-minute fixed-population flow comparison, 12-minute scripted opening and 4-minute crop intervention; no stochastic events or parcel/path scheduling",
+  "initial_stock": {
+    "wood": 80.0,
+    "food": 40.0,
+    "coins": 60.0,
+    "hemp": 0.0,
+    "cloth": 0.0,
+    "tools": 0.0
+  },
+  "target": {
+    "wood": 160,
+    "food": 110,
+    "coins": 85
+  },
+  "assumptions": {
+    "max_inventory_per_good": 500,
+    "warehouse_work": 96,
+    "external_trade": 12,
+    "road_distance_factor": 1
+  },
+  "routes": [
+    {
+      "name": "本地自给",
+      "population": 16,
+      "workers": 12,
+      "available_workers": 12,
+      "happiness_assumption": 72,
+      "cash_per_minute": 6.95,
+      "resource_net_per_minute": {
+        "wood": 8,
+        "food": 8,
+        "hemp": 4,
+        "cloth": 1.5,
+        "tools": 2
+      },
+      "tax": 9.2,
+      "retail_income": 5.75,
+      "upkeep": 8,
+      "external_trade_capacity": 12,
+      "trade_units_per_minute": 0,
+      "freight": 0.0,
+      "warehouse_work_per_minute": 64.5,
+      "resource_threshold_minute_at_fixed_population_and_assumed_happiness": 10,
+      "after_30_minutes": {
+        "wood": 320.0,
+        "food": 280.0,
+        "coins": 268.5,
+        "hemp": 120.0,
+        "cloth": 45.0,
+        "tools": 60.0
+      }
+    },
+    {
+      "name": "木器外销与布衣进口",
+      "population": 16,
+      "workers": 10,
+      "available_workers": 12,
+      "happiness_assumption": 72,
+      "cash_per_minute": 8.8875,
+      "resource_net_per_minute": {
+        "wood": 4,
+        "food": 8,
+        "hemp": 0,
+        "cloth": 0.0,
+        "tools": 0
+      },
+      "tax": 9.2,
+      "retail_income": 5.75,
+      "upkeep": 7,
+      "external_trade_capacity": 12,
+      "trade_units_per_minute": 8.5,
+      "freight": 1.0625,
+      "warehouse_work_per_minute": 65.0,
+      "resource_threshold_minute_at_fixed_population_and_assumed_happiness": 20,
+      "after_30_minutes": {
+        "wood": 200.0,
+        "food": 280.0,
+        "coins": 326.625,
+        "hemp": 0.0,
+        "cloth": 0.0,
+        "tools": 0.0
+      }
+    },
+    {
+      "name": "低阶粮木经营",
+      "population": 16,
+      "workers": 5,
+      "available_workers": 12,
+      "happiness_assumption": 60,
+      "cash_per_minute": 6.75,
+      "resource_net_per_minute": {
+        "wood": 11,
+        "food": 5,
+        "hemp": 0,
+        "cloth": 0,
+        "tools": 0
+      },
+      "tax": 8.0,
+      "retail_income": 0.0,
+      "upkeep": 3,
+      "external_trade_capacity": 4,
+      "trade_units_per_minute": 4,
+      "freight": 0.5,
+      "warehouse_work_per_minute": 40,
+      "resource_threshold_minute_at_fixed_population_and_assumed_happiness": 14,
+      "after_30_minutes": {
+        "wood": 410.0,
+        "food": 190.0,
+        "coins": 262.5,
+        "hemp": 0.0,
+        "cloth": 0.0,
+        "tools": 0.0
+      }
+    }
+  ],
+  "opening": {
+    "population": 4,
+    "workers": 3,
+    "start_after_house_farm_lumber": {
+      "wood": 48,
+      "food": 40,
+      "coins": 44
+    },
+    "net_food": 14,
+    "net_wood": 6,
+    "net_coins": 0,
+    "base_shed_load": 24,
+    "base_shed_capacity": 32
+  },
+  "startup": [
+    {
+      "minute": 1,
+      "population": 4,
+      "capacity": 8,
+      "workers": 3,
+      "assigned": 3,
+      "warehouse_load": 24.0,
+      "actions": [
+        "建民居，木-12钱-4"
+      ],
+      "wood": 42.0,
+      "food": 54.0,
+      "coins": 40.0
+    },
+    {
+      "minute": 2,
+      "population": 6,
+      "capacity": 8,
+      "workers": 5,
+      "assigned": 5,
+      "warehouse_load": 31.0,
+      "actions": [
+        "迁入2人",
+        "建仓库，木-30钱-10"
+      ],
+      "wood": 24.0,
+      "food": 67.0,
+      "coins": 30.0
+    },
+    {
+      "minute": 3,
+      "population": 6,
+      "capacity": 8,
+      "workers": 5,
+      "assigned": 5,
+      "warehouse_load": 31.0,
+      "actions": [],
+      "wood": 36.0,
+      "food": 80.0,
+      "coins": 30.0
+    },
+    {
+      "minute": 4,
+      "population": 8,
+      "capacity": 12,
+      "workers": 6,
+      "assigned": 5,
+      "warehouse_load": 32.0,
+      "actions": [
+        "迁入2人",
+        "建民居，木-12钱-4"
+      ],
+      "wood": 36.0,
+      "food": 92.0,
+      "coins": 27.0
+    },
+    {
+      "minute": 5,
+      "population": 8,
+      "capacity": 12,
+      "workers": 6,
+      "assigned": 5,
+      "warehouse_load": 32.0,
+      "actions": [],
+      "wood": 48.0,
+      "food": 104.0,
+      "coins": 28.0
+    },
+    {
+      "minute": 6,
+      "population": 10,
+      "capacity": 16,
+      "workers": 7,
+      "assigned": 5,
+      "warehouse_load": 33.0,
+      "actions": [
+        "迁入2人",
+        "建民居，木-12钱-4"
+      ],
+      "wood": 48.0,
+      "food": 115.0,
+      "coins": 26.0
+    },
+    {
+      "minute": 7,
+      "population": 10,
+      "capacity": 16,
+      "workers": 7,
+      "assigned": 5,
+      "warehouse_load": 33.0,
+      "actions": [],
+      "wood": 60.0,
+      "food": 126.0,
+      "coins": 28.0
+    },
+    {
+      "minute": 8,
+      "population": 12,
+      "capacity": 16,
+      "workers": 9,
+      "assigned": 5,
+      "warehouse_load": 34.0,
+      "actions": [
+        "迁入2人"
+      ],
+      "wood": 72.0,
+      "food": 136.0,
+      "coins": 31.0
+    },
+    {
+      "minute": 9,
+      "population": 12,
+      "capacity": 16,
+      "workers": 9,
+      "assigned": 5,
+      "warehouse_load": 34.0,
+      "actions": [],
+      "wood": 84.0,
+      "food": 146.0,
+      "coins": 34.0
+    },
+    {
+      "minute": 10,
+      "population": 14,
+      "capacity": 16,
+      "workers": 10,
+      "assigned": 5,
+      "warehouse_load": 35.0,
+      "actions": [
+        "迁入2人"
+      ],
+      "wood": 96.0,
+      "food": 155.0,
+      "coins": 38.0
+    },
+    {
+      "minute": 11,
+      "population": 14,
+      "capacity": 16,
+      "workers": 10,
+      "assigned": 5,
+      "warehouse_load": 35.0,
+      "actions": [],
+      "wood": 108.0,
+      "food": 164.0,
+      "coins": 42.0
+    },
+    {
+      "minute": 12,
+      "population": 16,
+      "capacity": 16,
+      "workers": 12,
+      "assigned": 5,
+      "warehouse_load": 36.0,
+      "actions": [
+        "迁入2人"
+      ],
+      "wood": 120.0,
+      "food": 172.0,
+      "coins": 47.0
+    }
+  ],
+  "crop_interventions": {
+    "none": [
+      {
+        "minute": 1,
+        "action": "改麻未处理",
+        "food": 24.0,
+        "coins": 64.0,
+        "hemp": 8.0
+      },
+      {
+        "minute": 2,
+        "action": "改麻未处理",
+        "food": 16.0,
+        "coins": 68.0,
+        "hemp": 16.0
+      },
+      {
+        "minute": 3,
+        "action": "改麻未处理",
+        "food": 8.0,
+        "coins": 72.0,
+        "hemp": 24.0
+      },
+      {
+        "minute": 4,
+        "action": "改麻未处理",
+        "food": 0.0,
+        "coins": 76.0,
+        "hemp": 32.0
+      }
+    ],
+    "restore_grain": [
+      {
+        "minute": 1,
+        "action": "改麻未处理",
+        "food": 24.0,
+        "coins": 64.0,
+        "hemp": 8.0
+      },
+      {
+        "minute": 2,
+        "action": "改回粮田",
+        "food": 32.0,
+        "coins": 68.0,
+        "hemp": 8.0
+      },
+      {
+        "minute": 3,
+        "action": "改回粮田",
+        "food": 40.0,
+        "coins": 72.0,
+        "hemp": 8.0
+      },
+      {
+        "minute": 4,
+        "action": "改回粮田",
+        "food": 48.0,
+        "coins": 76.0,
+        "hemp": 8.0
+      }
+    ],
+    "import_grain": [
+      {
+        "minute": 1,
+        "action": "改麻未处理",
+        "food": 24.0,
+        "coins": 64.0,
+        "hemp": 8.0
+      },
+      {
+        "minute": 2,
+        "action": "进口粮8",
+        "food": 24.0,
+        "coins": 55.0,
+        "hemp": 16.0
+      },
+      {
+        "minute": 3,
+        "action": "进口粮8",
+        "food": 24.0,
+        "coins": 46.0,
+        "hemp": 24.0
+      },
+      {
+        "minute": 4,
+        "action": "进口粮8",
+        "food": 24.0,
+        "coins": 37.0,
+        "hemp": 32.0
+      }
+    ]
+  },
+  "trade_half_capacity_cash_per_minute": 4.2
+}

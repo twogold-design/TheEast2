@@ -1,0 +1,558 @@
+{
+	"catalog": {
+		"academy": {
+			"category": "civic",
+			"coin_cost": 38,
+			"cost": 40,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "书院",
+			"resource_costs": {
+				"paper": 12
+			},
+			"unlock_level": 4
+		},
+		"bamboo": {
+			"category": "industry",
+			"coin_cost": 12,
+			"cost": 24,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "竹林场",
+			"resource_costs": {
+				"water": 8
+			},
+			"unlock_level": 2
+		},
+		"claypit": {
+			"category": "industry",
+			"coin_cost": 16,
+			"cost": 18,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "采泥场",
+			"resource_costs": {
+				"bamboo": 8
+			},
+			"unlock_level": 5
+		},
+		"clinic": {
+			"category": "civic",
+			"coin_cost": 24,
+			"cost": 36,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "医馆",
+			"resource_costs": {
+				"cloth": 8
+			},
+			"unlock_level": 3
+		},
+		"dock": {
+			"category": "basic",
+			"coin_cost": 26,
+			"cost": 36,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "码头",
+			"resource_costs": {
+				"bamboo": 8,
+				"hemp": 12
+			},
+			"unlock_level": 5
+		},
+		"farm": {
+			"category": "basic",
+			"coin_cost": 6,
+			"cost": 18,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "农田",
+			"unlock_level": 0
+		},
+		"fishpond": {
+			"category": "industry",
+			"coin_cost": 16,
+			"cost": 24,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "鱼塘",
+			"resource_costs": {
+				"hemp": 4,
+				"water": 16
+			},
+			"unlock_level": 1
+		},
+		"freight": {
+			"category": "basic",
+			"coin_cost": 18,
+			"cost": 28,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "货运站",
+			"resource_costs": {
+				"bamboo": 6,
+				"hemp": 8
+			},
+			"unlock_level": 2
+		},
+		"garden": {
+			"category": "civic",
+			"coin_cost": 22,
+			"cost": 20,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "园林",
+			"resource_costs": {
+				"bamboo": 14,
+				"water": 10
+			},
+			"unlock_level": 3
+		},
+		"granary": {
+			"category": "basic",
+			"coin_cost": 14,
+			"cost": 24,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "粮仓",
+			"resource_costs": {
+				"bamboo": 12,
+				"hemp": 6
+			},
+			"unlock_level": 4
+		},
+		"hemp_farm": {
+			"category": "industry",
+			"coin_cost": 6,
+			"cost": 14,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "麻田",
+			"resource_costs": {
+				"water": 8
+			},
+			"unlock_level": 1
+		},
+		"house": {
+			"category": "basic",
+			"coin_cost": 4,
+			"cost": 12,
+			"footprint": [
+				1,
+				1
+			],
+			"name": "民居",
+			"unlock_level": 0
+		},
+		"kiln": {
+			"category": "industry",
+			"coin_cost": 26,
+			"cost": 32,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "陶窑",
+			"resource_costs": {
+				"clay": 16
+			},
+			"unlock_level": 5
+		},
+		"lumber": {
+			"category": "industry",
+			"coin_cost": 6,
+			"cost": 22,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "伐木场",
+			"unlock_level": 0
+		},
+		"market": {
+			"category": "industry",
+			"coin_cost": 18,
+			"cost": 30,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "集市",
+			"resource_costs": {
+				"cloth": 6
+			},
+			"unlock_level": 1
+		},
+		"orchard": {
+			"category": "industry",
+			"coin_cost": 14,
+			"cost": 24,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "果园",
+			"resource_costs": {
+				"bamboo": 6,
+				"water": 10
+			},
+			"unlock_level": 2
+		},
+		"papermill": {
+			"category": "industry",
+			"coin_cost": 24,
+			"cost": 30,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "造纸坊",
+			"resource_costs": {
+				"bamboo": 12,
+				"hemp": 6
+			},
+			"unlock_level": 4
+		},
+		"pavilion": {
+			"category": "civic",
+			"coin_cost": 10,
+			"cost": 12,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "休憩亭",
+			"resource_costs": {
+				"bamboo": 12
+			},
+			"unlock_level": 3
+		},
+		"tea_farm": {
+			"category": "industry",
+			"coin_cost": 18,
+			"cost": 22,
+			"footprint": [
+				3,
+				3
+			],
+			"name": "茶园",
+			"resource_costs": {
+				"bamboo": 8,
+				"water": 8
+			},
+			"unlock_level": 3
+		},
+		"teahouse": {
+			"category": "civic",
+			"coin_cost": 24,
+			"cost": 28,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "茶馆",
+			"resource_costs": {
+				"bamboo": 10,
+				"tea": 6
+			},
+			"unlock_level": 4
+		},
+		"theater": {
+			"category": "civic",
+			"coin_cost": 30,
+			"cost": 28,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "戏台",
+			"resource_costs": {
+				"bamboo": 8,
+				"cloth": 10
+			},
+			"unlock_level": 4
+		},
+		"trading_post": {
+			"category": "industry",
+			"coin_cost": 36,
+			"cost": 40,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "商栈",
+			"resource_costs": {
+				"cloth": 10,
+				"pottery": 8
+			},
+			"unlock_level": 6
+		},
+		"warehouse": {
+			"category": "basic",
+			"coin_cost": 10,
+			"cost": 30,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "仓库",
+			"unlock_level": 0
+		},
+		"weaver": {
+			"category": "industry",
+			"coin_cost": 16,
+			"cost": 38,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "织坊",
+			"resource_costs": {
+				"hemp": 8
+			},
+			"unlock_level": 1
+		},
+		"well": {
+			"category": "basic",
+			"coin_cost": 4,
+			"cost": 12,
+			"footprint": [
+				2,
+				2
+			],
+			"name": "水井",
+			"unlock_level": 0
+		},
+		"workshop": {
+			"category": "industry",
+			"coin_cost": 16,
+			"cost": 38,
+			"footprint": [
+				3,
+				2
+			],
+			"name": "小工坊",
+			"unlock_level": 0
+		}
+	},
+	"specs": {
+		"academy": {
+			"maintenance": 4,
+			"range": 28,
+			"service": "culture",
+			"service_bonus": 8,
+			"service_capacity": 32,
+			"worker_kind": "normal",
+			"workers": 3
+		},
+		"bamboo": {
+			"maintenance": 1,
+			"output": "bamboo",
+			"rate": 12,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"claypit": {
+			"maintenance": 2,
+			"output": "clay",
+			"rate": 12,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"clinic": {
+			"maintenance": 3,
+			"range": 18,
+			"service": "health",
+			"service_bonus": 8,
+			"service_capacity": 24,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"dock": {
+			"maintenance": 2,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"farm": {
+			"maintenance": 1,
+			"output": "food",
+			"rate": 8,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"fishpond": {
+			"maintenance": 2,
+			"output": "food",
+			"rate": 20,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"freight": {
+			"maintenance": 2,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"garden": {
+			"maintenance": 2,
+			"range": 18,
+			"service": "garden",
+			"service_bonus": 8,
+			"service_capacity": 24,
+			"worker_kind": "normal",
+			"workers": 1
+		},
+		"granary": {
+			"maintenance": 1,
+			"worker_kind": "normal",
+			"workers": 1
+		},
+		"hemp_farm": {
+			"maintenance": 1,
+			"output": "hemp",
+			"rate": 8,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"house": {
+			"maintenance": 0,
+			"worker_kind": "normal",
+			"workers": 0
+		},
+		"kiln": {
+			"fuel": "wood",
+			"fuel_rate": 2,
+			"input": "clay",
+			"input_rate": 6,
+			"maintenance": 3,
+			"output": "pottery",
+			"rate": 6,
+			"worker_kind": "artisan",
+			"workers": 3
+		},
+		"lumber": {
+			"maintenance": 1,
+			"output": "wood",
+			"rate": 12,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"market": {
+			"maintenance": 1,
+			"range": 24,
+			"service": "market",
+			"service_bonus": 4,
+			"service_capacity": 24,
+			"worker_kind": "normal",
+			"workers": 1
+		},
+		"orchard": {
+			"batch_seconds": 90,
+			"maintenance": 1,
+			"output": "food",
+			"rate": 24,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"papermill": {
+			"input": "bamboo",
+			"input_rate": 6,
+			"maintenance": 2,
+			"output": "paper",
+			"rate": 6,
+			"worker_kind": "artisan",
+			"workers": 2
+		},
+		"pavilion": {
+			"maintenance": 1,
+			"range": 14,
+			"service": "garden",
+			"service_bonus": 6,
+			"service_capacity": 16,
+			"worker_kind": "normal",
+			"workers": 0
+		},
+		"tea_farm": {
+			"maintenance": 2,
+			"output": "tea",
+			"rate": 8,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"teahouse": {
+			"maintenance": 2,
+			"range": 20,
+			"service": "leisure",
+			"service_bonus": 6,
+			"service_capacity": 24,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"theater": {
+			"maintenance": 5,
+			"range": 28,
+			"service": "culture",
+			"service_bonus": 8,
+			"service_capacity": 40,
+			"worker_kind": "normal",
+			"workers": 2
+		},
+		"trading_post": {
+			"maintenance": 4,
+			"worker_kind": "normal",
+			"workers": 3
+		},
+		"warehouse": {
+			"maintenance": 1,
+			"worker_kind": "normal",
+			"workers": 0
+		},
+		"weaver": {
+			"input": "hemp",
+			"input_rate": 4,
+			"maintenance": 2,
+			"output": "cloth",
+			"rate": 4,
+			"worker_kind": "artisan",
+			"workers": 2
+		},
+		"well": {
+			"maintenance": 0,
+			"output": "water",
+			"rate": 10,
+			"worker_kind": "normal",
+			"workers": 1
+		},
+		"workshop": {
+			"input": "wood",
+			"input_rate": 4,
+			"maintenance": 2,
+			"output": "coins",
+			"rate": 12,
+			"worker_kind": "normal",
+			"workers": 2
+		}
+	}
+}

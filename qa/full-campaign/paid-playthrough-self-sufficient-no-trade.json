@@ -1,0 +1,4168 @@
+{
+	"continued_after_victory": true,
+	"ended": "win",
+	"failures": [],
+	"final_snapshot": {
+		"artisan_workers": 4,
+		"available_artisan": 2,
+		"available_normal": 10,
+		"available_workers": 12,
+		"building_status": {
+			"1": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"10": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 1,
+				"worker_kind": "normal",
+				"workers": 1
+			},
+			"11": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"12": {
+				"maintenance": 2.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "artisan",
+				"workers": 2
+			},
+			"13": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"14": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"15": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"16": {
+				"maintenance": 2.0,
+				"ok": false,
+				"ratio": 1.0,
+				"reason": "仓储已满",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"17": {
+				"maintenance": 3.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"18": {
+				"maintenance": 3.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"19": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"2": {
+				"maintenance": 1.0,
+				"ok": false,
+				"ratio": 1.0,
+				"reason": "本区运力不足",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"20": {
+				"maintenance": 2.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 1,
+				"worker_kind": "normal",
+				"workers": 1
+			},
+			"21": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"22": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"23": {
+				"maintenance": 4.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 3,
+				"worker_kind": "normal",
+				"workers": 3
+			},
+			"24": {
+				"maintenance": 1.0,
+				"ok": false,
+				"ratio": 1.0,
+				"reason": "本区运力不足",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"25": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 1,
+				"worker_kind": "normal",
+				"workers": 1
+			},
+			"26": {
+				"maintenance": 2.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"27": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"28": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"29": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"3": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"30": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "果实待装运",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"31": {
+				"maintenance": 2.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"32": {
+				"maintenance": 4.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 3,
+				"worker_kind": "normal",
+				"workers": 3
+			},
+			"4": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"5": {
+				"maintenance": 2.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 2,
+				"worker_kind": "normal",
+				"workers": 2
+			},
+			"6": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"7": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"8": {
+				"maintenance": 0.0,
+				"ok": true,
+				"ratio": 0.0,
+				"reason": "正常",
+				"required_workers": 0,
+				"worker_kind": "normal",
+				"workers": 0
+			},
+			"9": {
+				"maintenance": 1.0,
+				"ok": true,
+				"ratio": 1.0,
+				"reason": "正常",
+				"required_workers": 1,
+				"worker_kind": "normal",
+				"workers": 1
+			}
+		},
+		"capacity": 1200,
+		"coins": 1033.99020416667,
+		"elapsed": 9362.0,
+		"failed": false,
+		"failure_reason": "",
+		"food_capacity": 1200,
+		"goods": {
+			"bamboo": 0.0,
+			"clay": 0.0,
+			"cloth": 377.923420833333,
+			"food": 999.999995833333,
+			"hemp": 544.205370833333,
+			"paper": 0.0,
+			"pottery": 0.0,
+			"tea": 0.0,
+			"tools": 0.0,
+			"wood": 205.35
+		},
+		"happiness": 83.0,
+		"households": {
+			"1": {
+				"artisan_workers": 4,
+				"assigned_workers": 2,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 0,
+				"people": 4,
+				"tier": "artisan",
+				"upgrade_remaining": 0.0
+			},
+			"13": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"14": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"21": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"22": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"27": {
+				"artisan_workers": 0,
+				"assigned_workers": 2,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"28": {
+				"artisan_workers": 0,
+				"assigned_workers": 0,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"29": {
+				"artisan_workers": 0,
+				"assigned_workers": 0,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"4": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"6": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"7": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			},
+			"8": {
+				"artisan_workers": 0,
+				"assigned_workers": 4,
+				"buffer": {
+					"cloth": 0.0,
+					"food": 0.0,
+					"pottery": 0.0,
+					"tools": 0.0
+				},
+				"craft_workers": 0,
+				"food_sources": {},
+				"normal_workers": 4,
+				"people": 4,
+				"tier": "farmer",
+				"upgrade_remaining": 0.0
+			}
+		},
+		"housing_capacity": 48,
+		"immigration_enabled": true,
+		"immigration_status": "需要接路的空床位",
+		"logistics_mode": "分区库存与道路／水路货运",
+		"maintenance": 36.0,
+		"migration_remaining": 0.0,
+		"normal_workers": 44,
+		"policies": {
+			"bamboo": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"clay": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"cloth": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"food": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"hemp": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"paper": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"pottery": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"tea": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"tools": {
+				"mode": "off",
+				"threshold": 0.0
+			},
+			"wood": {
+				"mode": "off",
+				"threshold": 30.0
+			}
+		},
+		"population": 48,
+		"rates": {
+			"bamboo": 0.0,
+			"clay": 0.0,
+			"cloth": 3.0,
+			"coins": 4.0,
+			"food": 0.0,
+			"hemp": 4.0,
+			"paper": 0.0,
+			"pottery": 0.0,
+			"tea": 0.0,
+			"tools": 0.0,
+			"wood": 20.0
+		},
+		"regions": {
+			"0": {
+				"capacity": 800,
+				"food_capacity": 800,
+				"goods": {
+					"bamboo": 0.0,
+					"clay": 0.0,
+					"cloth": 377.923420833333,
+					"food": 799.999995833333,
+					"hemp": 544.205370833333,
+					"paper": 0.0,
+					"pottery": 0.0,
+					"tea": 0.0,
+					"tools": 0.0,
+					"wood": 93.0666666666667
+				},
+				"people": 48,
+				"policies": {
+					"bamboo": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"clay": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"cloth": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"food": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"hemp": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"paper": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"pottery": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tea": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tools": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"wood": {
+						"mode": "off",
+						"threshold": 30.0
+					}
+				},
+				"trade_capacity": 12.0,
+				"transport_capacity": 288.0,
+				"transport_demand": 111.5,
+				"transport_used": 81.001
+			},
+			"1": {
+				"capacity": 200,
+				"food_capacity": 200,
+				"goods": {
+					"bamboo": 0.0,
+					"clay": 0.0,
+					"cloth": 0.0,
+					"food": 200.0,
+					"hemp": 0.0,
+					"paper": 0.0,
+					"pottery": 0.0,
+					"tea": 0.0,
+					"tools": 0.0,
+					"wood": 0.0
+				},
+				"people": 0,
+				"policies": {
+					"bamboo": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"clay": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"cloth": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"food": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"hemp": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"paper": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"pottery": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tea": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tools": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"wood": {
+						"mode": "off",
+						"threshold": 0.0
+					}
+				},
+				"trade_capacity": 0.0,
+				"transport_capacity": 64.0,
+				"transport_demand": 24.0,
+				"transport_used": 0.0
+			},
+			"2": {
+				"capacity": 200,
+				"food_capacity": 200,
+				"goods": {
+					"bamboo": 0.0,
+					"clay": 0.0,
+					"cloth": 0.0,
+					"food": 0.0,
+					"hemp": 0.0,
+					"paper": 0.0,
+					"pottery": 0.0,
+					"tea": 0.0,
+					"tools": 0.0,
+					"wood": 112.283333333333
+				},
+				"people": 0,
+				"policies": {
+					"bamboo": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"clay": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"cloth": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"food": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"hemp": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"paper": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"pottery": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tea": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"tools": {
+						"mode": "off",
+						"threshold": 0.0
+					},
+					"wood": {
+						"mode": "off",
+						"threshold": 0.0
+					}
+				},
+				"trade_capacity": 32.0,
+				"transport_capacity": 64.0,
+				"transport_demand": 12.0,
+				"transport_used": 12.0
+			}
+		},
+		"routes": [],
+		"shipments": [],
+		"trade_capacity": 44.0,
+		"trade_orders": {},
+		"trade_status": "未设置贸易",
+		"transport_capacity": 416.0,
+		"workforce": 48
+	},
+	"history": [
+		{
+			"available_workers": 4,
+			"coins": 56.0,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 40.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 108.0
+			},
+			"happiness": 60,
+			"housing": 4,
+			"level": 0,
+			"next": "人口还需达到 8",
+			"population": 4,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 0.0,
+				"food": 0.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 0.0
+			},
+			"time": 0.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 50.25,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 43.5,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 86.0
+			},
+			"happiness": 61,
+			"housing": 4,
+			"level": 0,
+			"next": "人口还需达到 8",
+			"population": 4,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 1.0,
+				"food": 14.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 0.0
+			},
+			"time": 15.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 39.2416666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 65.5083333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 28.0
+			},
+			"happiness": 64,
+			"housing": 8,
+			"level": 0,
+			"next": "木材还需达到 90",
+			"population": 8,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 11.9958333333333,
+				"food": 12.0041666666667,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 120.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 63.2416666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 89.5083333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 44.0
+			},
+			"happiness": 64,
+			"housing": 8,
+			"level": 0,
+			"next": "木材还需达到 90",
+			"population": 8,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 12.0,
+				"food": 12.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 240.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 87.2416666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 113.508333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 60.0
+			},
+			"happiness": 64,
+			"housing": 8,
+			"level": 0,
+			"next": "木材还需达到 90",
+			"population": 8,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 12.0,
+				"food": 12.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 360.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 111.241666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 137.508333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 76.0
+			},
+			"happiness": 64,
+			"housing": 8,
+			"level": 0,
+			"next": "木材还需达到 90",
+			"population": 8,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 12.0,
+				"food": 12.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 480.0
+		},
+		{
+			"available_workers": 2,
+			"coins": 127.241666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 148.508333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 25.0
+			},
+			"happiness": 64,
+			"housing": 8,
+			"level": 1,
+			"next": "人口还需达到 14",
+			"population": 8,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 12.0,
+				"food": 12.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 585.0
+		},
+		{
+			"available_workers": 4,
+			"coins": 126.4875,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 151.2625,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 15.0
+			},
+			"happiness": 64,
+			"housing": 12,
+			"level": 1,
+			"next": "人口还需达到 14",
+			"population": 10,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 12.2458333333333,
+				"food": 11.7541666666667,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 600.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 148.470833333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 169.279166666667,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 7.0
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 18,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 15.9916666666667,
+				"food": 8.00833333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 720.0
+		},
+		{
+			"available_workers": 14,
+			"coins": 184.216666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 181.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 23.0
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 18.0,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 840.0
+		},
+		{
+			"available_workers": 13,
+			"coins": 209.716666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 193.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 9.0
+			},
+			"happiness": 60,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 17.5,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 960.0
+		},
+		{
+			"available_workers": 13,
+			"coins": 243.716666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 205.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 25.0
+			},
+			"happiness": 60,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1080.0
+		},
+		{
+			"available_workers": 13,
+			"coins": 277.716666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 217.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 41.0
+			},
+			"happiness": 60,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1200.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 292.716666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 229.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 12.0
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 16.0,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1320.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 316.666666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 241.533333333333,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 16.0166666666667
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 16.0,
+				"food": 6.0,
+				"hemp": 0.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1440.0
+		},
+		{
+			"available_workers": 10,
+			"coins": 341.416666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 253.533333333333,
+				"hemp": 10.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 12.0166666666667
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 15.0,
+				"food": 6.0,
+				"hemp": 8.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1560.0
+		},
+		{
+			"available_workers": 10,
+			"coins": 371.416666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"food": 265.533333333333,
+				"hemp": 26.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 28.0166666666667
+			},
+			"happiness": 64,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.0,
+				"coins": 15.0,
+				"food": 6.0,
+				"hemp": 8.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1680.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 385.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.754166666666667,
+				"food": 277.533333333333,
+				"hemp": 41.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 6.01666666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 0.754166666666667,
+				"coins": 15.4833333333333,
+				"food": 6.0,
+				"hemp": 7.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1800.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 419.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 6.75416666666667,
+				"food": 289.533333333333,
+				"hemp": 49.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 22.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 1920.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 453.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 12.7541666666667,
+				"food": 301.533333333333,
+				"hemp": 57.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 38.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2040.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 487.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 18.7541666666667,
+				"food": 313.533333333333,
+				"hemp": 65.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 54.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2160.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 521.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 24.7541666666667,
+				"food": 325.533333333333,
+				"hemp": 73.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 70.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2280.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 555.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 30.7541666666667,
+				"food": 337.533333333333,
+				"hemp": 81.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 86.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2400.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 589.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 36.7541666666667,
+				"food": 349.533333333333,
+				"hemp": 89.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 102.016666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2520.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 623.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 42.7541666666667,
+				"food": 361.533333333333,
+				"hemp": 97.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 118.016666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2640.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 657.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 48.7541666666667,
+				"food": 373.533333333333,
+				"hemp": 105.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 134.016666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2760.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 691.9,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 54.7541666666667,
+				"food": 385.533333333333,
+				"hemp": 113.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 150.016666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 1,
+			"next": "木材还需达到 160",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2880.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 693.15,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 58.5041666666667,
+				"food": 328.033333333333,
+				"hemp": 118.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 70.0166666666667
+			},
+			"happiness": 65,
+			"housing": 20,
+			"level": 2,
+			"next": "幸福度还需达到 68",
+			"population": 20,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.0,
+				"food": 6.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 2955.0
+		},
+		{
+			"available_workers": 10,
+			"coins": 692.641666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 60.7541666666667,
+				"food": 331.541666666667,
+				"hemp": 121.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 24.0166666666667
+			},
+			"happiness": 65,
+			"housing": 28,
+			"level": 2,
+			"next": "幸福度还需达到 68",
+			"population": 24,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.7416666666667,
+				"food": 5.00833333333333,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 11.0
+			},
+			"time": 3000.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 713.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 66.7541666666667,
+				"food": 356.55,
+				"hemp": 129.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 24.0333333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 17.95,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 3120.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 749.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 72.7541666666667,
+				"food": 400.55,
+				"hemp": 137.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 64.0333333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3240.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 785.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 78.7541666666667,
+				"food": 444.55,
+				"hemp": 145.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 104.033333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3360.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 821.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 84.7541666666667,
+				"food": 488.55,
+				"hemp": 153.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 144.033333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3480.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 857.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 90.7541666666667,
+				"food": 499.999995833333,
+				"hemp": 161.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 184.033333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3600.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 893.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 96.7541666666667,
+				"food": 499.999995833333,
+				"hemp": 169.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 224.033333333333
+			},
+			"happiness": 68,
+			"housing": 28,
+			"level": 2,
+			"next": "木材还需达到 225",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3720.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 858.083333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 97.5041666666667,
+				"food": 404.999995833333,
+				"hemp": 170.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 39.0333333333333
+			},
+			"happiness": 73,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 18.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 3735.0
+		},
+		{
+			"available_workers": 10,
+			"coins": 863.233333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 102.754166666667,
+				"food": 443.499995833333,
+				"hemp": 177.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 22.0666666666667
+			},
+			"happiness": 74,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 15.7,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 3840.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 868.433333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 108.754166666667,
+				"food": 487.499995833333,
+				"hemp": 185.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 9.28333333333333
+			},
+			"happiness": 76,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 14.2,
+				"food": 22.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 3960.0
+		},
+		{
+			"available_workers": 8,
+			"coins": 881.383333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 114.754166666667,
+				"food": 499.999995833333,
+				"hemp": 193.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 26.1
+			},
+			"happiness": 77,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 10.95,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 4080.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 880.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 120.754166666667,
+				"food": 499.999995833333,
+				"hemp": 201.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 17.3166666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.95,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 4200.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 898.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 126.754166666667,
+				"food": 499.999995833333,
+				"hemp": 209.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 58.1166666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4320.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 916.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 132.754166666667,
+				"food": 499.999995833333,
+				"hemp": 217.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 98.1166666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4440.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 934.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 138.754166666667,
+				"food": 499.999995833333,
+				"hemp": 225.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 138.116666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4560.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 952.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 144.754166666667,
+				"food": 499.999995833333,
+				"hemp": 233.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 178.116666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4680.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 970.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 150.754166666667,
+				"food": 499.999995833333,
+				"hemp": 241.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 218.116666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4800.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 988.333333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 156.754166666667,
+				"food": 499.999995833333,
+				"hemp": 249.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 258.116666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 4920.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 1006.33333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 162.754166666667,
+				"food": 499.999995833333,
+				"hemp": 257.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 298.116666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 3,
+			"next": "木材还需达到 300",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5040.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 943.583333333333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 163.504166666667,
+				"food": 414.999995833333,
+				"hemp": 258.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 53.1166666666667
+			},
+			"happiness": 81,
+			"housing": 28,
+			"level": 4,
+			"next": "人口还需达到 36",
+			"population": 28,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 9.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5055.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 955.266666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 168.754166666667,
+				"food": 449.5166625,
+				"hemp": 265.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 64.1333333333333
+			},
+			"happiness": 79,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 11.9916666666667,
+				"food": 19.0083333333333,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5160.0
+		},
+		{
+			"available_workers": 10,
+			"coins": 930.216666666667,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 174.587166666667,
+				"food": 491.3491625,
+				"hemp": 272.8335,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 15.0165
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 2.833,
+				"coins": 8.0,
+				"food": 23.8325,
+				"hemp": 3.8335,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 19.6665
+			},
+			"time": 5280.0
+		},
+		{
+			"available_workers": 9,
+			"coins": 933.881870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 180.157420833333,
+				"food": 529.674933333333,
+				"hemp": 280.4050375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 24.9743333333333
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 2.66676666666667,
+				"coins": 5.95416666666667,
+				"food": 29.6749375,
+				"hemp": 3.6677625,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 19.3505708333333
+			},
+			"time": 5400.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 926.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 185.823420833333,
+				"food": 593.339933333333,
+				"hemp": 288.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 26.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.95,
+				"food": 34.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0166666666667
+			},
+			"time": 5520.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 936.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 191.823420833333,
+				"food": 661.339933333333,
+				"hemp": 296.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 66.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 34.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5640.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 946.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 197.823420833333,
+				"food": 729.339933333333,
+				"hemp": 304.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 106.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 34.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5760.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 956.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 203.823420833333,
+				"food": 797.339933333333,
+				"hemp": 312.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 146.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 34.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 5880.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 966.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 209.823420833333,
+				"food": 799.999991666667,
+				"hemp": 320.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 186.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6000.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 976.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 215.823420833333,
+				"food": 799.999991666667,
+				"hemp": 328.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 226.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6120.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 986.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 221.823420833333,
+				"food": 799.999991666667,
+				"hemp": 336.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 266.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6240.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 996.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 227.823420833333,
+				"food": 799.999991666667,
+				"hemp": 344.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 306.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6360.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 1006.83187083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 233.823420833333,
+				"food": 799.999991666667,
+				"hemp": 352.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 346.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6480.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 1016.83187083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 239.823420833333,
+				"food": 799.999991666667,
+				"hemp": 360.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 366.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 6600.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 1026.83187083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 245.823420833333,
+				"food": 799.999991666667,
+				"hemp": 368.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 382.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 4,
+			"next": "木材还需达到 390",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 6720.0
+		},
+		{
+			"available_workers": 7,
+			"coins": 936.831870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 248.823420833333,
+				"food": 619.999991666667,
+				"hemp": 372.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 150.324
+			},
+			"happiness": 86,
+			"housing": 36,
+			"level": 5,
+			"next": "人口还需达到 45",
+			"population": 36,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 5.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 6780.0
+		},
+		{
+			"available_workers": 9,
+			"coins": 916.9735375,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 251.823420833333,
+				"food": 652.508325,
+				"hemp": 376.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 88.3573333333333
+			},
+			"happiness": 85,
+			"housing": 48,
+			"level": 5,
+			"next": "人口还需达到 45",
+			"population": 40,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 6.14166666666667,
+				"food": 32.5083333333333,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0333333333333
+			},
+			"time": 6840.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 911.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 257.823420833333,
+				"food": 747.524991666667,
+				"hemp": 384.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 90.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 7.49166666666667,
+				"food": 64.5083333333333,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 6960.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 927.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 263.823420833333,
+				"food": 839.524991666667,
+				"hemp": 392.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 130.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 28.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7080.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 943.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 269.823420833333,
+				"food": 943.999991666667,
+				"hemp": 400.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 170.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 40.475,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7200.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 959.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 275.823420833333,
+				"food": 979.999991666667,
+				"hemp": 408.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 210.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 36.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7320.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 975.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 281.823420833333,
+				"food": 999.999991666667,
+				"hemp": 416.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 250.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 20.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7440.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 991.906870833333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 287.823420833333,
+				"food": 999.999991666667,
+				"hemp": 424.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 290.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7560.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1007.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 293.823420833333,
+				"food": 999.999991666667,
+				"hemp": 432.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 330.374
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 7680.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1023.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 299.823420833333,
+				"food": 999.999991666667,
+				"hemp": 440.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 346.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 7800.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1039.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 305.823420833333,
+				"food": 999.999991666667,
+				"hemp": 448.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 362.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 7920.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1055.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 311.823420833333,
+				"food": 999.999991666667,
+				"hemp": 456.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 378.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8040.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1071.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 317.823420833333,
+				"food": 999.999991666667,
+				"hemp": 464.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 394.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8160.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1087.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 323.823420833333,
+				"food": 999.999991666667,
+				"hemp": 472.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 410.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8280.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1103.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 329.823420833333,
+				"food": 999.999991666667,
+				"hemp": 480.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 426.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8400.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1119.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 335.823420833333,
+				"food": 999.999991666667,
+				"hemp": 488.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 442.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8520.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1135.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 341.823420833333,
+				"food": 999.999991666667,
+				"hemp": 496.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 458.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8640.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1151.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 347.823420833333,
+				"food": 999.999991666667,
+				"hemp": 504.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 474.666666666667
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 5,
+			"next": "木材还需达到 480",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8760.0
+		},
+		{
+			"available_workers": 15,
+			"coins": 1032.90687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 350.073420833333,
+				"food": 849.999991666667,
+				"hemp": 507.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 90.6666666666667
+			},
+			"happiness": 88,
+			"housing": 48,
+			"level": 6,
+			"next": "河谷全境已开放",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 8.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 8.0
+			},
+			"time": 8805.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 1001.85687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 353.823420833333,
+				"food": 884.999991666667,
+				"hemp": 512.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 44.6833333333333
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 6,
+			"next": "河谷全境已开放",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.0,
+				"food": 28.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 8880.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 1009.85687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 359.823420833333,
+				"food": 940.999991666667,
+				"hemp": 520.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 84.6833333333333
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 6,
+			"next": "河谷全境已开放",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.0,
+				"food": 28.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 9000.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 1017.85687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 365.823420833333,
+				"food": 996.999991666667,
+				"hemp": 528.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 124.683333333333
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 6,
+			"next": "河谷全境已开放",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.0,
+				"food": 28.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 9120.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 1025.85687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 371.823420833333,
+				"food": 999.999995833333,
+				"hemp": 536.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 164.683333333333
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 6,
+			"next": "河谷全境已开放",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 9240.0
+		},
+		{
+			"available_workers": 12,
+			"coins": 1033.85687083333,
+			"goods": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 377.823420833333,
+				"food": 999.999995833333,
+				"hemp": 544.0720375,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 204.683333333333
+			},
+			"happiness": 83,
+			"housing": 48,
+			"level": 6,
+			"next": "游戏已结束，无法继续开拓",
+			"population": 48,
+			"rates": {
+				"bamboo": 0.0,
+				"clay": 0.0,
+				"cloth": 3.0,
+				"coins": 4.0,
+				"food": 0.0,
+				"hemp": 4.0,
+				"paper": 0.0,
+				"pottery": 0.0,
+				"tea": 0.0,
+				"tools": 0.0,
+				"wood": 20.0
+			},
+			"time": 9360.0
+		}
+	],
+	"level": 6,
+	"minimum_coins": 27.2458333333333,
+	"ok": true,
+	"purchases": [
+		{
+			"cash_after": 50,
+			"cash_before": 56,
+			"cell": [
+				4,
+				10
+			],
+			"id": 2,
+			"region": 0,
+			"time": 0.0,
+			"type": "farm"
+		},
+		{
+			"cash_after": 44,
+			"cash_before": 50,
+			"cell": [
+				13,
+				10
+			],
+			"id": 3,
+			"region": 0,
+			"time": 15.0,
+			"type": "lumber"
+		},
+		{
+			"cash_after": 40,
+			"cash_before": 44,
+			"cell": [
+				11,
+				9
+			],
+			"id": 4,
+			"region": 0,
+			"time": 30.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 24,
+			"cash_before": 40,
+			"cell": [
+				11,
+				11
+			],
+			"id": 5,
+			"region": 0,
+			"time": 45.0,
+			"type": "workshop"
+		},
+		{
+			"cash_after": 123,
+			"cash_before": 127,
+			"cell": [
+				9,
+				11
+			],
+			"id": 6,
+			"region": 0,
+			"time": 585.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 125,
+			"cash_before": 129,
+			"cell": [
+				9,
+				8
+			],
+			"id": 7,
+			"region": 0,
+			"time": 615.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 144,
+			"cash_before": 148,
+			"cell": [
+				11,
+				8
+			],
+			"id": 8,
+			"region": 0,
+			"time": 705.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 201,
+			"cash_before": 211,
+			"cell": [
+				12,
+				8
+			],
+			"id": 9,
+			"region": 0,
+			"time": 930.0,
+			"type": "warehouse"
+		},
+		{
+			"cash_after": 276,
+			"cash_before": 294,
+			"cell": [
+				6,
+				11
+			],
+			"id": 10,
+			"region": 0,
+			"time": 1260.0,
+			"type": "market"
+		},
+		{
+			"cash_after": 322,
+			"cash_before": 328,
+			"cell": [
+				4,
+				7
+			],
+			"id": 11,
+			"region": 0,
+			"time": 1485.0,
+			"type": "hemp_farm"
+		},
+		{
+			"cash_after": 381,
+			"cash_before": 397,
+			"cell": [
+				11,
+				6
+			],
+			"id": 12,
+			"region": 0,
+			"time": 1785.0,
+			"type": "weaver"
+		},
+		{
+			"cash_after": 689,
+			"cash_before": 693,
+			"cell": [
+				8,
+				9
+			],
+			"id": 13,
+			"region": 0,
+			"time": 2955.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 689,
+			"cash_before": 693,
+			"cell": [
+				9,
+				12
+			],
+			"id": 14,
+			"region": 0,
+			"time": 2970.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 688,
+			"cash_before": 694,
+			"cell": [
+				20,
+				14
+			],
+			"id": 15,
+			"region": 2,
+			"time": 2985.0,
+			"type": "lumber"
+		},
+		{
+			"cash_after": 695,
+			"cash_before": 711,
+			"cell": [
+				13,
+				12
+			],
+			"id": 16,
+			"region": 0,
+			"time": 3060.0,
+			"type": "fishpond"
+		},
+		{
+			"cash_after": 852,
+			"cash_before": 876,
+			"cell": [
+				8,
+				6
+			],
+			"id": 17,
+			"region": 0,
+			"time": 3795.0,
+			"type": "clinic"
+		},
+		{
+			"cash_after": 865,
+			"cash_before": 889,
+			"cell": [
+				8,
+				14
+			],
+			"id": 18,
+			"region": 0,
+			"time": 3945.0,
+			"type": "clinic"
+		},
+		{
+			"cash_after": 870,
+			"cash_before": 880,
+			"cell": [
+				10,
+				16
+			],
+			"id": 19,
+			"region": 0,
+			"time": 4020.0,
+			"type": "pavilion"
+		},
+		{
+			"cash_after": 875,
+			"cash_before": 897,
+			"cell": [
+				11,
+				3
+			],
+			"id": 20,
+			"region": 0,
+			"time": 4170.0,
+			"type": "garden"
+		},
+		{
+			"cash_after": 939,
+			"cash_before": 943,
+			"cell": [
+				7,
+				9
+			],
+			"id": 21,
+			"region": 0,
+			"time": 5055.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 938,
+			"cash_before": 942,
+			"cell": [
+				9,
+				13
+			],
+			"id": 22,
+			"region": 0,
+			"time": 5070.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 923,
+			"cash_before": 961,
+			"cell": [
+				12,
+				16
+			],
+			"id": 23,
+			"region": 0,
+			"time": 5190.0,
+			"type": "academy"
+		},
+		{
+			"cash_after": 926,
+			"cash_before": 932,
+			"cell": [
+				0,
+				10
+			],
+			"id": 24,
+			"region": 0,
+			"time": 5250.0,
+			"type": "farm"
+		},
+		{
+			"cash_after": 927,
+			"cash_before": 937,
+			"cell": [
+				6,
+				7
+			],
+			"id": 25,
+			"region": 0,
+			"time": 5340.0,
+			"type": "warehouse"
+		},
+		{
+			"cash_after": 921,
+			"cash_before": 939,
+			"cell": [
+				7,
+				4
+			],
+			"id": 26,
+			"region": 0,
+			"time": 5460.0,
+			"type": "freight"
+		},
+		{
+			"cash_after": 932,
+			"cash_before": 936,
+			"cell": [
+				11,
+				14
+			],
+			"id": 27,
+			"region": 0,
+			"time": 6780.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 930,
+			"cash_before": 934,
+			"cell": [
+				12,
+				14
+			],
+			"id": 28,
+			"region": 0,
+			"time": 6795.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 927,
+			"cash_before": 931,
+			"cell": [
+				10,
+				3
+			],
+			"id": 29,
+			"region": 0,
+			"time": 6810.0,
+			"type": "house"
+		},
+		{
+			"cash_after": 915,
+			"cash_before": 929,
+			"cell": [
+				13,
+				20
+			],
+			"id": 30,
+			"region": 1,
+			"time": 6825.0,
+			"type": "orchard"
+		},
+		{
+			"cash_after": 898,
+			"cash_before": 916,
+			"cell": [
+				0,
+				6
+			],
+			"id": 31,
+			"region": 0,
+			"time": 6840.0,
+			"type": "freight"
+		},
+		{
+			"cash_after": 996,
+			"cash_before": 1032,
+			"cell": [
+				20,
+				16
+			],
+			"id": 32,
+			"region": 2,
+			"time": 8805.0,
+			"type": "trading_post"
+		}
+	],
+	"simulated_seconds": 9360.0,
+	"strategy": "self_sufficient",
+	"trade_mode": "disabled",
+	"trade_orders": []
+}

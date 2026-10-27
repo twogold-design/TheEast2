@@ -1,7 +1,7 @@
 extends Node
 
 ## Music owns its real-time clock and its preferences, independently of a town save.
-const TRACK_PATH := "res://godot/assets/audio/riverside_day.wav"
+const TRACK_PATH := "res://godot/assets/audio/country_meadow.wav"
 const DEFAULT_VOLUME := 0.45
 const FADE_SECONDS := 2.8
 

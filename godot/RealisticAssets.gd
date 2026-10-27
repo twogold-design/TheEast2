@@ -8,10 +8,13 @@ const ArtKit = preload("res://godot/ArtAssets.gd")
 const AnimalKit = preload("res://godot/AnimalAssets.gd")
 const OpenMarketKit = preload("res://godot/OpenMarketAssets.gd")
 const MarketActivityKit = preload("res://godot/MarketCharacterAnimation.gd")
+const LumberActivityKit = preload("res://godot/LumberCharacterAnimation.gd")
 const OpenWorkshopKit = preload("res://godot/OpenWorkshopAssets.gd")
 const OpenClinicKit = preload("res://godot/OpenClinicAssets.gd")
 const OpenWarehouseKit = preload("res://godot/OpenWarehouseAssets.gd")
 const FishpondKit = preload("res://godot/FishpondAssets.gd")
+const ExpandedBuildingKit = preload("res://godot/ExpandedBuildingAssets.gd")
+const ExpandedIndustryKit = preload("res://godot/ExpandedIndustryAssets.gd")
 const BASE_DIR := "res://godot/assets/realistic/models"
 const MANIFEST_PATH := BASE_DIR + "/realistic_manifest.json"
 
@@ -89,6 +92,60 @@ static func create_asset(key: String, preview := false, allow_fallback := true, 
 	return fallback
 
 static func create_building(type: String, preview := false, allow_fallback := true, compact := false, farm_cells := Vector2i(2, 2)) -> Node3D:
+	if type in ExpandedIndustryKit.TYPES:
+		var industry := ExpandedIndustryKit.create_building(type, preview)
+		if type not in ["garden", "pavilion"]:
+			var worker := create_citizen_variant(210 + ExpandedIndustryKit.TYPES.find(type), 6 if type in ["tea_farm", "teahouse", "papermill"] else 0, allow_fallback)
+			if worker:
+				worker.name = "WorkingResident"
+				worker.scale = Vector3.ONE * 0.44
+				worker.position = industry.get_node("ArtisanAnchor").position
+				industry.add_child(worker)
+				MarketActivityKit.attach(worker, "vendor", 2, preview)
+		if preview:
+			apply_preview_tint(industry, true)
+		return industry
+	if (not compact or type == "well") and type in ["lumber", "workshop", "warehouse", "market", "fishpond", "weaver", "academy", "well"]:
+		var source: Node3D = null
+		if type in ["workshop", "warehouse", "weaver", "academy"]:
+			source = create_asset("building.warehouse" if type == "warehouse" else "building.workshop", false, allow_fallback)
+			if source == null:
+				return null
+		var expanded := ExpandedBuildingKit.create_building(type, preview, source)
+		if type in ["workshop", "weaver", "lumber"]:
+			var worker := create_citizen_variant(200, 0 if type == "lumber" else (6 if type == "weaver" else 1), allow_fallback)
+			if worker:
+				worker.name = "WorkshopArtisan" if type == "workshop" else "WorkingResident"
+				worker.scale = Vector3.ONE * 0.44
+				worker.position = expanded.get_node("ArtisanAnchor").position
+				expanded.add_child(worker)
+				if type == "lumber":
+					LumberActivityKit.attach(worker, expanded, preview)
+				else:
+					var activity := MarketActivityKit.attach(worker, "workshop" if type == "workshop" else "vendor", 0, preview)
+					if type == "workshop":
+						activity.attach_workshop_hammer()
+		if type == "market":
+			for i in range(6):
+				var vendor := create_citizen_variant(100 + i, [0, 3, 6, 1, 0, 7][i], allow_fallback)
+				if vendor:
+					vendor.name = "MarketVendor_%d" % i
+					vendor.scale = Vector3.ONE * 0.48
+					vendor.position = expanded.get_node("VendorAnchor_%d" % i).position
+					vendor.rotation.y = (PI / 2 if i < 2 else -PI / 2) if i < 4 else 0.0
+					expanded.add_child(vendor)
+					MarketActivityKit.attach(vendor, "vendor", i, preview)
+			for i in range(2):
+				var visitor := create_citizen_variant(110 + i, [4, 6][i], allow_fallback)
+				if visitor:
+					visitor.name = "MarketCustomer_%d" % i
+					visitor.scale = Vector3.ONE * 0.48
+					visitor.position = Vector3(-0.18 if i == 0 else 0.18, 0.28, -0.8 if i == 0 else 1.0)
+					expanded.add_child(visitor)
+					MarketActivityKit.attach(visitor, "customer", i + 4, preview)
+		if preview:
+			apply_preview_tint(expanded, true)
+		return expanded
 	if type == "house":
 		var source := create_asset("building.house", false, allow_fallback)
 		if source and source.get_meta("asset_source", "") == "realistic":
@@ -106,10 +163,18 @@ static func create_building(type: String, preview := false, allow_fallback := tr
 				collision.free()
 			apply_preview_tint(source, true)
 		return source
-	if type == "farm":
+	if type in ["farm", "hemp_farm"]:
+		if type == "hemp_farm":
+			farm_cells = Vector2i(2, 2)
 		var source := create_asset("building.farm", false, allow_fallback)
 		if source:
 			var farm := preload("res://godot/ExpandedFarmAssets.gd").create_farm(source, farm_cells)
+			if type == "hemp_farm":
+				ExpandedBuildingKit.apply_recipe_visual(farm, "farm", "hemp")
+				farm.name = "HempFarm"
+				farm.set_meta("building_type", "hemp_farm")
+				farm.set_meta("asset_key", "building.hemp_farm")
+				farm.set_meta("footprint_cells", Vector2i(2, 2))
 			if preview:
 				apply_preview_tint(farm, true)
 			else:
@@ -267,6 +332,11 @@ static func get_animal_species() -> Array[String]:
 
 static func apply_preview_tint(root: Node3D, valid: bool) -> void:
 	ArtKit.apply_preview_tint(root, valid)
+	# Crop foliage is batched. Tint its instance, never mutate shared meshes.
+	var crop_preview := ArtKit._material(ArtKit.PALETTE.preview_valid if valid else ArtKit.PALETTE.preview_invalid, 0.46, true)
+	for batch in root.find_children("*", "MultiMeshInstance3D", true, false):
+		batch.material_override = crop_preview
+		batch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for label in root.find_children("*", "Label3D", true, false):
 		label.modulate = Color(0.40, 0.90, 0.65, 0.55) if valid else Color(0.95, 0.35, 0.30, 0.55)
 

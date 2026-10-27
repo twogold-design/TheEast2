@@ -1,5 +1,9 @@
 extends Node
 
+const RoadSurfaceKit = preload("res://godot/RoadSurfaceAssets.gd")
+const MapGraphKit = preload("res://godot/economy/SettlementMapGraph.gd")
+const EconomyKit = preload("res://godot/economy/SettlementEconomy.gd")
+const ExpandedBuildingKit = preload("res://godot/ExpandedBuildingAssets.gd")
 const RealisticKit = preload("res://godot/RealisticAssets.gd")
 const AnimalKit = preload("res://godot/AnimalAssets.gd")
 const RiverWaterKit = preload("res://godot/RiverWater.gd")
@@ -59,7 +63,7 @@ const GRID_SIZE := 48
 # little breathing room.  The 2.2 m pitch leaves a narrow courtyard gap between
 # adjacent houses and keeps the grid readable at the planning camera distance.
 const TILE_SIZE := 2.2
-const ROAD_WIDTH := 1.0
+const ROAD_WIDTH := 1.08
 # A natural, non-editable apron surrounds the logical 48x48 map.  Gameplay,
 # region and save coordinates continue to use GRID_SIZE; only the rendered land
 # extends into this margin so the planning camera does not expose a hard edge.
@@ -76,26 +80,25 @@ const CAMERA_EDGE_SAFETY_MARGIN := 5.0
 const CAMERA_EDGE_BROWSE_CELLS := 4
 const CAMERA_MIN_PITCH_DEGREES := 30.0
 const CAMERA_MAX_PITCH_DEGREES := 70.0
-const EDITOR_SAVE_PATH := "res://saves/savegame.json"
-const SAVE_VERSION := 4
-const VICTORY_POPULATION := 45
-const VICTORY_WOOD := 200
-const VICTORY_FOOD := 200
-const VICTORY_HAPPINESS := 80
-const VICTORY_COINS := 150
-const VICTORY_STABLE_DAYS := 7
-const AUTO_DAY_SECONDS := 8.0
+const EDITOR_SAVE_PATH := "res://saves/east_full_v2.json"
+const SAVE_VERSION := 6
+const VICTORY_POPULATION = EconomyKit.Balance.VICTORY.population
+const VICTORY_WOOD = EconomyKit.Balance.VICTORY.wood
+const VICTORY_FOOD = EconomyKit.Balance.VICTORY.food
+const VICTORY_HAPPINESS = EconomyKit.Balance.VICTORY.happiness
+const VICTORY_COINS = EconomyKit.Balance.VICTORY.coins
+const VICTORY_STABLE_DAYS := 0
+const AUTO_DAY_SECONDS := 60.0
 const TIME_SPEEDS := [1.0, 2.0, 4.0]
 const BASIC_TRADE_COINS_PER_SITE := 2
 const BASIC_TRADE_COIN_CAP := 4
 const ROAD_WOOD_COST := 1
 const ROAD_TRANSPORT_BONUS := 1
 const ROAD_TRANSPORT_COIN_CAP := 6
-const ROAD_ELIGIBLE_BUILDING_TYPES := ["farm", "fishpond", "lumber", "workshop", "market", "academy"]
-# Regional markets occupy a small open courtyard instead of a single house
-# tile.  The anchor is the north-west cell; the visual is centered across all
-# four cells and every occupied cell remains selectable for inspection.
-const BUILDING_FOOTPRINTS := {"market": Vector2i(2, 2), "warehouse": Vector2i(2, 2), "fishpond": Vector2i(3, 2), "farm": Vector2i(2, 2), "workshop": Vector2i(2, 2), "clinic": Vector2i(2, 2)}
+const ROAD_ELIGIBLE_BUILDING_TYPES := ["house", "farm", "fishpond", "lumber", "workshop", "weaver", "warehouse", "market", "clinic", "academy"]
+# Functional compounds reserve their entire yard. The anchor is north-west;
+# the visual and rotated boundary are centered on every occupied cell.
+var BUILDING_FOOTPRINTS: Dictionary = building_footprints()
 const VILLAGE_ROAD_X := 10
 const VILLAGE_ROAD_MIN_Z := 4
 const VILLAGE_ROAD_MAX_Z := 15
@@ -128,7 +131,7 @@ const CITIZEN_SCHEDULE := [
 ]
 
 const REGION_DEFINITIONS := [
-	{"id": "river_core", "name": "河湾故地", "short_name": "故地", "area": 400, "summary": "开局营地与基础生产"},
+	{"id": "river_core", "name": "河湾故地", "short_name": "故地", "area": 400, "summary": "基础居住、粮食与木材生产"},
 	{"id": "north_terrace", "name": "北坡梯田", "short_name": "北坡", "area": 200, "summary": "河岸耕地、鱼塘养殖与集市商贸"},
 	{"id": "east_woodland", "name": "东麓林场", "short_name": "东麓", "area": 200, "summary": "林业用地与仓储扩张"},
 	{"id": "highland", "name": "云岫高台", "short_name": "高台", "area": 100, "summary": "工坊高地、医馆与聚落中心"},
@@ -137,46 +140,18 @@ const REGION_DEFINITIONS := [
 	{"id": "sky_capital", "name": "天际新都", "short_name": "新都", "area": 432, "summary": "最终新城与发展成果展示区"}
 ]
 
-const REGION_UNLOCK_COSTS := [
-	{"wood": 0, "food": 0, "coins": 0},
-	{"wood": 65, "food": 30, "coins": 15},
-	{"wood": 130, "food": 65, "coins": 35},
-	{"wood": 190, "food": 95, "coins": 60},
-	{"wood": 250, "food": 135, "coins": 90},
-	{"wood": 320, "food": 180, "coins": 125},
-	{"wood": 390, "food": 230, "coins": 165}
-]
-
-const REGION_REQUIREMENTS := [
-	{},
-	# Stock targets leave a reserve after expansion costs. Players choose their
-	# own building mix and location; only these five visible values gate a region.
-	{"wood": 90, "food": 60, "coins": 45, "population": 8, "happiness": 55},
-	{"wood": 160, "food": 110, "coins": 85, "population": 14, "happiness": 60},
-	{"wood": 225, "food": 150, "coins": 130, "population": 20, "happiness": 68},
-	{"wood": 300, "food": 200, "coins": 190, "population": 28, "happiness": 72},
-	{"wood": 390, "food": 260, "coins": 260, "population": 36, "happiness": 76},
-	{"wood": 480, "food": 330, "coins": 350, "population": 45, "happiness": 80},
-]
-
-const REGION_UNLOCK_REWARDS := [
-	{"wood": 0, "food": 0, "coins": 0, "happiness": 0},
-	{"wood": 0, "food": 20, "coins": 10, "happiness": 0},
-	{"wood": 40, "food": 0, "coins": 15, "happiness": 0},
-	{"wood": 0, "food": 0, "coins": 20, "happiness": 5},
-	{"wood": 0, "food": 50, "coins": 25, "happiness": 0},
-	{"wood": 80, "food": 0, "coins": 30, "happiness": 0},
-	{"wood": 0, "food": 80, "coins": 40, "happiness": 5}
-]
+const REGION_UNLOCK_COSTS = EconomyKit.Balance.REGION_UNLOCK_COSTS
+const REGION_REQUIREMENTS = EconomyKit.Balance.REGION_REQUIREMENTS
+const REGION_UNLOCK_REWARDS = EconomyKit.Balance.REGION_UNLOCK_REWARDS
 
 const REGION_UNLOCK_FEEDBACK := [
 	"",
-	"北坡梯田已开放：新的河岸耕地可供规划，集市与鱼塘已解锁。",
-	"东麓林场已开放：林间空地与新伐木带可用。",
-	"云岫高台已开放：高台新城与工坊区可用，医馆建筑已解锁。",
-	"沧波东原已开放：大片平原可建设住宅、粮田和仓储，书院建筑已解锁。",
-	"朔岭关田已开放：山林资源与后期工坊区可用。",
-	"天际新都已开放：七境相连，最终复兴目标已开启。"
+	"北坡梯田已开放：集市、鱼塘与织坊解锁，独立麻田供应麻料。",
+	"东麓林场已开放：果园、货运站与竹林场解锁。",
+	"云岫高台已开放：医馆、休憩亭、园林与茶园解锁。",
+	"沧波东原已开放：书院、戏台、粮仓、茶馆与造纸坊解锁。",
+	"朔岭关田已开放：码头、采泥场与陶窑解锁。",
+	"天际新都已开放：商栈解锁，最终复兴目标开启。"
 ]
 
 const CAMPAIGN_STAGE_NAMES := [
@@ -188,69 +163,19 @@ const CAMPAIGN_CHAPTERS := ["第一章", "第二章", "第三章", "第四章", 
 # These five tools make up the complete starting settlement kit.  Regional
 # expansion adds new types to the other pages; it must never replace or hide an
 # opening building.
-const INITIAL_BUILDING_TYPES := ["house", "farm", "lumber", "workshop", "warehouse"]
+const INITIAL_BUILDING_TYPES := ["house", "farm", "lumber", "workshop", "warehouse", "well"]
 
-const BUILDINGS := {
-	"house": {
-		"name": "民居", "cost": 12, "coin_cost": 4,
-		"workers": 0, "maintenance": 0, "staffing": "passive",
-		"inputs": {"food": 1}, "outputs": {}, "effects": {"housing": 4},
-		"unlock_level": 0, "category": "basic", "color": Color("c98963")
-	},
-	"lumber": {
-		"name": "伐木场", "cost": 22, "coin_cost": 6,
-		"workers": 2, "maintenance": 1, "staffing": "proportional",
-		"inputs": {}, "outputs": {"wood": 7}, "effects": {}, "trade_coins": BASIC_TRADE_COINS_PER_SITE,
-		"unlock_level": 0, "category": "industry", "color": Color("8a5c3b")
-	},
-	"farm": {
-		"name": "农田", "cost": 18, "coin_cost": 6,
-		"workers": 2, "maintenance": 1, "staffing": "proportional",
-		"inputs": {}, "outputs": {"food": 10}, "effects": {}, "trade_coins": BASIC_TRADE_COINS_PER_SITE,
-		"unlock_level": 0, "category": "basic", "color": Color("b9956e")
-	},
-	"warehouse": {
-		"name": "仓库", "cost": 30, "coin_cost": 10,
-		"workers": 0, "maintenance": 1, "staffing": "passive", "requires_road": true,
-		"inputs": {}, "outputs": {}, "effects": {"wood_capacity": 75, "food_capacity": 75},
-		"unlock_level": 0, "category": "basic", "color": Color("7f6b52")
-	},
-	"workshop": {
-		"name": "小工坊", "cost": 38, "coin_cost": 16,
-		"workers": 3, "maintenance": 2, "staffing": "full",
-		"inputs": {"wood": 4, "food": 2}, "outputs": {"coins": 10},
-		"effects": {"happiness_target": 4}, "effect_cap": 12,
-		"unlock_level": 0, "category": "industry", "color": Color("5e7173")
-	},
-	"market": {
-		"name": "集市", "cost": 45, "coin_cost": 18,
-		"workers": 2, "maintenance": 2, "staffing": "full",
-		"inputs": {"food": 3}, "outputs": {"coins": 9}, "effects": {},
-		"unlock_level": 1, "category": "industry", "color": Color("b35c48")
-	},
-	"fishpond": {
-		"name": "鱼塘", "cost": 40, "coin_cost": 16,
-		"workers": 2, "maintenance": 2, "staffing": "proportional",
-		"inputs": {}, "outputs": {"food": 14}, "effects": {},
-		"unlock_level": 1, "category": "industry", "color": Color("548d8a")
-	},
-	"clinic": {
-		"name": "医馆", "cost": 52, "coin_cost": 24,
-		"workers": 2, "maintenance": 3, "staffing": "full",
-		"inputs": {}, "outputs": {}, "effects": {"happiness_target": 7}, "effect_cap": 14,
-		"unlock_level": 3, "category": "civic", "color": Color("6f9982")
-	},
-	"academy": {
-		"name": "书院", "cost": 68, "coin_cost": 38,
-		"workers": 3, "maintenance": 4, "staffing": "full",
-		"inputs": {}, "outputs": {"coins": 5},
-		"effects": {"happiness_target": 4}, "effect_cap": 8,
-		"unlock_level": 4, "category": "civic", "color": Color("496b7a")
-	}
-}
+var BUILDINGS: Dictionary = building_catalog()
 
+var economy = EconomyKit.new()
+var economy_snapshot: Dictionary = {}
+var inspector_promote_button: Button
+var economy_refresh_elapsed := 0.0
+var last_population_pressure := ""
+var restoring_economy := false
+var victory_achieved := false
 var day := 1
-var wood := 100
+var wood := EconomyKit.INITIAL_WOOD
 var food := 40
 var coins := 60
 var population := 4
@@ -288,7 +213,6 @@ var inspector: PanelContainer
 var inspector_title: Label
 var inspector_status: Label
 var inspector_body: Label
-var inspector_toggle_button: Button
 var inspector_demolish_button: Button
 var build_buttons := {}
 var road_button: Button
@@ -301,6 +225,11 @@ var region_panel_collapsed := false
 var bottom_panel: PanelContainer
 var bottom_actions: HBoxContainer
 var build_category := "basic"
+var build_page := 0
+var build_page_label: Label
+var build_pagination: HBoxContainer
+var build_previous_button: Button
+var build_next_button: Button
 var build_category_buttons := {}
 var pause_button: Button
 var speed_buttons := {}
@@ -664,16 +593,10 @@ func update_region_visuals() -> void:
 
 func create_scenery() -> void:
 	create_outer_natural_buffer()
-	var road_color := Color("8d6a4f")
-	var road_start := grid_to_world(Vector2i(10, 4))
-	var road_end := grid_to_world(Vector2i(10, 15))
-	var road := mesh_box(Vector3(1.1, 0.06, road_start.distance_to(road_end) + TILE_SIZE), road_color)
+	var road := Node3D.new()
 	road.name = "VillageRoad"
-	# Keep the authored street at the same deck height as player roads.  The
-	# street is a single continuous mesh, so matching its top plane avoids a
-	# raised lip/z-fighting line when a player road meets its edge.
-	road.position = (road_start + road_end) * 0.5 + Vector3(0, 0.225, 0)
 	world.add_child(road)
+	refresh_main_road_models()
 	var bridge := RealisticKit.create_bridge()
 	bridge.name = "RiverBridge"
 	bridge.scale.x = TILE_SIZE / 2.0
@@ -1208,6 +1131,20 @@ func _process(delta: float) -> void:
 	# the economy is paused, settling a day, running faster, or showing an ending.
 	citizen_schedule_time = fposmod(citizen_schedule_time + presentation_delta / NPC_SCHEDULE_SECONDS, 1.0)
 	update_auto_time(delta)
+	update_house_upgrade_effects(presentation_delta)
+
+func update_house_upgrade_effects(delta: float) -> void:
+	var building_allowed := ended == "" and not time_paused and not day_settling
+	for record in economy.buildings:
+		if record.type != "house":
+			continue
+		for placed in buildings:
+			if str(placed.id) != str(record.id):
+				continue
+			var effects: Node = placed.node.get_node_or_null("HouseUpgradeEffects")
+			if effects != null:
+				effects.advance_visual(delta, building_allowed and bool(record.connected) and bool(record.enabled))
+			break
 
 func _physics_process(delta: float) -> void:
 	# Use one fixed presentation step even if the renderer stalls and Godot
@@ -1632,13 +1569,38 @@ func move_citizens(delta: float) -> void:
 
 func update_auto_time(delta: float) -> void:
 	if ended != "" or time_paused or day_settling:
-		update_time_controls()
 		return
-	auto_day_elapsed += maxf(delta, 0.0) * time_speed
-	if auto_day_elapsed >= AUTO_DAY_SECONDS:
-		auto_day_elapsed = 0.0
-		next_day()
-	update_time_controls()
+	economy.advance(maxf(0.0, delta) * time_speed)
+	economy_refresh_elapsed += delta
+	if economy_refresh_elapsed >= 0.25 or economy.failed:
+		economy_refresh_elapsed = 0.0
+		var old_population := population
+		refresh_economy_snapshot()
+		refresh_recipe_visuals()
+		if old_population != population:
+			update_citizens()
+		update_population_feedback()
+		check_failure_conditions()
+		if ended == "" and not victory_achieved and map_region_level == 6 and population >= VICTORY_POPULATION and wood >= VICTORY_WOOD and food >= VICTORY_FOOD and coins >= VICTORY_COINS and happiness >= VICTORY_HAPPINESS:
+			end_game("win")
+		update_ui()
+
+func update_population_feedback() -> void:
+	var events: Array[Dictionary] = economy.take_population_events()
+	var pressure := str(economy_snapshot.get("population_pressure", ""))
+	if not events.is_empty():
+		var count := 0
+		var reasons: Array[String] = []
+		for event in events:
+			count += int(event.count)
+			if not reasons.has(str(event.reason)):
+				reasons.append(str(event.reason))
+		show_message("居民离开：人口 -%d（%s）" % [count, "、".join(reasons)])
+	elif not pressure.is_empty() and pressure != last_population_pressure:
+		show_message(pressure)
+	elif pressure.is_empty() and not last_population_pressure.is_empty():
+		show_message("生活物资与幸福度已恢复正常，居民离开风险解除")
+	last_population_pressure = pressure
 
 func toggle_time_paused() -> void:
 	if ended != "":
@@ -1656,8 +1618,7 @@ func set_time_speed(speed: float) -> void:
 
 func update_time_controls() -> void:
 	if pause_button:
-		var remaining := maxf(0.0, (AUTO_DAY_SECONDS - auto_day_elapsed) / time_speed)
-		pause_button.text = "继续 ▶" if time_paused else "暂停 Ⅱ\n%.1f秒" % remaining
+		pause_button.text = "继续 ▶" if time_paused else "暂停 Ⅱ"
 		pause_button.button_pressed = time_paused
 		pause_button.disabled = ended != ""
 	for speed in speed_buttons:
@@ -1724,7 +1685,7 @@ func create_ui() -> void:
 	title.add_theme_color_override("font_color", Color("6b4731"))
 	title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	top_row.add_child(title)
-	status_label = Label.new()
+	status_label = preload("res://godot/ResourceStatusLabel.gd").new()
 	status_label.name = "TopStatus"
 	status_label.add_theme_font_size_override("font_size", 15)
 	status_label.add_theme_color_override("font_color", Color("2f3433"))
@@ -1735,7 +1696,8 @@ func create_ui() -> void:
 	goal_label.add_theme_color_override("font_color", Color("2f3433"))
 	goal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	goal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	goal_label.custom_minimum_size.x = 340
+	goal_label.custom_minimum_size.x = 0
+	goal_label.visible = false
 	top_row.add_child(goal_label)
 	settings_button = make_compact_button("设置", toggle_settings_menu, Vector2(72, 40))
 	settings_button.toggle_mode = true
@@ -1744,8 +1706,8 @@ func create_ui() -> void:
 
 	bottom_panel = PanelContainer.new()
 	bottom_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	bottom_panel.offset_left = -430
-	bottom_panel.offset_right = 430
+	bottom_panel.offset_left = -510
+	bottom_panel.offset_right = 510
 	bottom_panel.offset_top = -148
 	bottom_panel.offset_bottom = -14
 	bottom_panel.add_theme_stylebox_override("panel", panel_style(Color(0.95, 0.90, 0.79, 0.96)))
@@ -1757,16 +1719,16 @@ func create_ui() -> void:
 	category_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	category_row.add_theme_constant_override("separation", 6)
 	build_panel_box.add_child(category_row)
-	for category in ["basic", "industry", "civic"]:
-		var category_name: String = str({"basic": "基础", "industry": "产业", "civic": "民生"}[category])
-		var category_button := make_compact_button(category_name, select_build_category.bind(category), Vector2(92, 31), Color("e9dcc0"))
+	for category in ["basic", "industry", "civic", "logistics", "landscape"]:
+		var category_name: String = str({"basic": "基础", "industry": "产业", "civic": "民生", "logistics": "运输", "landscape": "营造"}[category])
+		var category_button := make_compact_button(category_name, select_build_category.bind(category), Vector2(72, 31), Color("e9dcc0"))
 		category_button.toggle_mode = true
 		category_button.tooltip_text = "查看%s建筑" % category_name
 		category_row.add_child(category_button)
 		build_category_buttons[category] = category_button
-	road_button = make_compact_button("铺路 · 木%d/格" % ROAD_WOOD_COST, select_road_tool, Vector2(132, 31), Color("d8c39d"))
+	road_button = make_compact_button("铺路 · 木%d/格" % ROAD_WOOD_COST, select_road_tool, Vector2(112, 31), Color("d8c39d"))
 	road_button.toggle_mode = true
-	road_button.tooltip_text = "逐格铺设道路。相邻道路连回村庄主路后，正常运行的生产建筑铜钱 +%d/日，全城上限 +%d。" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
+	road_button.tooltip_text = "连接住宅、产业与村庄主路，用于劳工和货物配送。树木格不能铺路，石块可清除。"
 	category_row.add_child(road_button)
 	bottom_actions = HBoxContainer.new()
 	bottom_actions.add_theme_constant_override("separation", 8)
@@ -1775,33 +1737,55 @@ func create_ui() -> void:
 	for type in BUILDINGS.keys():
 		var definition: Dictionary = BUILDINGS[type]
 		var button := Button.new()
-		button.text = "%s\n木 %d · 钱 %d" % [definition.name, definition.cost, definition.coin_cost]
-		button.custom_minimum_size = Vector2(112, 62)
+		button.text = "%s\n%s" % [definition.name, building_cost_text(str(type), true)]
+		button.custom_minimum_size = Vector2(138, 82)
 		button.tooltip_text = building_tooltip_text(str(type))
 		button.toggle_mode = true
 		apply_button_theme(button, Color("f5e8cb"))
+		button.add_theme_font_size_override("font_size", 14)
 		button.pressed.connect(select_building.bind(type))
 		bottom_actions.add_child(button)
 		build_buttons[type] = button
 	var time_controls := HBoxContainer.new()
 	time_controls.add_theme_constant_override("separation", 4)
-	bottom_actions.add_child(time_controls)
-	pause_button = make_compact_button("暂停 Ⅱ", toggle_time_paused, Vector2(70, 50), Color("d6a74a"))
+	category_row.add_child(time_controls)
+	pause_button = make_compact_button("暂停 Ⅱ", toggle_time_paused, Vector2(70, 31), Color("d6a74a"))
 	pause_button.toggle_mode = true
 	pause_button.tooltip_text = "暂停或继续自动时间"
 	time_controls.add_child(pause_button)
 	for speed in TIME_SPEEDS:
-		var speed_button := make_compact_button("%d×" % int(speed), set_time_speed.bind(speed), Vector2(44, 50))
+		var speed_button := make_compact_button("%d×" % int(speed), set_time_speed.bind(speed), Vector2(40, 31))
 		speed_button.toggle_mode = true
 		speed_button.tooltip_text = "自动时间 %d 倍速" % int(speed)
 		time_controls.add_child(speed_button)
 		speed_buttons[speed] = speed_button
+	build_pagination = HBoxContainer.new()
+	build_pagination.alignment = BoxContainer.ALIGNMENT_CENTER
+	build_pagination.add_theme_constant_override("separation", 8)
+	build_panel_box.add_child(build_pagination)
+	build_previous_button = make_compact_button("‹", change_build_page.bind(-1), Vector2(44, 40))
+	build_previous_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	build_pagination.add_child(build_previous_button)
+	build_panel_box.remove_child(bottom_actions)
+	bottom_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	build_pagination.add_child(bottom_actions)
+	var next_page_column := VBoxContainer.new()
+	next_page_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	next_page_column.custom_minimum_size.x = 44
+	build_pagination.add_child(next_page_column)
+	build_next_button = make_compact_button("›", change_build_page.bind(1), Vector2(44, 31))
+	next_page_column.add_child(build_next_button)
+	build_page_label = Label.new()
+	build_page_label.add_theme_color_override("font_color", Color("343b31"))
+	build_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	build_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	next_page_column.add_child(build_page_label)
 	inspector = PanelContainer.new()
 	inspector.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	inspector.offset_left = -770
 	inspector.offset_right = -412
 	inspector.offset_top = 88
-	inspector.offset_bottom = 505
+	inspector.offset_bottom = 430
 	inspector.z_index = 5
 	inspector.add_theme_stylebox_override("panel", panel_style(Color(0.95, 0.90, 0.79, 0.96)))
 	inspector.visible = false
@@ -1822,9 +1806,8 @@ func create_ui() -> void:
 	inspector_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inspector_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	inspect_box.add_child(inspector_body)
-	inspector_toggle_button = make_action_button("暂停生产", toggle_selected_building, Color("e7dfc5"))
-	inspector_toggle_button.custom_minimum_size.y = 38
-	inspect_box.add_child(inspector_toggle_button)
+	inspector_promote_button = make_compact_button("改善为匠户", promote_selected_house, Vector2(0, 34))
+	inspect_box.add_child(inspector_promote_button)
 	inspector_demolish_button = make_action_button("删除建筑（返还一半木材与铜钱）", demolish_selected, Color("f0d1b8"))
 	inspect_box.add_child(inspector_demolish_button)
 
@@ -2126,9 +2109,10 @@ func button_style(color: Color, border_width := 1) -> StyleBoxFlat:
 	return style
 
 func select_build_category(category: String) -> void:
-	if category not in ["basic", "industry", "civic"]:
+	if category not in ["basic", "industry", "civic", "logistics", "landscape"]:
 		return
 	build_category = category
+	build_page = 0
 	road_tool_selected = false
 	clear_ghost()
 	if selected_type != "" and not building_in_build_category(selected_type, category):
@@ -2165,7 +2149,32 @@ func building_effect(type: String, effect: String) -> int:
 	return int(effects.get(effect, 0))
 
 func resource_label(resource: String) -> String:
-	return str({"wood": "木材", "food": "粮食", "coins": "铜钱"}.get(resource, resource))
+	return str({"water": "水", "wood": "木材", "food": "粮食", "coins": "铜钱", "hemp": "麻料", "tools": "木器", "cloth": "衣物", "tea": "茶叶", "clay": "黏土", "pottery": "陶器", "bamboo": "竹材", "paper": "纸张"}.get(resource, resource))
+
+func building_cost_text(type: String, card := false) -> String:
+	var definition: Dictionary = BUILDINGS[type]
+	var costs: Array[String] = []
+	if int(definition.cost) > 0:
+		costs.append("木 %d" % int(definition.cost))
+	for resource in definition.get("resource_costs", {}):
+		costs.append("%s %d" % [resource_label(str(resource)), int(definition.resource_costs[resource])])
+	if int(definition.coin_cost) > 0:
+		costs.append("钱 %d" % int(definition.coin_cost))
+	if card and costs.size() > 2:
+		return " · ".join(costs.slice(0, 2)) + "\n" + " · ".join(costs.slice(2))
+	return " · ".join(costs)
+
+func building_refund_text(type: String) -> String:
+	var definition: Dictionary = BUILDINGS[type]
+	var refunds := {"wood": int(definition.cost) / 2}
+	for resource in definition.get("resource_costs", {}):
+		refunds[resource] = int(definition.resource_costs[resource]) / 2
+	refunds["coins"] = int(definition.coin_cost) / 2
+	var parts: Array[String] = []
+	for resource in refunds:
+		if int(refunds[resource]) > 0:
+			parts.append("%s%d" % [resource_label(str(resource)), int(refunds[resource])])
+	return "返还：" + " · ".join(parts)
 
 func resource_change_text(values: Dictionary, sign_value: int) -> String:
 	var parts: Array[String] = []
@@ -2192,106 +2201,111 @@ func proportional_output_text(type: String) -> String:
 		output_parts.append("%s %s（在岗 %s 人）" % [resource_label(resource), "/".join(amounts), "/".join(staffing)])
 	return "、".join(output_parts)
 
-func building_effect_lines(type: String, include_road := true) -> Array[String]:
-	var definition: Dictionary = BUILDINGS[type]
-	var workers := int(definition.workers)
-	var staffing := str(definition.get("staffing", "passive"))
+static func net_daily_resources(spec: Dictionary, extra_outputs: Dictionary = {}, extra_inputs: Dictionary = {}) -> Dictionary:
+	var totals: Dictionary = {}
+	if spec.has("output"):
+		totals[str(spec.output)] = int(spec.get("rate", 0))
+	for pair in [["input", "input_rate"], ["fuel", "fuel_rate"]]:
+		if spec.has(pair[0]):
+			var resource := str(spec[pair[0]])
+			totals[resource] = int(totals.get(resource, 0)) - int(spec.get(pair[1], 0))
+	totals["coins"] = int(totals.get("coins", 0)) - int(spec.get("maintenance", 0))
+	for resource in extra_outputs:
+		totals[resource] = int(totals.get(resource, 0)) + int(extra_outputs[resource])
+	for resource in extra_inputs:
+		totals[resource] = int(totals.get(resource, 0)) - int(extra_inputs[resource])
+	for resource in totals.keys():
+		if int(totals[resource]) == 0:
+			totals.erase(resource)
+	return totals
+
+func building_daily_resource_net(type: String) -> Dictionary:
+	# Service income assumes full attendance and supply; optional academy paper
+	# stays a separate optional benefit rather than becoming a mandatory input.
+	return net_daily_resources(EconomyKit.SPECS[type], {"coins": 6} if type == "teahouse" else {}, {"tea": 2} if type == "teahouse" else {})
+
+func building_daily_resource_parts(type: String) -> Dictionary:
+	var parts := {"outputs": [], "costs": []}
+	var net := building_daily_resource_net(type)
+	for resource in net:
+		var amount := int(net[resource])
+		var label := "%s%d/日" % [resource_label(str(resource)), absi(amount)]
+		if type == "teahouse" and amount > 0:
+			label += "（满客）"
+		if amount > 0:
+			parts.outputs.append(label)
+		else:
+			parts.costs.append(label)
+	return parts
+
+func building_effect_lines(type: String, _include_road := true) -> Array[String]:
 	var lines: Array[String] = []
-	if staffing == "proportional":
-		lines.append("岗位：%d（按在岗人数产出）" % workers)
-	elif staffing == "full":
-		lines.append("岗位：%d（满员运行）" % workers)
-
-	var inputs: Dictionary = definition.get("inputs", {})
-	var outputs: Dictionary = definition.get("outputs", {})
-	if staffing == "proportional":
-		lines.append("每日产出：%s" % proportional_output_text(type))
-		var trade_coins := int(definition.get("trade_coins", 0))
-		if trade_coins > 0:
-			lines.append("每日收入（民生交易）：有人在岗时铜钱 +%d（农田与伐木场合计上限 +%d）" % [trade_coins, BASIC_TRADE_COIN_CAP])
-	elif staffing == "full":
-		var input_text := resource_change_text(inputs, -1)
-		var output_text := resource_change_text(outputs, 1)
-		if input_text != "" and output_text != "":
-			lines.append("每日（满员且原料充足）：%s → %s" % [input_text, output_text])
-		elif output_text != "":
-			lines.append("每日（满员）：%s" % output_text)
-	else:
-		var passive_input_text := resource_change_text(inputs, -1)
-		var passive_output_text := resource_change_text(outputs, 1)
-		if passive_input_text != "" or passive_output_text != "":
-			var passive_changes: Array[String] = []
-			if passive_input_text != "":
-				passive_changes.append(passive_input_text)
-			if passive_output_text != "":
-				passive_changes.append(passive_output_text)
-			lines.append("每日：%s" % "、".join(passive_changes))
-
-	var maintenance := int(definition.maintenance)
-	var maintenance_text := "无"
-	if maintenance > 0:
-		maintenance_text = "铜钱 -%d/日（%s）" % [maintenance, "启用即收" if workers > 0 else "固定收取"]
-		if bool(definition.get("requires_road", false)):
-			maintenance_text = "铜钱 -%d/日（未接通也收取）" % maintenance
-	lines.append("维护：%s" % maintenance_text)
-	var fixed_parts: Array[String] = []
-	var housing := building_effect(type, "housing")
-	var wood_storage := building_effect(type, "wood_capacity")
-	var food_storage := building_effect(type, "food_capacity")
-	if housing > 0:
-		fixed_parts.append("住房容量 +%d" % housing)
-	if type == "warehouse":
-		lines.append("接通主路：木材/粮食容量各 +%d" % wood_storage)
-	elif wood_storage > 0:
-		fixed_parts.append("木材容量 +%d" % wood_storage)
-	if food_storage > 0 and type != "warehouse":
-		fixed_parts.append("粮食容量 +%d" % food_storage)
-	if not fixed_parts.is_empty():
-		lines.append("固定效果：%s" % "、".join(fixed_parts))
-	var happiness_gain := building_effect(type, "happiness_target")
-	if happiness_gain > 0:
-		lines.append("运行效果：日结幸福度目标 +%d（%s合计上限 +%d）" % [
-			happiness_gain, definition.name, int(definition.get("effect_cap", happiness_gain))
-		])
-	if include_road and type in ROAD_ELIGIBLE_BUILDING_TYPES:
-		lines.append("道路运输：相邻道路接通村庄主路且本日正常运行时，铜钱 +%d（全城上限 +%d）" % [
-			ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP
-		])
+	var spec: Dictionary = EconomyKit.SPECS[type]
+	if type == "house":
+		var consumption := "消耗：满住时水2/日、粮食2/日"
+		if map_region_level >= 1:
+			consumption += "、衣物1/日"
+		return ["产出：住房4；满住时普通劳力4、铜钱2/日", consumption]
+	var outputs: Array[String] = []
+	var costs: Array[String] = []
+	var resources := building_daily_resource_parts(type)
+	outputs.assign(resources.outputs)
+	if int(spec.workers) > 0:
+		costs.append("%s%d" % ["工匠" if str(spec.get("worker_kind", "normal")) == "artisan" else "普通劳力", int(spec.workers)])
+	costs.append_array(resources.costs)
+	var benefits := {
+		"warehouse": "仓容：木材+50 · 水+25 · 粮食+50 · 衣物+30 · 其他各+100",
+		"freight": "本区发出道路货物，运送时间减半",
+		"granary": "粮食仓容+%d" % EconomyKit.Balance.GRANARY_CAPACITY,
+		"dock": "码头间水运",
+		"trading_post": "商路额度32/日"
+	}
+	if benefits.has(type):
+		outputs.append(benefits[type])
+	if spec.has("service"):
+		var service := str({"market":"集市服务", "health":"医疗", "culture":"文化", "garden":"园景", "leisure":"休闲"}.get(str(spec.service), "服务"))
+		outputs.append("%s%d人（范围%d格）" % [service, int(spec.service_capacity), int(spec.range)])
+		if type == "market":
+			outputs.append("幸福度+%d" % int(spec.service_bonus))
+	lines.append("产出：" + " · ".join(outputs))
+	lines.append("消耗：" + (" · ".join(costs) if not costs.is_empty() else "无"))
+	if type == "academy":
+		lines.append("可选：纸张2/日 → 多服务16人")
 	return lines
 
 func building_effect_text(type: String, include_road := true) -> String:
 	return "\n".join(building_effect_lines(type, include_road))
 
 func building_tooltip_text(type: String) -> String:
-	var footprint_hint := ""
-	if type == "market":
-		footprint_hint = "占地：2×2 格（开放集市）\n"
-	elif type == "warehouse":
-		footprint_hint = "占地：2×2 格（开放仓院）\n"
-	elif type == "fishpond":
-		footprint_hint = "占地：3×2 格（人工鱼塘，可建于陆地）\n"
-	elif type == "farm":
-		footprint_hint = "占地：2×2 格（河岸农田）\n"
-	elif type == "workshop":
-		footprint_hint = "占地：2×2 格（开放工坊）\n"
-	elif type == "clinic":
-		footprint_hint = "占地：2×2 格（诊堂药院）\n"
-	return footprint_hint + building_effect_text(type)
+	return building_effect_text(type)
 
 func update_build_menu() -> void:
+	var entries: Array = []
+	for type in BUILDINGS:
+		if building_in_build_category(type, build_category):
+			entries.append(type)
+	var pages := maxi(1, ceili(entries.size() / 6.0))
+	build_page = clampi(build_page, 0, pages - 1)
 	for category in build_category_buttons:
-		var category_button: Button = build_category_buttons[category]
-		category_button.button_pressed = str(category) == build_category
+		build_category_buttons[category].button_pressed = str(category) == build_category
 	for type in build_buttons:
 		var button: Button = build_buttons[type]
 		var definition: Dictionary = BUILDINGS[type]
-		var in_category := building_in_build_category(str(type), build_category)
+		var index := entries.find(type)
 		var unlocked := building_is_unlocked(str(type))
-		button.visible = in_category
+		button.visible = index >= build_page * 6 and index < (build_page + 1) * 6
 		button.disabled = ended != "" or not unlocked
 		button.button_pressed = not road_tool_selected and selected_type == type
-		button.text = "%s\n木 %d · 钱 %d" % [definition.name, definition.cost, definition.coin_cost] if unlocked else "%s\n%s" % [definition.name, building_unlock_text(str(type))]
+		button.text = "%s\n%s" % [definition.name, building_cost_text(str(type), true)] if unlocked else "%s\n%s解锁" % [definition.name, REGION_DEFINITIONS[int(definition.unlock_level)].short_name]
 		button.tooltip_text = building_tooltip_text(str(type)) if unlocked else "%s\n%s" % [building_unlock_text(str(type)), building_tooltip_text(str(type))]
+	if is_instance_valid(build_page_label):
+		build_page_label.text = "%d/%d" % [build_page + 1, pages]
+		# Reserve the side controls even for one-page categories to keep layout fixed.
+		for control in [build_page_label, build_previous_button, build_next_button]:
+			control.modulate.a = 1.0 if pages > 1 else 0.0
+			control.mouse_filter = Control.MOUSE_FILTER_STOP if pages > 1 else Control.MOUSE_FILTER_IGNORE
+		build_previous_button.disabled = build_page <= 0
+		build_next_button.disabled = build_page >= pages - 1
 	if road_button:
 		road_button.disabled = ended != ""
 		road_button.button_pressed = road_tool_selected
@@ -2309,7 +2323,7 @@ func select_road_tool() -> void:
 	selected_road_cell = Vector2i(-1, -1)
 	inspector.visible = false
 	clear_ghost()
-	show_message("铺路：木材 %d/格；道路接通村庄主路后，相邻生产建筑正常运行时铜钱 +%d/日（全城上限 +%d）" % [ROAD_WOOD_COST, ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP])
+	show_message("铺路：木材 %d/格；连接住宅、产业和主路，才能配送货物与安排劳工。" % ROAD_WOOD_COST)
 	update_ui()
 
 func select_building(type: String) -> void:
@@ -2444,81 +2458,63 @@ func road_network_neighbors(cell: Vector2i) -> Array[Vector2i]:
 	return result
 
 func create_road_model(cell: Vector2i, preview := false, preview_valid := true) -> Node3D:
-	var root := Node3D.new()
-	root.name = "Road_%d_%d" % [cell.x, cell.y]
-	root.set_meta("road_cell", cell)
-	var color := Color(0.55, 0.43, 0.31, 0.96)
 	if preview:
-		color = Color(0.34, 0.72, 0.45, 0.68) if preview_valid else Color(0.78, 0.28, 0.24, 0.68)
-		var preview_tile := mesh_box(Vector3(TILE_SIZE - 0.18, 0.045, TILE_SIZE - 0.18), color, color.a)
-		root.add_child(preview_tile)
-		return root
-	var centre := mesh_box(Vector3(ROAD_WIDTH, 0.055, ROAD_WIDTH), color)
-	centre.name = "RoadCentre"
-	root.add_child(centre)
-	var directions := [
-		{"offset": Vector3(-0.72, 0, 0), "size": Vector3(0.56, 0.05, 0.72), "cell": cell + Vector2i.LEFT},
-		{"offset": Vector3(0.72, 0, 0), "size": Vector3(0.56, 0.05, 0.72), "cell": cell + Vector2i.RIGHT},
-		{"offset": Vector3(0, 0, -0.72), "size": Vector3(0.72, 0.05, 0.56), "cell": cell + Vector2i.UP},
-		{"offset": Vector3(0, 0, 0.72), "size": Vector3(0.72, 0.05, 0.56), "cell": cell + Vector2i.DOWN},
-	]
-	for entry in directions:
-		if road_visual_connects(entry.cell):
-			var arm_size: Vector3 = entry.size
-			var arm_offset: Vector3 = entry.offset
-			# The road centre is 1.0 m wide.  Recompute connector arms from the
-			# actual cell pitch so roads remain continuous after the grid spacing is
-			# widened, while the building meshes themselves stay unchanged.
-			var is_horizontal := absf(entry.offset.x) > 0.1
-			var direction_sign := signf(entry.offset.x if is_horizontal else entry.offset.z)
-			var centre_half := ROAD_WIDTH * 0.5
-			if is_village_main_road_cell(entry.cell):
-				# A side connection meets the 1.1 m-wide continuous main street.
-				# Endpoint connections meet the street's boundary halfway between
-				# cell centres, so they use the same short edge-to-edge arm as a
-				# bridge approach.
-				if is_horizontal:
-					var arm_length := TILE_SIZE - centre_half - 0.55
-					arm_size.x = arm_length
-					arm_offset.x = direction_sign * (centre_half + arm_length * 0.5)
-				else:
-					var arm_length := TILE_SIZE * 0.5 - centre_half
-					arm_size.z = arm_length
-					arm_offset.z = direction_sign * (centre_half + arm_length * 0.5)
-			elif is_npc_bridge_cell(entry.cell):
-				# The bridge deck starts at the bank boundary.  Stop the road arm
-				# exactly at that edge instead of extending into the bridge mesh.
-				if is_horizontal:
-					var arm_length := TILE_SIZE * 0.5 - centre_half
-					arm_size.x = arm_length
-					arm_offset.x = direction_sign * (centre_half + arm_length * 0.5)
-				else:
-					var arm_length := TILE_SIZE * 0.5 - centre_half
-					arm_size.z = arm_length
-					arm_offset.z = direction_sign * (centre_half + arm_length * 0.5)
-			else:
-				# Each adjacent road cell owns half of the gap between centres.  With
-				# the widened 2.2 m pitch and 1.0 m road width this is a 0.60 m arm
-				# centred at 0.80 m,
-				# so neighbouring arms meet at the midpoint without overlapping.
-				var arm_length := (TILE_SIZE - centre_half * 2.0) * 0.5
-				var arm_centre := centre_half + arm_length * 0.5
-				if is_horizontal:
-					arm_size.x = arm_length
-					arm_offset.x = direction_sign * arm_centre
-				else:
-					arm_size.z = arm_length
-					arm_offset.z = direction_sign * arm_centre
-			var arm := mesh_box(arm_size, color)
-			arm.position = arm_offset
-			root.add_child(arm)
-	# A few pale pavers break up the flat surface and keep roads readable from
-	# the high planning camera without adding an expensive unique model per tile.
-	for offset in [Vector3(-0.20, 0.035, -0.12), Vector3(0.22, 0.035, 0.16)]:
-		var paver := mesh_box(Vector3(0.25, 0.022, 0.18), Color("aa9271"))
-		paver.position = offset
-		root.add_child(paver)
-	return root
+		var preview_root := Node3D.new()
+		var color := Color(0.34, 0.72, 0.45, 0.68) if preview_valid else Color(0.78, 0.28, 0.24, 0.68)
+		preview_root.add_child(mesh_box(Vector3(TILE_SIZE - 0.18, 0.045, TILE_SIZE - 0.18), color, color.a))
+		return preview_root
+	var main := is_village_main_road_cell(cell)
+	var width := 1.1 if main else ROAD_WIDTH
+	var half := width * 0.5
+	var rectangles: Array[Rect2] = []
+	var openings: Array[Dictionary] = []
+	if main:
+		# The main street owns its full length, but only its narrow width.
+		rectangles.append(Rect2(Vector2(-half, -TILE_SIZE * 0.5), Vector2(width, TILE_SIZE)))
+	else:
+		rectangles.append(Rect2(Vector2(-half, -half), Vector2(width, width)))
+	for direction in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var neighbor: Vector2i = cell + direction
+		if not road_visual_connects(neighbor):
+			continue
+		var horizontal: bool = direction.x != 0
+		var end := TILE_SIZE * 0.5
+		if main and horizontal:
+			# Side branches own the gap up to the actual main-street edge.
+			end = half
+		elif not main and horizontal and is_village_main_road_cell(neighbor):
+			end = TILE_SIZE - 0.55
+		var axis := Vector2(direction)
+		openings.append({"direction": axis, "distance": end, "half_width": ROAD_WIDTH * 0.5 if main and horizontal else width * 0.5})
+		if not main:
+			var length := end - half
+			var size := Vector2(length, width) if horizontal else Vector2(width, length)
+			var center := axis * (half + length * 0.5)
+			rectangles.append(Rect2(center - size * 0.5, size))
+	var position := grid_to_world(cell)
+	var model := RoadSurfaceKit.create(Vector2(position.x, position.z), rectangles, openings)
+	model.name = "Road_%d_%d" % [cell.x, cell.y]
+	model.set_meta("road_cell", cell)
+	return model
+
+func refresh_main_road_models(near_cell := Vector2i(-100, -100)) -> void:
+	if world == null:
+		return
+	var street := world.get_node_or_null("VillageRoad")
+	if street == null:
+		return
+	for row in range(4, 16):
+		var cell := Vector2i(10, row)
+		if near_cell.x != -100 and absi(near_cell.x - cell.x) + absi(near_cell.y - cell.y) > 1:
+			continue
+		var label := "Road_%d_%d" % [cell.x, cell.y]
+		var old := street.get_node_or_null(label)
+		if old != null:
+			street.remove_child(old)
+			old.queue_free()
+		var model := create_road_model(cell)
+		model.position = grid_to_world(cell) + Vector3(0, 0.225, 0)
+		street.add_child(model)
 
 func refresh_road_model(cell: Vector2i) -> void:
 	if not roads.has(cell):
@@ -2532,6 +2528,7 @@ func refresh_road_model(cell: Vector2i) -> void:
 	roads[cell] = model
 
 func refresh_road_and_neighbors(cell: Vector2i) -> void:
+	refresh_main_road_models(cell)
 	refresh_road_model(cell)
 	for neighbor in cardinal_cells(cell):
 		refresh_road_model(neighbor)
@@ -2551,6 +2548,7 @@ func update_forest_cell_for_roads(cell: Vector2i) -> void:
 			rock.visible = not roads.has(cell)
 
 func update_road_scenery() -> void:
+	refresh_main_road_models()
 	# Only trees authored by create_scenery carry forest_cell metadata and are
 	# indexed here. OuterNaturalBuffer vegetation stays permanently decorative.
 	for cell in scenery_trees_by_cell:
@@ -2571,7 +2569,10 @@ func add_road(cell: Vector2i, free := false, legacy_tree_clearance := false) -> 
 		legacy_cleared_tree_roads[cell] = true
 	roads[cell] = null
 	if not free:
-		wood -= ROAD_WOOD_COST
+		if not economy.apply_resources({"wood": -ROAD_WOOD_COST}):
+			roads.erase(cell)
+			return
+		refresh_economy_snapshot()
 	refresh_road_and_neighbors(cell)
 	update_forest_cell_for_roads(cell)
 	if citizen_root and citizen_root.get_child_count() > 0:
@@ -2587,11 +2588,13 @@ func remove_road(cell: Vector2i, refund := true) -> void:
 	if node != null and is_instance_valid(node):
 		node.queue_free()
 	roads.erase(cell)
+	refresh_main_road_models(cell)
 	legacy_cleared_tree_roads.erase(cell)
 	if refund:
 		# Demolition returns owned material even if lost warehouse access has
 		# temporarily left the existing stock above its current capacity.
-		wood += ROAD_WOOD_COST
+		economy.apply_resources({"wood": ROAD_WOOD_COST})
+		refresh_economy_snapshot()
 	for neighbor in cardinal_cells(cell):
 		refresh_road_model(neighbor)
 	update_forest_cell_for_roads(cell)
@@ -2600,6 +2603,7 @@ func remove_road(cell: Vector2i, refund := true) -> void:
 	refresh_road_dependent_buildings()
 
 func refresh_road_dependent_buildings() -> void:
+	sync_economy_buildings()
 	# Capacity itself is derived from the live network. Refresh its UI and
 	# warning markers immediately when a single road segment changes.
 	if is_instance_valid(status_label):
@@ -2627,8 +2631,6 @@ func is_road_connected(cell: Vector2i) -> bool:
 	return false
 
 func building_has_connected_road(record: Dictionary) -> bool:
-	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES and not bool(BUILDINGS[record.type].get("requires_road", false)):
-		return false
 	for boundary in building_boundary_cells(record):
 		if road_segment_connects(boundary) and is_road_connected(boundary):
 			return true
@@ -2653,15 +2655,6 @@ func record_base_footprint(record: Dictionary) -> Vector2i:
 	return record.get("base_footprint", rotated_footprint(record_footprint(record), int(record.get("rotation_quarters", 0))))
 
 func saved_base_footprint(record: Dictionary) -> Vector2i:
-	# Older saves stored single-cell warehouses without an explicit footprint.
-	# Keep those lots compact instead of expanding into neighboring property.
-	if str(record.type) == "warehouse":
-		return Vector2i.ONE * int(record.get("warehouse_footprint", 1))
-	if str(record.type) == "farm":
-		var farm_cells := int(record.get("farm_footprint", 1))
-		return Vector2i(2, 2) if farm_cells == 4 else Vector2i(farm_cells, 1)
-	if str(record.type) in ["workshop", "clinic"]:
-		return Vector2i.ONE * int(record.get(str(record.type) + "_footprint", 1))
 	return BUILDING_FOOTPRINTS.get(str(record.type), Vector2i.ONE)
 
 func saved_building_footprint(record: Dictionary) -> Vector2i:
@@ -2683,25 +2676,11 @@ func building_model_position(type: String, anchor: Vector2i, footprint := Vector
 		footprint = BUILDING_FOOTPRINTS.get(type, Vector2i.ONE)
 	return grid_to_world(anchor) + Vector3((footprint.x - 1) * TILE_SIZE * 0.5, 0, (footprint.y - 1) * TILE_SIZE * 0.5)
 
-func road_bonus_for_building(record: Dictionary) -> int:
-	# Warehouses require road access for storage, but never earn production
-	# transport income merely because their road requirement is satisfied.
-	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
-		return 0
-	if not bool(record.get("enabled", true)) or not bool(record.get("last_running", false)):
-		return 0
-	var required_workers := int(BUILDINGS[record.type].workers)
-	if required_workers > 0 and int(record.get("assigned_workers", 0)) < required_workers:
-		return 0
-	if not building_has_connected_road(record):
-		return 0
-	return ROAD_TRANSPORT_BONUS
+func road_bonus_for_building(_record: Dictionary) -> int:
+	return 0
 
 func daily_road_transport_income() -> int:
-	var income := 0
-	for record in buildings:
-		income += road_bonus_for_building(record)
-	return mini(ROAD_TRANSPORT_COIN_CAP, income)
+	return 0
 
 func can_place(type: String, cell: Vector2i, rotation_quarters := 0) -> String:
 	if not BUILDINGS.has(type):
@@ -2719,7 +2698,7 @@ func can_place(type: String, cell: Vector2i, rotation_quarters := 0) -> String:
 	for footprint_cell in footprint_cells:
 		if region_level_for_cell(footprint_cell) > map_region_level:
 			return region_lock_message(region_level_for_cell(footprint_cell))
-		if is_water_cell(footprint_cell):
+		if is_water_cell(footprint_cell) and type != "dock":
 			return "河道上不能建造"
 		if is_village_main_road_cell(footprint_cell):
 			return "村庄主路上不能建造"
@@ -2733,16 +2712,38 @@ func can_place(type: String, cell: Vector2i, rotation_quarters := 0) -> String:
 			return "建筑占地被占用"
 		if roads.has(footprint_cell):
 			return "建筑占地已有道路，请先拆除道路"
+	if type == "dock" and not is_dock_lot(cell, rotation_quarters):
+		return "码头需跨岸放置：栈桥朝水、货场朝陆地；R键旋转"
+	if type == "claypit" and not is_farm_lot(cell, footprint):
+		return "采泥场需靠河岸，不能占用河道"
 	var definition: Dictionary = BUILDINGS[type]
 	if wood < int(definition.cost):
 		return "木材不足（需要 %d）" % definition.cost
-	if coins < int(definition.coin_cost):
-		return "铜钱不足（需要 %d）" % definition.coin_cost
-	if type == "farm" and not is_farm_lot(cell, footprint):
+	for resource in definition.get("resource_costs", {}):
+		var required := int(definition.resource_costs[resource])
+		var available := float(economy_snapshot.get("goods", {}).get(resource, 0))
+		if available < required:
+			return "%s不足（需要 %d）" % [resource_label(str(resource)), required]
+	if float(economy_snapshot.get("coins", coins)) <= float(definition.coin_cost):
+		return "需要 %d 铜钱，并保留经营余额" % definition.coin_cost
+	if type in ["farm", "hemp_farm"] and not is_farm_lot(cell, footprint):
 		return "农田只能建在河岸；东原支流与旧河道两侧均可耕种"
-	if type == "lumber" and not is_lumber_cell(cell):
+	if type == "lumber" and not is_lumber_lot(cell, footprint):
 		return "伐木场需要建在东麓、东原或北关的林缘"
 	return ""
+
+func is_dock_lot(anchor: Vector2i, rotation_quarters: int) -> bool:
+	# The authored dock has its wharf on local -Z and its land yard on +Z.
+	for z in range(2):
+		for x in range(3):
+			var offset := Vector2i(x, z)
+			match posmod(rotation_quarters, 4):
+				1: offset = Vector2i(z, 2-x)
+				2: offset = Vector2i(2-x, 1-z)
+				3: offset = Vector2i(1-z, x)
+			if is_water_cell(anchor + offset) != (z == 0):
+				return false
+	return true
 
 func can_unlock_next_region() -> String:
 	if ended != "":
@@ -2756,71 +2757,54 @@ func can_unlock_next_region() -> String:
 	return ""
 
 func unlock_next_region() -> void:
+	refresh_economy_snapshot()
 	var reason := can_unlock_next_region()
 	if reason != "":
 		show_message(reason)
 		return
 	var next_level := map_region_level + 1
 	var cost: Dictionary = REGION_UNLOCK_COSTS[next_level]
-	# 条件和扣费在同一函数内再次校验，防止重复点击造成负库存。
-	if wood < int(cost.wood) or food < int(cost.food) or coins < int(cost.coins):
+	if wood < int(cost.wood) or food < int(cost.food) or float(economy_snapshot.get("coins", coins)) < float(cost.coins):
 		show_message("开拓费用不足")
 		return
-	wood -= int(cost.wood)
-	food -= int(cost.food)
-	coins -= int(cost.coins)
+	var reward: Dictionary = REGION_UNLOCK_REWARDS[next_level]
+	var gain_wood := mini(int(reward.wood), maxi(0, wood_capacity() - wood + int(cost.wood)))
+	var gain_food := mini(int(reward.food), maxi(0, food_capacity() - food + int(cost.food)))
+	if not economy.apply_resources({"wood": gain_wood - int(cost.wood), "food": gain_food - int(cost.food), "coins": int(reward.coins) - int(cost.coins)}):
+		show_message("开拓后需保留铜钱")
+		return
 	map_region_level = next_level
-	var reward_message := apply_region_reward(next_level)
-	check_failure_conditions()
+	economy.happiness = minf(100.0, economy.happiness + float(reward.happiness))
+	sync_economy_buildings()
 	clear_ghost()
 	update_region_visuals()
-	show_message("%s\n%s" % [REGION_UNLOCK_FEEDBACK[next_level], reward_message])
+	show_message("%s\n开拓奖励：木材%d · 粮食%d · 铜钱%d" % [REGION_UNLOCK_FEEDBACK[next_level], gain_wood, gain_food, int(reward.coins)])
 	update_ui()
 	save_game(false)
 
-func apply_region_reward(level: int) -> String:
-	var reward: Dictionary = REGION_UNLOCK_REWARDS[level]
-	var wood_reward := int(reward.wood)
-	var food_reward := int(reward.food)
-	var coin_reward := int(reward.coins)
-	var happiness_reward := int(reward.happiness)
-	var gained_wood := mini(wood_reward, maxi(0, wood_capacity() - wood))
-	var gained_food := mini(food_reward, maxi(0, food_capacity() - food))
-	wood += gained_wood
-	food += gained_food
-	coins += coin_reward
-	happiness = mini(100, happiness + happiness_reward)
-	var parts: Array[String] = []
-	if wood_reward > 0:
-		parts.append("获得木材 %d%s" % [gained_wood, "，溢出 %d" % (wood_reward - gained_wood) if gained_wood < wood_reward else ""])
-	if food_reward > 0:
-		parts.append("获得粮食 %d%s" % [gained_food, "，溢出 %d" % (food_reward - gained_food) if gained_food < food_reward else ""])
-	if coin_reward > 0:
-		parts.append("获得铜钱 %d" % coin_reward)
-	if happiness_reward > 0:
-		parts.append("幸福度 +%d" % happiness_reward)
-	return "开拓奖励：%s" % "；".join(parts)
+func apply_region_reward(_level: int) -> String:
+	# Rewards are committed with the expansion payment, never as a second credit.
+	return ""
 
 func add_building(type: String, cell: Vector2i, free := false, forced_id := -1, forced_enabled := true, footprint := Vector2i.ZERO, rotation_quarters := 0) -> void:
 	if ended != "":
+		return
+	if not free and can_place(type, cell, rotation_quarters) != "":
+		return
+	# The model is authoritative; previews can be a fraction of a second old.
+	var payment := {"wood": -int(BUILDINGS[type].cost), "coins": -int(BUILDINGS[type].coin_cost)}
+	for resource in BUILDINGS[type].get("resource_costs", {}):
+		payment[resource] = -int(BUILDINGS[type].resource_costs[resource])
+	if not free and not economy.apply_resources(payment):
+		show_message("建造资源不足，或付款后没有经营余额")
+		refresh_economy_snapshot()
 		return
 	if footprint == Vector2i.ZERO:
 		footprint = BUILDING_FOOTPRINTS.get(type, Vector2i.ONE)
 	var base_footprint := footprint
 	rotation_quarters = posmod(rotation_quarters, 4)
 	footprint = rotated_footprint(base_footprint, rotation_quarters)
-	var model: Node3D
-	if type in ["workshop", "clinic"] and base_footprint == Vector2i.ONE:
-		model = RealisticKit.create_building(type, false, true, true)
-	elif type == "farm" and base_footprint == Vector2i.ONE:
-		model = RealisticKit.create_asset("building.farm", false)
-	elif type == "farm" and base_footprint == Vector2i(2, 1):
-		model = RealisticKit.create_building(type, false, true, false, base_footprint)
-	else:
-		model = create_building_model(type)
-	if type == "warehouse" and footprint == Vector2i.ONE:
-		model.scale *= Vector3(0.5, 0.75, 0.5)
-		model.set_meta("legacy_compact", true)
+	var model: Node3D = create_building_model(type)
 	model.position = building_model_position(type, cell, footprint)
 	model.rotation.y = rotation_quarters * PI * 0.5
 	var building_id := forced_id if forced_id >= 0 else next_id
@@ -2838,9 +2822,7 @@ func add_building(type: String, cell: Vector2i, free := false, forced_id := -1, 
 	buildings.append(record)
 	for footprint_cell in building_footprint_cells(type, cell, footprint):
 		occupied[footprint_cell] = building_id
-	if not free:
-		wood -= int(BUILDINGS[type].cost)
-		coins -= int(BUILDINGS[type].coin_cost)
+	sync_economy_buildings()
 	assign_workers()
 	if citizen_root and citizen_root.get_child_count() > 0:
 		update_citizen_schedules()
@@ -2856,8 +2838,10 @@ func remove_building_by_id(building_id: int, refund := true) -> void:
 		var record: Dictionary = buildings[index]
 		if int(record.id) == building_id:
 			if refund:
-				wood += int(BUILDINGS[record.type].cost) / 2
-				coins += int(BUILDINGS[record.type].coin_cost) / 2
+				var refund_payment := {"wood": floori(float(BUILDINGS[record.type].cost) / 2.0), "coins": floori(float(BUILDINGS[record.type].coin_cost) / 2.0)}
+				for resource in BUILDINGS[record.type].get("resource_costs", {}):
+					refund_payment[resource] = floori(float(BUILDINGS[record.type].resource_costs[resource]) / 2.0)
+				economy.apply_resources(refund_payment)
 			for footprint_cell in building_footprint_cells(str(record.type), record.cell, record_footprint(record)):
 				occupied.erase(footprint_cell)
 			record.node.queue_free()
@@ -2867,6 +2851,7 @@ func remove_building_by_id(building_id: int, refund := true) -> void:
 			break
 	selected_building_id = -1
 	inspector.visible = false
+	sync_economy_buildings()
 	assign_workers()
 	if citizen_root and citizen_root.get_child_count() > 0:
 		update_citizen_schedules()
@@ -2894,37 +2879,25 @@ func demolish_selected() -> void:
 			name = BUILDINGS[record.type].name
 			break
 	remove_building_by_id(selected_building_id)
-	show_message("已拆除%s并返还一半木材与铜钱" % name)
+	show_message("已拆除%s并返还一半建材与铜钱" % name)
 	update_ui()
 	save_game(false)
 
 func available_workers() -> int:
-	return ceili(population * 0.70)
+	return int(economy_snapshot.get("workforce", population))
 
 func workforce_plan() -> Dictionary:
-	var available := available_workers()
-	var remaining := available
+	var by_id := {}
 	var demand := 0
 	var assigned := 0
-	var by_id := {}
 	for record in buildings:
-		var required := int(BUILDINGS[record.type].workers)
-		if required > 0:
-			by_id[int(record.id)] = 0
-			if bool(record.get("enabled", true)):
-				demand += required
-	# Essential food and raw materials receive workers first, followed by
-	# manufacturing, commerce and the later civic services.
-	for priority_type in ["farm", "fishpond", "lumber", "workshop", "market", "clinic", "academy"]:
-		for record in buildings:
-			if str(record.type) != priority_type or not bool(record.get("enabled", true)):
-				continue
-			var required := int(BUILDINGS[record.type].workers)
-			var allocated := mini(required, remaining)
-			by_id[int(record.id)] = allocated
-			assigned += allocated
-			remaining -= allocated
-	return {"available": available, "demand": demand, "assigned": assigned, "by_id": by_id}
+		var state: Dictionary = economy_snapshot.get("building_status", {}).get(str(record.id), {})
+		var count := int(state.get("workers", 0))
+		by_id[int(record.id)] = count
+		assigned += count
+		if bool(record.get("enabled", true)):
+			demand += int(BUILDINGS[record.type].workers)
+	return {"available": available_workers(), "demand": demand, "assigned": assigned, "by_id": by_id}
 
 func assign_workers() -> Dictionary:
 	var plan := workforce_plan()
@@ -2933,243 +2906,24 @@ func assign_workers() -> Dictionary:
 		record.assigned_workers = int(by_id.get(int(record.id), 0))
 	return plan
 
-func set_building_enabled(building_id: int, enabled: bool) -> void:
-	if ended != "":
-		return
-	for record in buildings:
-		if int(record.id) != building_id:
-			continue
-		if int(BUILDINGS[record.type].workers) <= 0:
-			return
-		record.enabled = enabled
-		record.last_running = false
-		assign_workers()
-		if selected_building_id == building_id:
-			show_inspector(building_id)
-		show_message("%s已%s" % [BUILDINGS[record.type].name, "启用" if enabled else "暂停"])
-		update_ui()
-		save_game(false)
-		return
 
-func toggle_selected_building() -> void:
-	if selected_building_id < 0:
-		return
-	for record in buildings:
-		if int(record.id) == selected_building_id:
-			set_building_enabled(selected_building_id, not bool(record.get("enabled", true)))
-			return
+
+
 
 func next_day() -> void:
-	if ended != "" or day_settling:
+	# Compatibility entry for scripted simulation; the UI always runs automatic time.
+	if ended != "":
 		return
-	# Check a complete incoming state, never intermediate daily transactions.
-	if check_failure_conditions():
-		update_ui()
-		return
-	day_settling = true
-	auto_day_elapsed = 0.0
-	var plan := assign_workers()
-	var wood_gain := 0
-	var food_gain := 0
-	for record in buildings:
-		record.last_running = false
-		if not bool(record.get("enabled", true)):
-			continue
-		var definition: Dictionary = BUILDINGS[record.type]
-		var required_workers := int(definition.workers)
-		if str(definition.get("staffing", "")) == "proportional":
-			var assigned := int(record.get("assigned_workers", 0))
-			var produced_wood := int(floor(building_output(str(record.type), "wood") * assigned / float(required_workers)))
-			var produced_food := int(floor(building_output(str(record.type), "food") * assigned / float(required_workers)))
-			record.last_running = assigned > 0
-			wood_gain += produced_wood
-			food_gain += produced_food
-	wood = storage_after_intake(wood, wood_gain, wood_capacity())
-	food = storage_after_intake(food, food_gain, food_capacity())
-
-	var house_food_upkeep := building_count("house") * building_input("house", "food")
-	var ration := ceili(population / 2.0)
-	var daily_food_need := house_food_upkeep + ration
-	var shortage := food < daily_food_need
-	food = maxi(0, food - daily_food_need)
-
-	var running_workshops := 0
-	for record in buildings:
-		if record.type != "workshop" or not bool(record.get("enabled", true)):
-			continue
-		var required_workers := int(BUILDINGS.workshop.workers)
-		var wood_input := building_input("workshop", "wood")
-		var food_input := building_input("workshop", "food")
-		var coin_output := building_output("workshop", "coins")
-		if int(record.get("assigned_workers", 0)) == required_workers and wood >= wood_input and food >= food_input:
-			wood -= wood_input
-			food -= food_input
-			coins += coin_output
-			running_workshops += 1
-			record.last_running = true
-
-	var running_clinics := 0
-	var running_academies := 0
-	for record in buildings:
-		if not bool(record.get("enabled", true)):
-			continue
-		var service_type := str(record.type)
-		if service_type not in ["market", "clinic", "academy"]:
-			continue
-		var service_workers := int(BUILDINGS[service_type].workers)
-		if int(record.get("assigned_workers", 0)) < service_workers:
-			continue
-		if service_type == "market":
-			var market_food_input := building_input("market", "food")
-			var market_coin_output := building_output("market", "coins")
-			if food < market_food_input:
-				continue
-			food -= market_food_input
-			coins += market_coin_output
-		elif service_type == "clinic":
-			running_clinics += 1
-		elif service_type == "academy":
-			var academy_coin_output := building_output("academy", "coins")
-			coins += academy_coin_output
-			running_academies += 1
-		record.last_running = true
-	var road_transport_income := daily_road_transport_income()
-	coins += road_transport_income
-
-	var population_tax := int(floor(population / 2.0))
-	# Household levy and basic trade provide income before markets unlock.
-	# Failure is evaluated after the complete day's income and maintenance.
-	population_tax = maxi(1, population_tax)
-	var basic_trade_income := daily_basic_trade_income()
-	coins += population_tax
-	coins += basic_trade_income
-	var maintenance_bill := 0
-	for record in buildings:
-		if bool(record.get("enabled", true)):
-			maintenance_bill += int(BUILDINGS[record.type].maintenance)
-	var total_maintenance_due := maintenance_bill + maintenance_debt
-	if coins >= total_maintenance_due:
-		coins -= total_maintenance_due
-		maintenance_debt = 0
-	else:
-		maintenance_debt = total_maintenance_due - coins
-		coins = 0
-	var maintenance_paid := maintenance_debt == 0
-
-	var starvation_departures := mini(1, population) if shortage else 0
-	if shortage:
-		population -= starvation_departures
-	else:
-		var empty_beds := housing_capacity() - population
-		var migration_ration := ceili(population / 2.0)
-		var jobs_needed := ceili((population + 1) * 0.5)
-		var can_migrate := (
-			happiness >= 55 and empty_beds >= 1 and food >= 2 * migration_ration
-			and maintenance_paid and enabled_job_capacity() >= jobs_needed
-		)
-		if can_migrate:
-			var arrivals := 2 if happiness >= 75 and food >= 4 * migration_ration else 1
-			arrivals = mini(mini(arrivals, empty_beds), 50 - population)
-			population += arrivals
-
-	day += 1
-	var happiness_before_event := happiness
-	var event_message := trigger_event(day % 4)
-	var event_happiness_modifier := happiness - happiness_before_event
-	happiness = happiness_before_event
-	var job_demand := int(plan.demand)
-	var staffing_ratio := float(plan.assigned) / float(job_demand) if job_demand > 0 else 0.0
-	var happiness_target := 50
-	var happiness_food_need := maxi(1, ceili(population / 2.0) + building_count("house"))
-	if shortage:
-		happiness_target -= 15
-	elif food >= happiness_food_need * 4:
-		happiness_target += 8
-	elif food >= happiness_food_need * 2:
-		happiness_target += 5
-	elif food >= happiness_food_need:
-		happiness_target += 2
-	var empty_beds_after := housing_capacity() - population
-	if empty_beds_after >= 4:
-		happiness_target += 5
-	elif empty_beds_after >= 1:
-		happiness_target += 2
-	elif empty_beds_after < 0:
-		happiness_target -= 10
-	if staffing_ratio >= 0.75:
-		happiness_target += 8
-	elif staffing_ratio >= 0.50:
-		happiness_target += 3
-	else:
-		happiness_target -= 5
-	happiness_target += mini(int(BUILDINGS.workshop.effect_cap), running_workshops * building_effect("workshop", "happiness_target"))
-	happiness_target += mini(int(BUILDINGS.clinic.effect_cap), running_clinics * building_effect("clinic", "happiness_target"))
-	happiness_target += mini(int(BUILDINGS.academy.effect_cap), running_academies * building_effect("academy", "happiness_target"))
-	happiness_target += 5 if maintenance_paid else -10
-	happiness_target += event_happiness_modifier
-	happiness_target = clampi(happiness_target, 0, 100)
-	var happiness_change := clampi(happiness_target - happiness, -6, 3)
-	happiness = clampi(happiness + happiness_change, 0, 100)
-	# Resolve departures using today's final happiness. Food shortage and low
-	# morale overlap, so apply only the larger loss instead of adding both.
-	var morale_departures := 2 if happiness < 20 else (1 if happiness < 40 else 0)
-	population = maxi(0, population - maxi(0, morale_departures - starvation_departures))
-
-	if not shortage and maintenance_paid and staffing_ratio >= 0.70:
-		stable_days += 1
-	else:
-		stable_days = 0
-	low_happiness_days = low_happiness_days + 1 if happiness < 20 else 0
-	if check_failure_conditions():
-		pass
-	elif (
-		map_region_level >= REGION_DEFINITIONS.size() - 1
-		and population >= VICTORY_POPULATION
-		and wood >= VICTORY_WOOD
-		and food >= VICTORY_FOOD
-		and coins >= VICTORY_COINS
-		and happiness >= VICTORY_HAPPINESS
-	):
-		end_game("win")
-	show_message(event_message)
+	economy.advance(AUTO_DAY_SECONDS)
+	refresh_economy_snapshot()
+	check_failure_conditions()
 	update_citizens()
 	update_ui()
-	save_game(false)
-	day_settling = false
 
 func daily_basic_trade_income() -> int:
-	var income := 0
-	for record in buildings:
-		if (
-			str(record.type) in ["farm", "lumber"]
-			and bool(record.get("enabled", true))
-			and int(record.get("assigned_workers", 0)) > 0
-		):
-			income += int(BUILDINGS[record.type].get("trade_coins", BASIC_TRADE_COINS_PER_SITE))
-	return mini(BASIC_TRADE_COIN_CAP, income)
+	return 0
 
-func trigger_event(event_index: int) -> String:
-	match event_index:
-		0:
-			var extra_food := projected_gathering_output("farm")
-			food = storage_after_intake(food, extra_food, food_capacity())
-			return "丰收：农田产出翻倍，本日额外获得粮食"
-		1:
-			wood = maxi(0, wood - staffed_building_count("lumber") * 2)
-			return "雨季：伐木场产出受影响"
-		2:
-			if wood >= wood_capacity():
-				return "商旅经过：木材仓储已满，未进行交易"
-			if food >= 10:
-				food -= 10
-				var traded_wood := mini(25, wood_capacity() - wood)
-				wood = storage_after_intake(wood, traded_wood, wood_capacity())
-				return "商旅抵达：支付 10 粮食，木材入库 %d" % traded_wood
-			else:
-				return "商旅经过，但库存不足以交易"
-		3:
-			happiness = maxi(0, happiness - 8)
-			return "居民争执：幸福度 -8"
+func trigger_event(_event_index: int) -> String:
 	return ""
 
 func enabled_job_capacity() -> int:
@@ -3203,19 +2957,7 @@ func staffed_building_count(type: String) -> int:
 	return count
 
 func migration_block_reason() -> String:
-	if housing_capacity() <= population:
-		return "今日无人迁入：缺少空床位"
-	if happiness < 55:
-		return "今日无人迁入：幸福度不足"
-	var migration_ration := ceili(population / 2.0)
-	if food < 2 * migration_ration:
-		return "今日无人迁入：粮食储备不足两日口粮"
-	if maintenance_debt > 0:
-		return "今日无人迁入：仍有维护欠款"
-	var jobs_needed := ceili((population + 1) * 0.5)
-	if enabled_job_capacity() < jobs_needed:
-		return "今日无人迁入：生产岗位不足"
-	return "今日无人迁入：尚未达到迁入条件"
+	return str(economy_snapshot.get("immigration_status", "等待空床与生活物资"))
 
 func building_count(type: String) -> int:
 	var count := 0
@@ -3232,13 +2974,17 @@ func building_count_in_region(type: String, level: int) -> int:
 	return count
 
 func housing_capacity() -> int:
-	return building_count("house") * building_effect("house", "housing")
+	return int(economy_snapshot.get("housing_capacity", building_count("house") * 4))
 
 func wood_capacity() -> int:
-	return 100 + connected_warehouse_count() * building_effect("warehouse", "wood_capacity")
+	return resource_capacity("wood")
 
 func food_capacity() -> int:
-	return 100 + connected_warehouse_count() * building_effect("warehouse", "food_capacity")
+	return resource_capacity("food")
+
+func resource_capacity(good: String) -> int:
+	var defaults := {"wood": 100, "water": 50, "food": 100, "cloth": 60}
+	return int(economy_snapshot.get("capacities", {}).get(good, defaults.get(good, 200)))
 
 func connected_warehouse_count() -> int:
 	var count := 0
@@ -3255,14 +3001,12 @@ func storage_after_intake(current: int, gained: int, capacity: int) -> int:
 func update_ui() -> void:
 	var plan := assign_workers()
 	update_building_status_markers(plan)
-	status_label.text = "第 %d 日 · %s\n木材 %d/%d · 粮食 %d/%d · 铜钱 %d · 人口 %d/%d · 幸福度 %d" % [
-		day, time_status_text(), wood, wood_capacity(), food, food_capacity(), coins, population, housing_capacity(), happiness
+	status_label.text = "第 %d 日 · %s\n木材 %d/%d · 水 %s/%d · 粮食 %d/%d · 衣物 %s/%d · 铜钱 %s · 人口 %d/%d · 幸福度 %d" % [
+		day, time_status_text() + (" · " + str(economy_snapshot.population_pressure) if not str(economy_snapshot.get("population_pressure", "")).is_empty() else ""), wood, wood_capacity(), display_integer(float(economy_snapshot.get("goods", {}).get("water", 0))), resource_capacity("water"), food, food_capacity(), display_integer(float(economy_snapshot.get("goods", {}).get("cloth", 0))), resource_capacity("cloth"), display_integer(float(economy_snapshot.get("coins", coins))), population, housing_capacity(), happiness
 	]
-	status_label.tooltip_text = "木材容量 %d · 粮食容量 %d · 住房 %d · 有效劳力 %d · 启用岗位 %d · 稳定 %d 日 · 维护欠款 %d" % [
-		wood_capacity(), food_capacity(), housing_capacity(), plan.available, plan.demand, stable_days, maintenance_debt
-	]
-	status_label.tooltip_text += "\n日结幸福度低于 40：离开 1 人；低于 20：离开 2 人。缺粮与低幸福取较大流失人数。\n人口或铜钱归零即失败；幸福度连续 3 日低于 20 也会失败。"
-	status_label.tooltip_text += "\n仓库接通主路才增加容量；超出容量的存量保留，腾出空间后恢复入库。"
+	status_label.set("cloth_tooltip", "相关物料：麻 %s\n麻田产麻 → 织坊制衣" % display_integer(float(economy_snapshot.get("goods", {}).get("hemp", 0))))
+	status_label.set("resource_tooltips", top_resource_tooltips())
+	status_label.tooltip_text = "时间自动流逝，可在下方暂停或调速。"
 	goal_label.tooltip_text = "章节目标在开拓下一地区后切换；达成的目标会以绿色勾选显示。"
 	if map_region_level >= REGION_DEFINITIONS.size() - 1:
 		goal_label.text = "%s · %s\n目标：%s" % [CAMPAIGN_CHAPTERS[6], CAMPAIGN_STAGE_NAMES[6], final_current_task_text()]
@@ -3396,6 +3140,9 @@ func final_goal_display_lines() -> Array:
 
 func show_inspector(building_id: int) -> void:
 	assign_workers()
+	# Status text and the overhead marker must use the same post-production
+	# snapshot, so a newly emptied input is visible immediately on click.
+	refresh_economy_snapshot()
 	for record in buildings:
 		if int(record.id) == building_id:
 			selected_building_id = building_id
@@ -3405,14 +3152,23 @@ func show_inspector(building_id: int) -> void:
 			var status := building_operation_text(record)
 			var operation := building_operation_state(record)
 			set_inspector_status(status, str(operation.code) in ["running", "passive"])
-			var road_status := building_road_status_text(record)
-			inspector_body.text = "%s%s\n\n拆除返还：%d 木材 · %d 铜钱" % [
-				building_effect_text(str(record.type), false), "\n" + road_status if road_status != "" else "",
-				int(definition.cost) / 2, int(definition.coin_cost) / 2
-			]
-			inspector_toggle_button.visible = int(definition.workers) > 0
-			inspector_toggle_button.text = "暂停生产" if bool(record.get("enabled", true)) else "启用生产"
-			inspector_demolish_button.text = "删除建筑（返还一半木材与铜钱）"
+			inspector_body.text = building_detail_text(str(record.type))
+			var spec: Dictionary = EconomyKit.SPECS[record.type]
+			var operation_data: Dictionary = economy_snapshot.get("building_status", {}).get(str(record.id), {})
+			if spec.has("output") and not bool(operation_data.get("producing", true)):
+				var lines := inspector_body.text.split("\n")
+				for index in range(lines.size()):
+					if lines[index].begins_with("产出："):
+						lines[index] = "产出：%s0/日（停产）" % resource_label(str(spec.output))
+					elif lines[index].begins_with("消耗："):
+						lines[index] = "维护：铜钱%d/日" % int(spec.maintenance) if int(spec.maintenance) > 0 else "消耗：无"
+				inspector_body.text = "\n".join(lines)
+				var normal_resources := building_daily_resource_parts(str(record.type))
+				inspector_body.tooltip_text += "\n正常运转：产出" + " · ".join(normal_resources.outputs) + "；消耗" + " · ".join(normal_resources.costs)
+			inspector_demolish_button.text = "删除建筑（返还一半建材与铜钱）"
+			inspector_demolish_button.tooltip_text = building_refund_text(str(record.type))
+			update_economy_inspector(record)
+			inspector_status.tooltip_text = ""
 			inspector.visible = true
 			return
 
@@ -3421,11 +3177,7 @@ func set_inspector_status(text: String, normal: bool) -> void:
 	inspector_status.add_theme_color_override("font_color", Color("39764b") if normal else Color("a63d32"))
 
 func building_road_status_text(record: Dictionary) -> String:
-	if str(record.type) not in ROAD_ELIGIBLE_BUILDING_TYPES:
-		return ""
-	if building_has_connected_road(record):
-		return "道路：已接通村庄主路｜正常运行时铜钱 +%d/日（全城上限 +%d）" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
-	return "道路：未接通村庄主路｜接通并正常运行后铜钱 +%d/日（全城上限 +%d）" % [ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP]
+	return "" if building_has_connected_road(record) else "请铺路连接村庄主路。"
 
 func show_road_inspector(cell: Vector2i) -> void:
 	if not roads.has(cell):
@@ -3434,48 +3186,21 @@ func show_road_inspector(cell: Vector2i) -> void:
 	selected_road_cell = cell
 	inspector_title.text = "道路"
 	var connected := is_road_connected(cell)
-	set_inspector_status("状态：已接通村庄主路" if connected else "状态：尚未接通村庄主路", connected)
-	inspector_body.text = "铺设：木材 -%d/格\n作用：连接村庄主路与生产建筑\n收益：相邻且正常运行的农田、鱼塘、伐木场、工坊、集市或书院，铜钱 +%d/日（全城上限 +%d）\n\n拆除返还：木材 %d" % [
-		ROAD_WOOD_COST, ROAD_TRANSPORT_BONUS, ROAD_TRANSPORT_COIN_CAP,
-		ROAD_WOOD_COST,
-	]
-	inspector_toggle_button.visible = false
-	inspector_demolish_button.text = "拆除道路（返还木材 %d）" % ROAD_WOOD_COST
-	inspector.visible = true
+	set_inspector_status("已接通主路" if connected else "未接通主路", connected)
+	inspector_body.text = "连接住宅、产业与公共仓储。\n铺设木材%d/格；拆除返还木材%d。" % [ROAD_WOOD_COST, ROAD_WOOD_COST]
+	inspector_promote_button.hide()
+	inspector_demolish_button.text = "拆除道路"
+	inspector.show()
 
-func building_operation_state(record: Dictionary, plan: Dictionary = {}) -> Dictionary:
-	var definition: Dictionary = BUILDINGS[record.type]
-	var required := int(definition.workers)
-	var result := {"code": "running", "required": required, "assigned": 0, "missing": []}
-	if bool(definition.get("requires_road", false)) and not building_has_connected_road(record):
-		result.code = "road"
-		return result
-	if required <= 0:
-		result.code = "passive"
-		return result
-	if not bool(record.get("enabled", true)):
-		result.code = "paused"
-		return result
-	if plan.is_empty():
-		plan = workforce_plan()
-	result.assigned = int(plan.by_id.get(int(record.id), 0))
-	var proportional := str(definition.get("staffing", "passive")) == "proportional"
-	if int(result.assigned) == 0 or (not proportional and int(result.assigned) < required):
-		result.code = "workers"
-		return result
-	if proportional:
-		return result
-	# This is current readiness, not a promise of next-day output: gathering,
-	# household food and earlier recipes can change stock before settlement.
-	var inputs: Dictionary = definition.get("inputs", {})
-	for resource in ["wood", "food"]:
-		var needed := int(inputs.get(resource, 0))
-		var available := wood if resource == "wood" else food
-		if needed > available:
-			result.missing.append("%s需 %d（现有 %d）" % [resource_label(resource), needed, available])
-	if not result.missing.is_empty():
-		result.code = "materials"
-	return result
+func building_operation_state(record: Dictionary, _plan: Dictionary = {}) -> Dictionary:
+	var state: Dictionary = economy_snapshot.get("building_status", {}).get(str(record.id), {})
+	var reason := str(state.get("reason", "未接通主路"))
+	var code := "running" if bool(state.get("ok", false)) else "materials"
+	if not building_has_connected_road(record):
+		code = "road"
+	elif int(state.get("workers", 0)) == 0 and int(BUILDINGS[record.type].workers) > 0:
+		code = "workers"
+	return {"code": code, "reason": reason, "required": int(state.get("required_workers", 0)), "assigned": int(state.get("workers", 0)), "missing": []}
 
 func get_building_status_marker(building_id: int) -> Label3D:
 	for record in buildings:
@@ -3487,8 +3212,6 @@ func update_building_status_markers(plan: Dictionary = {}) -> void:
 	if plan.is_empty():
 		plan = workforce_plan()
 	for record in buildings:
-		if int(BUILDINGS[record.type].workers) <= 0 and not bool(BUILDINGS[record.type].get("requires_road", false)):
-			continue
 		var model: Node3D = record.node
 		if not is_instance_valid(model) or model.is_queued_for_deletion():
 			continue
@@ -3514,6 +3237,9 @@ func update_building_status_markers(plan: Dictionary = {}) -> void:
 			marker.position = Vector3(0, highest + 0.40, 0)
 			model.add_child(marker)
 		var state := building_operation_state(record, plan)
+		var art_bounds: Vector3 = model.get_meta("art_bounds", Vector3.ZERO)
+		if art_bounds.y > 0.0:
+			marker.position.y = art_bounds.y + 0.40
 		var code := str(state.code)
 		marker.visible = code in ["paused", "workers", "materials", "road"]
 		marker.text = {"paused": "Ⅱ", "workers": "!", "materials": "!", "road": "!"}.get(code, "")
@@ -3522,55 +3248,37 @@ func update_building_status_markers(plan: Dictionary = {}) -> void:
 		marker.set_meta("building_id", int(record.id))
 
 func building_operation_text(record: Dictionary) -> String:
-	var definition: Dictionary = BUILDINGS[record.type]
 	var state := building_operation_state(record)
-	var required := int(state.required)
-	if str(state.code) == "road":
-		return "状态：未接通主路｜仓储停用"
-	if bool(definition.get("requires_road", false)):
-		return "状态：已接通主路｜仓储生效"
-	if required <= 0:
-		return "状态：持续生效"
-	if not bool(record.get("enabled", true)):
-		return "状态：已暂停｜不占岗位｜不收维护费"
-	var assigned := int(state.assigned)
-	var type := str(record.type)
-	if str(definition.get("staffing", "passive")) == "proportional":
-		if assigned <= 0:
-			return "状态：无人生产｜在岗 0/%d｜本日产出 0" % required
-		var actual_outputs: Dictionary = {}
-		var outputs: Dictionary = definition.get("outputs", {})
-		for resource in outputs:
-			actual_outputs[resource] = int(floor(int(outputs[resource]) * assigned / float(required)))
-		return "状态：生产中｜在岗 %d/%d｜本日预计：%s%s" % [
-			assigned, required, resource_change_text(actual_outputs, 1), "；参与民生交易" if int(definition.get("trade_coins", 0)) > 0 else ""
-		]
-	if assigned < required:
-		return "状态：缺工｜在岗 %d/%d｜本日不运行" % [assigned, required]
-	var missing: Array = state.missing
-	if not missing.is_empty():
-		return "状态：当前库存不足单次配方｜在岗 %d/%d｜%s" % [assigned, required, "、".join(missing)]
-	if type == "workshop":
-		return "状态：当前库存够单次配方｜在岗 %d/%d｜结算时按库存依序处理（先口粮、后加工）" % [assigned, required]
-	if type == "market":
-		return "状态：当前库存够单次交易｜在岗 %d/%d｜结算时按库存依序处理（口粮、工坊优先）" % [assigned, required]
-	if type == "clinic":
-		return "状态：应诊中｜在岗 %d/%d｜幸福度目标 +%d" % [assigned, required, building_effect(type, "happiness_target")]
-	if type == "academy":
-		return "状态：开课中｜在岗 %d/%d｜本日铜钱 +%d、幸福度目标 +%d" % [
-			assigned, required, building_output(type, "coins"), building_effect(type, "happiness_target")
-		]
-	return "状态：运行中｜在岗 %d/%d" % [assigned, required]
+	var kind := "工匠" if str(EconomyKit.SPECS[record.type].get("worker_kind", "normal")) == "artisan" else "普通劳力"
+	var staffing := " · %s %d/%d" % [kind, state.assigned, state.required] if int(state.required) > 0 and not str(state.reason).contains(kind) else ""
+	var spec: Dictionary = EconomyKit.SPECS[record.type]
+	var economic_state: Dictionary = economy_snapshot.get("building_status", {}).get(str(record.id), {})
+	var prefix := "停产 · " if spec.has("output") and not bool(economic_state.get("producing", true)) else ""
+	return "状态：%s%s%s" % [prefix, state.reason, staffing]
+
+func top_resource_tooltips() -> Dictionary:
+	var pressure := str(economy_snapshot.get("population_pressure", "")).split(" · ")[0]
+	return {
+		"木材": "建造与加工用料。\n当前库存 / 仓储上限",
+		"水": "水井供水，居民日常消耗。\n当前库存 / 仓储上限",
+		"粮食": "农田、鱼塘、果园供应口粮。\n当前库存 / 仓储上限",
+		"铜钱": "收入：居民税收、工坊等\n支出：建造、建筑维护",
+		"人口": workforce_summary() + "\n迁入：" + migration_block_reason(),
+		"幸福度": "受水、粮食、衣物和公共服务影响。" + ("\n当前：" + pressure if not pressure.is_empty() else "")
+	}
+
+func workforce_summary() -> String:
+	var normal := int(economy_snapshot.get("normal_workers", 0))
+	var artisan := int(economy_snapshot.get("artisan_workers", 0))
+	return "普通劳力 %d/%d · 工匠 %d/%d（已用/总数）" % [normal - int(economy_snapshot.get("available_normal", 0)), normal, artisan - int(economy_snapshot.get("available_artisan", 0)), artisan]
 
 func current_failure_reason() -> String:
-	if population <= 0 and coins <= 0:
-		return "人口已归零，铜钱已耗尽，聚落无法继续经营。"
-	if population <= 0:
-		return "人口已归零，聚落无人留守，经营失败。"
-	if coins <= 0:
-		return "铜钱已耗尽，聚落无法继续经营。"
-	if low_happiness_days >= 3:
-		return "幸福度连续 3 日低于 20，居民失去信心，经营失败。"
+	if bool(economy_snapshot.get("failed", false)):
+		return str(economy_snapshot.get("failure_reason", "经营已结束"))
+	if int(economy_snapshot.get("population", population)) <= 0:
+		return "人口已归零，聚落无人留守。"
+	if float(economy_snapshot.get("coins", coins)) <= 0.0:
+		return "铜钱已耗尽，经营失败。"
 	return ""
 
 func check_failure_conditions() -> bool:
@@ -3586,6 +3294,8 @@ func end_game(result: String, reason := "") -> void:
 	if ended != "":
 		return
 	ended = result
+	if result == "win":
+		victory_achieved = true
 	failure_reason = reason if result == "lose" else ""
 	if result == "lose" and failure_reason.is_empty():
 		failure_reason = current_failure_reason()
@@ -3629,9 +3339,23 @@ func end_game(result: String, reason := "") -> void:
 	detail.text = "七境相连，粮木充足，百姓安居。昔日河湾已经成为一座繁盛新城。" if result == "win" else failure_reason
 	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(detail)
+	if result == "win":
+		box.add_child(make_action_button("继续经营", continue_after_victory, Color("a9be92")))
 	box.add_child(make_action_button("重新开始", reset_game.bind(true), Color("d6a74a")))
 
+func continue_after_victory() -> void:
+	if ended != "win":
+		return
+	ended = ""
+	time_paused = false
+	if is_instance_valid(end_layer):
+		end_layer.queue_free()
+		end_layer = null
+	update_ui()
+	save_game(false)
+
 func reset_game(confirm_reset := true) -> void:
+	victory_achieved = false
 	prepare_village_life_variants()
 	if end_layer and is_instance_valid(end_layer):
 		end_layer.queue_free()
@@ -3640,8 +3364,13 @@ func reset_game(confirm_reset := true) -> void:
 		child.queue_free()
 	for child in road_root.get_children():
 		child.queue_free()
+	economy.reset()
+	last_population_pressure = ""
+	# Starting timber is the playable stock after the standing home is placed.
+	economy.apply_resources({"coins": -4})
+	economy_snapshot = economy.snapshot()
 	day = 1
-	wood = 100
+	wood = EconomyKit.INITIAL_WOOD
 	food = 40
 	coins = 60
 	population = 4
@@ -3675,67 +3404,54 @@ func reset_game(confirm_reset := true) -> void:
 	clear_ghost()
 	update_region_visuals()
 	add_building("house", Vector2i(9, 9), true)
+	sync_economy_buildings()
 	update_citizens(false)
-	show_message("时间正以 1× 自动流逝：先建设住房与生产设施吧")
+	show_message("建农田、伐木场和水井，铺路连通；小工坊加工木材赚取铜钱。")
 	update_ui()
 	if confirm_reset:
 		save_game(false)
 
 func save_game(show_feedback := true) -> void:
+	if restoring_economy:
+		return
 	var target_path := save_path()
 	DirAccess.make_dir_recursive_absolute(target_path.get_base_dir())
-	var building_data: Array[Dictionary] = []
+	var building_data: Array = []
 	for record in buildings:
-		var cell: Vector2i = record.cell
-		building_data.append({
-			"id": record.id, "type": record.type, "x": cell.x, "z": cell.y,
-			"enabled": bool(record.get("enabled", true)), "rotation_quarters": int(record.get("rotation_quarters", 0))
-		})
-		if str(record.type) == "warehouse":
-			building_data[-1]["warehouse_footprint"] = record_base_footprint(record).x
-		elif str(record.type) == "farm":
-			var farm_base := record_base_footprint(record)
-			building_data[-1]["farm_footprint"] = farm_base.x * farm_base.y
-		elif str(record.type) in ["workshop", "clinic"]:
-			building_data[-1][str(record.type) + "_footprint"] = record_base_footprint(record).x
-	var road_data: Array[Dictionary] = []
+		building_data.append({"id": record.id, "type": record.type, "x": record.cell.x, "z": record.cell.y, "enabled": record.enabled, "rotation_quarters": record.rotation_quarters})
+	var road_data: Array = []
 	for cell in roads:
 		road_data.append({"x": cell.x, "z": cell.y})
-		if legacy_cleared_tree_roads.has(cell):
-			road_data[-1]["legacy_cleared_tree"] = true
-	var data := {
-		"version": SAVE_VERSION, "road_rules_version": 2, "map_region_level": map_region_level, "day": day, "wood": wood, "food": food, "coins": coins,
-		"population": population, "happiness": happiness, "low_happiness_days": low_happiness_days,
-		"stable_days": stable_days, "maintenance_debt": maintenance_debt,
-		"next_id": next_id, "ended": ended, "failure_reason": failure_reason, "buildings": building_data, "roads": road_data
-	}
-	var file := FileAccess.open(target_path, FileAccess.WRITE)
+	var data := {"version": SAVE_VERSION, "map_region_level": map_region_level, "next_id": next_id, "ended": ended, "victory_achieved": victory_achieved, "failure_reason": failure_reason, "buildings": building_data, "roads": road_data, "economy": economy.serialize(), "time_speed": time_speed, "time_paused": time_paused}
+	var temporary := target_path + ".tmp"
+	var file := FileAccess.open(temporary, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data, "  "))
 		file.close()
+		var error := DirAccess.rename_absolute(temporary, target_path)
 		if show_feedback:
-			show_message("存档已写入项目 saves 文件夹")
-	else:
+			show_message("新版本存档已保存" if error == OK else "存档替换失败，原存档保留")
+	elif show_feedback:
 		show_message("存档写入失败")
 
 func load_game(show_feedback := true) -> void:
-	var target_path := save_path()
-	if not FileAccess.file_exists(target_path):
+	if not FileAccess.file_exists(save_path()):
 		if show_feedback:
-			show_message("还没有可读取的存档")
+			show_message("尚无新版本存档")
 		return
-	var file := FileAccess.open(target_path, FileAccess.READ)
+	var file := FileAccess.open(save_path(), FileAccess.READ)
+	if file == null:
+		return
 	var parsed = JSON.parse_string(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) not in [1, 2, 3, 4]:
-		if show_feedback:
-			show_message("存档格式无效，当前进度未改变")
+	if not parsed is Dictionary:
+		show_message("存档格式无效")
 		return
-	var validation_error := validate_save_data(parsed)
-	if validation_error != "":
-		if show_feedback:
-			show_message("存档无效：%s；当前进度未改变" % validation_error)
+	var reason := validate_save_data(parsed)
+	if reason != "":
+		show_message(reason)
 		return
+	restoring_economy = true
 	if is_instance_valid(end_layer):
 		end_layer.queue_free()
 		end_layer = null
@@ -3747,218 +3463,110 @@ func load_game(show_feedback := true) -> void:
 	occupied.clear()
 	roads.clear()
 	legacy_cleared_tree_roads.clear()
-	update_road_scenery()
-	day = int(parsed.get("day", 1))
-	wood = int(parsed.get("wood", 100))
-	food = int(parsed.get("food", 40))
-	var loaded_version := int(parsed.get("version", 1))
-	var loaded_region_level := int(parsed.get("map_region_level", 0)) if loaded_version >= 2 else 0
-	coins = int(parsed.get("coins", 60 + loaded_region_level * 30))
-	population = int(parsed.get("population", 4))
-	happiness = int(parsed.get("happiness", 60))
-	low_happiness_days = int(parsed.get("low_happiness_days", 0))
-	stable_days = int(parsed.get("stable_days", 0))
-	maintenance_debt = int(parsed.get("maintenance_debt", 0))
-	map_region_level = loaded_region_level
-	next_id = int(parsed.get("next_id", 1))
 	ended = ""
 	failure_reason = ""
-	auto_day_elapsed = 0.0
-	citizen_schedule_time = 0.0
-	time_paused = false
-	day_settling = false
-	for record in parsed.get("buildings", []):
-		var type := str(record.get("type", ""))
-		if BUILDINGS.has(type):
-			add_building(
-				type, Vector2i(int(record.get("x", 0)), int(record.get("z", 0))), true,
-				int(record.get("id", -1)), bool(record.get("enabled", true)), saved_base_footprint(record), int(record.get("rotation_quarters", 0))
-			)
-	if loaded_version >= 4:
-		for road_record in parsed.get("roads", []):
-			var road_cell := Vector2i(int(road_record.get("x", 0)), int(road_record.get("z", 0)))
-			var legacy_tree: bool = has_scenery_tree(road_cell) and (not parsed.has("road_rules_version") or bool(road_record.get("legacy_cleared_tree", false)))
-			add_road(road_cell, true, legacy_tree)
+	map_region_level = int(parsed.map_region_level)
+	victory_achieved = bool(parsed.get("victory_achieved", false))
+	next_id = 1
+	for record in parsed.buildings:
+		add_building(str(record.type), Vector2i(int(record.x), int(record.z)), true, int(record.id), true, Vector2i.ZERO, int(record.rotation_quarters))
+	for road in parsed.roads:
+		add_road(Vector2i(int(road.x), int(road.z)), true)
+	next_id = int(parsed.next_id)
+	economy.restore(parsed.economy)
+	last_population_pressure = ""
+	# Placement-led supply: retired orders cannot keep trading invisibly.
+	economy.trade_orders.clear()
+	economy.routes.clear()
+	economy.immigration_enabled = true
+	# Retired automatic policies must not trade invisibly behind the order UI.
+	for region in economy.regions:
+		for good in EconomyKit.GOODS:
+			if str(economy.regional_policies[region][good].mode) != "off":
+				economy.set_trade_policy(good, "off", 0, str(region))
+	restoring_economy = false
+	sync_economy_buildings()
+	time_speed = float(parsed.get("time_speed", 1.0))
+	time_paused = bool(parsed.get("time_paused", false))
 	selected_type = ""
-	road_tool_selected = false
 	selected_building_id = -1
 	selected_road_cell = Vector2i(-1, -1)
-	inspector.visible = false
+	road_tool_selected = false
+	inspector.hide()
 	clear_ghost()
 	update_region_visuals()
 	update_citizens(false)
-	# Rebuild first so temporary construction state cannot trigger defeat.
-	if not check_failure_conditions():
-		var saved_result := str(parsed.get("ended", ""))
-		if saved_result in ["win", "lose"]:
-			end_game(saved_result, str(parsed.get("failure_reason", "")))
-	if show_feedback and ended == "":
-		show_message("存档读取完成，时间继续自动流逝")
+	if not check_failure_conditions() and str(parsed.get("ended", "")) == "win":
+		end_game("win")
+	if show_feedback:
+		show_message("新版本存档读取完成")
 	update_ui()
 
 func validate_save_data(data: Dictionary) -> String:
-	if not data.has("version") or not is_json_number(data.version) or float(data.version) != floor(float(data.version)):
-		return "存档版本无效"
-	var save_version := int(data.version)
-	var numeric_fields := ["day", "wood", "food", "population", "happiness", "low_happiness_days", "next_id"]
-	if save_version >= 3:
-		numeric_fields.append_array(["coins", "stable_days", "maintenance_debt"])
-	for field in numeric_fields:
-		if not data.has(field) or not is_json_number(data[field]):
-			return "字段 %s 缺失或类型错误" % field
-		if float(data[field]) != floor(float(data[field])):
-			return "字段 %s 必须是整数" % field
-	var saved_day := int(data.day)
-	var saved_wood := int(data.wood)
-	var saved_food := int(data.food)
-	var saved_population := int(data.population)
-	var saved_happiness := int(data.happiness)
-	var saved_low_days := int(data.low_happiness_days)
-	var saved_next_id := int(data.next_id)
-	var saved_region_level := int(data.get("map_region_level", 0)) if save_version >= 2 else 0
-	var saved_coins := int(data.get("coins", 60 + saved_region_level * 30))
-	var saved_stable_days := int(data.get("stable_days", 0))
-	var saved_maintenance_debt := int(data.get("maintenance_debt", 0))
-	if saved_day < 1 or saved_day > 1000000:
-		return "日期超出范围"
-	if saved_population < 0 or saved_population > 50:
-		return "人口超出范围"
-	if saved_happiness < 0 or saved_happiness > 100:
-		return "幸福度超出范围"
-	if saved_low_days < 0 or saved_low_days > 1000000:
-		return "低幸福计数超出范围"
-	if saved_coins < 0 or saved_coins > 1000000000:
-		return "铜钱超出范围"
-	if saved_stable_days < 0 or saved_stable_days > 1000000:
-		return "稳定天数超出范围"
-	if saved_maintenance_debt < 0 or saved_maintenance_debt > 1000000000:
-		return "维护欠款超出范围"
-	if saved_next_id < 1:
-		return "下一个建筑编号无效"
-	if save_version >= 2 and data.has("map_region_level") and (not is_json_number(data.map_region_level) or float(data.map_region_level) != floor(float(data.map_region_level))):
-		return "区域等级必须是整数"
-	if saved_region_level < 0 or saved_region_level > REGION_DEFINITIONS.size() - 1:
-		return "区域等级超出范围"
-	if typeof(data.get("buildings")) != TYPE_ARRAY:
-		return "建筑列表缺失"
-	if save_version >= 4 and (not data.has("roads") or typeof(data.get("roads")) != TYPE_ARRAY):
-		return "道路列表缺失"
-	var raw_buildings: Array = data.buildings
-	if raw_buildings.size() > GRID_SIZE * GRID_SIZE:
-		return "建筑数量超出地图容量"
-	var used_cells := {}
-	var used_ids := {}
+	if not is_json_number(data.get("version")) or float(data.version) != SAVE_VERSION:
+		return "仅支持新经济版本存档，请重新开始"
+	if not data.get("buildings") is Array or not data.get("roads") is Array or not data.get("economy") is Dictionary:
+		return "存档缺少建筑、道路或经济状态"
+	var level := int(data.get("map_region_level", -1))
+	if level < 0 or level >= REGION_DEFINITIONS.size():
+		return "区域数据无效"
+	var probe = EconomyKit.new()
+	if not probe.restore(data.economy):
+		return "经济账本无效"
+	var cells := {}
+	var ids := {}
+	var scene_types := {}
 	var max_id := 0
-	for raw_record in raw_buildings:
-		if typeof(raw_record) != TYPE_DICTIONARY:
-			return "建筑记录类型错误"
-		var record: Dictionary = raw_record
-		if not record.has("id") or not is_json_number(record.id) or float(record.id) != floor(float(record.id)):
-			return "建筑编号无效"
-		if not record.has("x") or not is_json_number(record.x) or float(record.x) != floor(float(record.x)):
-			return "建筑横坐标无效"
-		if not record.has("z") or not is_json_number(record.z) or float(record.z) != floor(float(record.z)):
-			return "建筑纵坐标无效"
-		var building_id := int(record.id)
-		var type := str(record.get("type", ""))
-		var cell := Vector2i(int(record.x), int(record.z))
-		if save_version >= 3 and (not record.has("enabled") or typeof(record.enabled) != TYPE_BOOL):
-			return "建筑启停状态无效"
-		if building_id < 1 or used_ids.has(building_id):
-			return "建筑编号重复或超出范围"
-		if not BUILDINGS.has(type):
-			return "包含未知建筑类型"
-		if record.has("rotation_quarters"):
-			if not is_json_number(record.rotation_quarters) or float(record.rotation_quarters) not in [0.0, 1.0, 2.0, 3.0]:
-				return "建筑旋转角度必须为0、90、180或270度"
-		if record.has("warehouse_footprint"):
-			if type != "warehouse" or not is_json_number(record.warehouse_footprint):
-				return "仓库占地无效"
-			if float(record.warehouse_footprint) not in [1.0, 2.0]:
-				return "仓库占地必须为1×1或2×2"
-		if record.has("farm_footprint"):
-			if type != "farm" or not is_json_number(record.farm_footprint):
-				return "农田占地无效"
-			if float(record.farm_footprint) not in [1.0, 2.0, 4.0]:
-				return "农田占地必须为1×1、2×1或2×2"
-		for compact_type in ["workshop", "clinic"]:
-			var footprint_field: String = compact_type + "_footprint"
-			if record.has(footprint_field):
-				if type != compact_type or not is_json_number(record[footprint_field]):
-					return "%s占地无效" % BUILDINGS[compact_type].name
-				if float(record[footprint_field]) not in [1.0, 2.0]:
-					return "%s占地必须为1×1或2×2" % BUILDINGS[compact_type].name
-		if saved_region_level < int(BUILDINGS[type].get("unlock_level", 0)):
-			return "%s早于区域解锁出现" % BUILDINGS[type].name
-		if cell.x < 0 or cell.x >= GRID_SIZE or cell.y < 0 or cell.y >= GRID_SIZE:
-			return "建筑坐标超出地图"
-		if region_level_for_cell(cell) > saved_region_level:
-			return "建筑位于尚未开放的区域"
-		if is_water_cell(cell) or is_reserved_forest(cell):
-			return "建筑位于河道或保留林地"
-		if type == "farm" and not is_farm_lot(cell, saved_building_footprint(record)):
+	for record in data.buildings:
+		if not record is Dictionary or not BUILDINGS.has(str(record.get("type", ""))):
+			return "建筑类型无效"
+		for field in ["id", "x", "z", "rotation_quarters"]:
+			if not is_json_number(record.get(field)) or not is_finite(float(record[field])) or floorf(float(record[field])) != float(record[field]):
+				return "建筑编号或坐标不是有效整数"
+		var id := int(record.get("id", -1))
+		var rotation := int(record.get("rotation_quarters", -1))
+		if id < 1 or ids.has(id) or rotation not in [0, 1, 2, 3] or not record.get("enabled") is bool:
+			return "建筑编号、朝向或启停状态无效"
+		ids[id] = true
+		max_id = maxi(max_id, id)
+		var type := str(record.type)
+		scene_types[str(id)] = {"type": type, "enabled": bool(record.enabled)}
+		if int(BUILDINGS[type].unlock_level) > level:
+			return "建筑尚未解锁"
+		var anchor := Vector2i(int(record.get("x", -1)), int(record.get("z", -1)))
+		var footprint := rotated_footprint(BUILDING_FOOTPRINTS.get(type, Vector2i.ONE), rotation)
+		for cell in building_footprint_cells(type, anchor, footprint):
+			if cell.x < 0 or cell.y < 0 or cell.x >= GRID_SIZE or cell.y >= GRID_SIZE or region_level_for_cell(cell) > level or cells.has(cell) or (is_water_cell(cell) and type != "dock") or is_reserved_forest(cell) or is_fixed_road_infrastructure(cell) or has_scenery_tree(cell):
+				return "建筑占地无效或重叠"
+			cells[cell] = true
+		if type in ["farm", "hemp_farm"] and not is_farm_lot(anchor, footprint):
 			return "农田未位于河岸"
-		if type == "lumber" and not is_lumber_cell(cell):
+		if type == "dock" and not is_dock_lot(anchor, rotation):
+			return "码头未正确跨岸"
+		if type == "claypit" and not is_farm_lot(anchor, footprint):
+			return "采泥场未位于河岸"
+		if type == "lumber" and not is_lumber_lot(anchor, footprint):
 			return "伐木场未位于林缘"
-		var footprint := saved_building_footprint(record)
-		for footprint_cell in building_footprint_cells(type, cell, footprint):
-			if footprint_cell.x < 0 or footprint_cell.x >= GRID_SIZE or footprint_cell.y < 0 or footprint_cell.y >= GRID_SIZE:
-				return "建筑占地超出地图"
-			if region_level_for_cell(footprint_cell) > saved_region_level:
-				return "建筑占地位于尚未开放的区域"
-			if is_water_cell(footprint_cell) or is_reserved_forest(footprint_cell):
-				return "建筑占地位于河道或保留林地"
-			if footprint != Vector2i.ONE and (is_village_main_road_cell(footprint_cell) or is_npc_bridge_access_cell(footprint_cell)):
-				return "%s占地阻挡主路或桥头" % BUILDINGS[type].name
-			if used_cells.has(footprint_cell):
-				return "多个建筑占用同一格"
-			used_cells[footprint_cell] = true
-		used_ids[building_id] = true
-		max_id = maxi(max_id, building_id)
-	var used_road_cells := {}
-	if data.has("road_rules_version") and (not is_json_number(data.road_rules_version) or float(data.road_rules_version) != 2.0):
-		return "道路规则版本无效"
-	# Roads did not exist before v4. Ignore any injected field on older saves so
-	# migration is deterministic and cannot import unsupported infrastructure.
-	var raw_roads: Array = data.get("roads", []) if save_version >= 4 else []
-	if raw_roads.size() > GRID_SIZE * GRID_SIZE:
-		return "道路数量超出地图容量"
-	for raw_road in raw_roads:
-		if typeof(raw_road) != TYPE_DICTIONARY:
-			return "道路记录类型错误"
-		var road_record: Dictionary = raw_road
-		if road_record.has("legacy_cleared_tree") and typeof(road_record.legacy_cleared_tree) != TYPE_BOOL:
-			return "历史道路清树标记无效"
-		if not road_record.has("x") or not is_json_number(road_record.x) or float(road_record.x) != floor(float(road_record.x)):
-			return "道路横坐标无效"
-		if not road_record.has("z") or not is_json_number(road_record.z) or float(road_record.z) != floor(float(road_record.z)):
-			return "道路纵坐标无效"
-		var road_cell := Vector2i(int(road_record.x), int(road_record.z))
-		if road_cell.x < 0 or road_cell.x >= GRID_SIZE or road_cell.y < 0 or road_cell.y >= GRID_SIZE:
-			return "道路坐标超出地图"
-		if region_level_for_cell(road_cell) > saved_region_level:
-			return "道路位于尚未开放的区域"
-		if is_water_cell(road_cell):
-			return "道路位于水面"
-		if is_fixed_road_infrastructure(road_cell):
-			return "道路与村庄主路或桥梁重叠"
-		if has_scenery_tree(road_cell) and data.has("road_rules_version") and not bool(road_record.get("legacy_cleared_tree", false)):
-			return "道路占用树木所在格"
-		if bool(road_record.get("legacy_cleared_tree", false)) and not has_scenery_tree(road_cell):
-			return "历史道路清树标记与场景不符"
-		if used_cells.has(road_cell):
-			return "道路与建筑占用同一格"
-		if used_road_cells.has(road_cell):
-			return "道路坐标重复"
-		used_road_cells[road_cell] = true
-	# A disconnected/demolished warehouse may leave legitimate existing stock
-	# above today's capacity. Bound saves by the map's theoretical historical
-	# capacity (including legacy 1-cell warehouses), not today's road network.
-	var maximum_saved_stock := 100 + GRID_SIZE * GRID_SIZE * building_effect("warehouse", "wood_capacity")
-	if saved_wood < 0 or saved_wood > maximum_saved_stock or saved_food < 0 or saved_food > maximum_saved_stock:
-		return "资源数量超出地图理论仓储上限"
-	if saved_next_id <= max_id:
-		return "下一个建筑编号与现有建筑冲突"
+	for road in data.roads:
+		if not road is Dictionary:
+			return "道路数据无效"
+		for field in ["x", "z"]:
+			if not is_json_number(road.get(field)) or not is_finite(float(road[field])) or floorf(float(road[field])) != float(road[field]):
+				return "道路坐标不是有效整数"
+		var cell := Vector2i(int(road.get("x", -1)), int(road.get("z", -1)))
+		if cell.x < 0 or cell.y < 0 or cell.x >= GRID_SIZE or cell.y >= GRID_SIZE or region_level_for_cell(cell) > level or cells.has(cell) or is_water_cell(cell) or is_fixed_road_infrastructure(cell) or has_scenery_tree(cell):
+			return "道路占地无效或重叠"
+		cells[cell] = true
+	if data.economy.buildings.size() != scene_types.size():
+		return "场景与经济建筑数量不一致"
+	for economic_record in data.economy.buildings:
+		var id := str(economic_record.id)
+		if not scene_types.has(id) or scene_types[id].type != str(economic_record.type) or scene_types[id].enabled != bool(economic_record.enabled):
+			return "场景与经济建筑记录不一致"
+	if int(data.get("next_id", 0)) <= max_id:
+		return "建筑编号游标无效"
+	if float(data.get("time_speed", 1.0)) not in TIME_SPEEDS:
+		return "时间倍率无效"
 	return ""
 
 func is_json_number(value: Variant) -> bool:
@@ -3966,9 +3574,7 @@ func is_json_number(value: Variant) -> bool:
 	return value_type == TYPE_INT or value_type == TYPE_FLOAT
 
 func save_path() -> String:
-	if OS.has_feature("editor"):
-		return ProjectSettings.globalize_path(EDITOR_SAVE_PATH)
-	return OS.get_executable_path().get_base_dir().path_join("saves/savegame.json")
+	return ProjectSettings.globalize_path(EDITOR_SAVE_PATH) if OS.has_feature("editor") else OS.get_executable_path().get_base_dir().path_join("saves/east_full_v2.json")
 
 func grid_to_world(cell: Vector2i) -> Vector3:
 	var half := GRID_SIZE * 0.5
@@ -4227,3 +3833,160 @@ func rotate_camera(delta: Vector2) -> void:
 	camera.look_at(camera_target)
 	clamp_camera_target_to_bounds()
 
+
+func sync_economy_buildings() -> void:
+	if restoring_economy:
+		return
+	economy.set_unlock_level(map_region_level)
+	economy.sync_buildings(MapGraphKit.build_records(self))
+	refresh_economy_snapshot()
+	refresh_recipe_visuals()
+
+func refresh_recipe_visuals() -> void:
+	for record in buildings:
+		var operation: Dictionary = economy_snapshot.get("building_status", {}).get(str(record.id), {})
+		ExpandedBuildingKit.apply_working_visual(record.node, bool(operation.get("ok", false)))
+		if record.type == "house":
+			var home: Dictionary = economy_snapshot.get("households", {}).get(str(record.id), {})
+			var remaining := float(home.get("upgrade_remaining", 0))
+			ExpandedBuildingKit.apply_house_visual(record.node, str(home.get("tier", "farmer")), 1.0 - remaining / 60.0 if remaining > 0 else -1.0)
+		elif record.type in ["farm", "hemp_farm", "workshop"]:
+			ExpandedBuildingKit.apply_recipe_visual(record.node, "farm" if record.type == "hemp_farm" else str(record.type), "hemp" if record.type == "hemp_farm" else ("food" if record.type == "farm" else "precision"))
+
+func is_lumber_lot(anchor: Vector2i, footprint: Vector2i) -> bool:
+	for cell in building_footprint_cells("lumber", anchor, footprint):
+		if is_lumber_cell(cell):
+			return true
+	return false
+
+func refresh_economy_snapshot() -> void:
+	economy_snapshot = economy.snapshot()
+	wood = floori(float(economy_snapshot.goods.get("wood", 0)) + 0.000001)
+	food = floori(float(economy_snapshot.goods.get("food", 0)) + 0.000001)
+	coins = floori(float(economy_snapshot.coins) + 0.000001)
+	population = int(economy_snapshot.population)
+	happiness = floori(float(economy_snapshot.happiness) + 0.000001)
+	day = 1 + floori(float(economy_snapshot.get("elapsed", 0)) / AUTO_DAY_SECONDS)
+	auto_day_elapsed = fmod(float(economy_snapshot.get("elapsed", 0)), AUTO_DAY_SECONDS)
+
+func selected_building_record() -> Dictionary:
+	for record in buildings:
+		if int(record.id) == selected_building_id:
+			return record
+	return {}
+
+func update_economy_inspector(record: Dictionary) -> void:
+	inspector_promote_button.visible = record.type == "house"
+	if record.type != "house":
+		return
+	var household: Dictionary = economy_snapshot.get("households", {}).get(str(record.id), {})
+	var artisan := str(household.get("tier", "farmer")) == "artisan"
+	var remaining := float(household.get("upgrade_remaining", 0))
+	var people := int(household.get("people", 0))
+	var supplied := int(household.get("artisan_workers" if artisan else "normal_workers", 0))
+	inspector_title.text = "民居 · " + ("匠户" if artisan else "农户")
+	inspector_body.text = "入住 %d/4 · %s %d\n税收：铜钱 +%s" % [people, "工匠" if artisan else "普通劳力", supplied, household_rate(people, 2)]
+	inspector_body.text += "\n水：−%s · %s\n口粮：−%s · %s" % [household_rate(people, 1 if artisan else 2), household_supply_text(household, "water"), household_rate(people, 1 if artisan else 2), household_supply_text(household, "food")]
+	if artisan or bool(economy_snapshot.get("clothing_unlocked", false)):
+		inspector_body.text += "\n衣物：−%s · %s" % [household_rate(people, 2 if artisan else 4), household_supply_text(household, "cloth")]
+	else:
+		inspector_body.text += "\n衣物：北坡开放后需要"
+	inspector_body.tooltip_text = "按实际入住人数自动供应。缺粮每1日离开2人；缺水或幸福度低于40，每1日离开1人，同期不重复减员。\n麻田→织坊供衣。累计缺衣1日暂停迁入；每2日全城离开1人，部分供衣会延缓流失。恢复供给后解除；不保留最后一名居民，人口归零失败。\n衣物每件收入铜钱1；匠户供衣充足时每人另增税收1/2日。陶器每件收入铜钱3。"
+	if artisan and map_region_level >= EconomyKit.Balance.POTTERY_UNLOCK:
+		inspector_body.text += "\n陶器：−%s · %s" % [household_rate(people, 8), household_supply_text(household, "pottery")]
+	if remaining > 0:
+		var operation := building_operation_state(record)
+		if str(operation.code) == "running":
+			set_inspector_status("改建中 · 还需%d日" % ceili(remaining / AUTO_DAY_SECONDS), true)
+	inspector_promote_button.text = "已是匠户" if artisan else ("改建中 · 还需%d日" % ceili(remaining / AUTO_DAY_SECONDS) if remaining > 0 else "改建匠户 · 木12 钱8 · 工期1日")
+	inspector_promote_button.disabled = artisan or remaining > 0 or ended != ""
+	inspector_promote_button.tooltip_text = "住满4人、接路、幸福度55即可开工。工期1日，完工后普通劳力−4、工匠+4。\n满住匠户每日需水4、粮食4、衣物2。"
+
+static func household_supply_text(household: Dictionary, good: String) -> String:
+	if int(household.get("people", 0)) == 0:
+		return "暂无需求"
+	if not household.get("supply", {}).has(good):
+		return "待供给"
+	var ratio := float(household.get("supply", {}).get(good, 0))
+	return "充足" if ratio >= 0.999 else ("不足" if ratio > 0 else "缺货")
+
+static func household_rate(numerator: int, denominator: int) -> String:
+	if numerator == 0:
+		return "0/日"
+	var divisor := mini(numerator, denominator)
+	while numerator % divisor != 0 or denominator % divisor != 0:
+		divisor -= 1
+	var days := denominator / divisor
+	return "%d/%s日" % [numerator / divisor, str(days) if days > 1 else ""]
+
+func building_detail_text(type: String) -> String:
+	inspector_body.tooltip_text = "正常运转且满员时的每日净产出与消耗；缺工或原料不足时，以实际运转为准。停产仍需支付维护。"
+	if type == "teahouse":
+		inspector_body.tooltip_text += "\n茶馆收入随客源和茶叶供应变化，所列数值按满客计算。"
+	var spec: Dictionary = EconomyKit.SPECS[type]
+	var lines: Array[String] = []
+	var resources := building_daily_resource_parts(type)
+	if not resources.outputs.is_empty():
+		lines.append("产出：" + " · ".join(resources.outputs))
+	if not resources.costs.is_empty():
+		lines.append("消耗：" + " · ".join(resources.costs))
+	if not BUILDINGS[type].get("resource_costs", {}).is_empty():
+		lines.append("建造：" + building_cost_text(type))
+	var benefits := {
+		"warehouse": "仓容：木材+50 · 水+25 · 粮食+50 · 衣物+30 · 其他各+100",
+		"freight": "本区发出道路货物，运送时间减半（不叠加）",
+		"granary": "粮食仓容 +%d" % EconomyKit.Balance.GRANARY_CAPACITY,
+		"dock": "连接码头，开通水运",
+		"trading_post": "商路 32/日",
+		"academy": "可选：纸张 −2/日 → 服务 +16人"
+	}
+	if benefits.has(type):
+		lines.append(benefits[type])
+	if spec.has("service"):
+		var service := str({"market":"集市", "health":"医疗", "culture":"文化", "garden":"园景", "leisure":"休闲"}.get(str(spec.service), "服务"))
+		lines.append("%s：%d人 · 道路范围%d格" % [service, int(spec.service_capacity), int(spec.range)])
+		if type == "market":
+			lines.append("效果：覆盖居民幸福度 +%d" % int(spec.service_bonus))
+			inspector_body.tooltip_text = "为道路可达范围内的居民提供集市服务。超过服务人数时，幸福效果按覆盖比例降低；不直接产生铜钱。"
+	return "\n".join(lines)
+
+func promote_selected_house() -> void:
+	if ended != "":
+		return
+	var reason: String = economy.promote_house(str(selected_building_id))
+	refresh_economy_snapshot()
+	refresh_recipe_visuals()
+	show_message("匠户改建已开工，工期1日" if reason == "" else reason)
+	update_ui()
+	save_game(false)
+
+static func building_catalog() -> Dictionary:
+	var catalog: Dictionary = EconomyKit.CATALOG.duplicate(true)
+	for type in catalog:
+		var spec: Dictionary = EconomyKit.SPECS[type]
+		catalog[type].workers = int(spec.workers)
+		catalog[type].maintenance = int(spec.maintenance)
+		catalog[type]["effects"] = {"housing": 4} if type == "house" else {}
+		catalog[type]["inputs"] = {str(spec.input): int(spec.input_rate)} if spec.has("input") else {}
+		catalog[type]["outputs"] = {str(spec.output): int(spec.rate)} if spec.has("output") else {}
+		if type in ["freight", "granary", "dock", "trading_post"]:
+			catalog[type].category = "logistics"
+		if type in ["pavilion", "garden"]:
+			catalog[type].category = "landscape"
+	return catalog
+
+static func building_footprints() -> Dictionary:
+	var footprints := {}
+	for type in EconomyKit.CATALOG:
+		footprints[type] = EconomyKit.CATALOG[type].footprint
+	return footprints
+
+static func display_integer(value: float) -> String:
+	return "不足1" if value > 0.0 and value < 1.0 else str(floori(value + 0.000001))
+
+static func goods_unlock_level(good: String) -> int:
+	return int({"food":0,"wood":0,"tools":0,"hemp":1,"cloth":1,"bamboo":2,"tea":3,"paper":4,"clay":5,"pottery":5}.get(good, 0))
+
+func change_build_page(direction: int) -> void:
+	build_page += direction
+	update_build_menu()
